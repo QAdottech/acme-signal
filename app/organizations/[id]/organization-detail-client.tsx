@@ -29,6 +29,7 @@ import {
   FolderKanban,
   Trash2,
   Send,
+  TrendingUp,
 } from "lucide-react";
 import { CollectionManager } from "@/components/collection-manager";
 import { deduplicateCollectionOrganizationIds } from "@/lib/organizationData";
@@ -73,6 +74,8 @@ const activityIcons: Record<string, typeof Building2> = {
   stage_changed: ArrowRight,
   note_added: StickyNote,
   meeting_scheduled: Calendar,
+  deal_updated: TrendingUp,
+  email_sent: Mail,
 };
 
 const activityColors: Record<string, string> = {
@@ -82,6 +85,8 @@ const activityColors: Record<string, string> = {
   stage_changed: "text-orange-500 bg-orange-50 dark:bg-orange-950",
   note_added: "text-yellow-500 bg-yellow-50 dark:bg-yellow-950",
   meeting_scheduled: "text-pink-500 bg-pink-50 dark:bg-pink-950",
+  deal_updated: "text-amber-500 bg-amber-50 dark:bg-amber-950",
+  email_sent: "text-teal-500 bg-teal-50 dark:bg-teal-950",
 };
 
 function getTimeAgo(timestamp: string) {
