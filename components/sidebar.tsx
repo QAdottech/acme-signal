@@ -11,6 +11,7 @@ import {
   Settings,
   UsersRound,
   CircleDollarSign,
+  Mail,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { getCollections } from "@/lib/organizationData";
@@ -24,6 +25,7 @@ const mainNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
   { href: "/organizations", label: "Companies", icon: Building2 },
   { href: "/people", label: "People", icon: Users },
+  { href: "/emails", label: "Emails", icon: Mail },
 ];
 
 export function Sidebar() {
