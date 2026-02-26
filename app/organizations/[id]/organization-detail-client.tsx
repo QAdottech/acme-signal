@@ -114,7 +114,7 @@ export function OrganizationDetailClient({
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <>
       <div className="bg-[#2D1A45] text-white">
         <div className="container max-w-[1400px] mx-auto px-6 py-12">
           <div className="flex items-start justify-between">
@@ -171,7 +171,7 @@ export function OrganizationDetailClient({
         </div>
       </div>
 
-      <main className="flex-1 container py-8 max-w-[1400px] mx-auto px-6">
+      <main className="container py-8 max-w-[1400px] mx-auto px-6">
         <div className="flex gap-8">
           <div className="flex-1 space-y-6">
             <Card>
@@ -362,6 +362,6 @@ export function OrganizationDetailClient({
           organization={organization}
         />
       )}
-    </div>
+    </>
   );
 }

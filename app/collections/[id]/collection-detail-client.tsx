@@ -35,11 +35,9 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
 
   if (!collection) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-        <main className="flex-1 container py-16 max-w-[1400px] mx-auto px-6">
-          <p>Collection not found</p>
-        </main>
-      </div>
+      <main className="container py-16 max-w-[1400px] mx-auto px-6">
+        <p>Collection not found</p>
+      </main>
     );
   }
 
@@ -51,8 +49,7 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      <main className="flex-1 container py-8 max-w-[1400px] mx-auto px-6">
+      <main className="container py-8 max-w-[1400px] mx-auto px-6">
         {/* Header */}
         <div className="mb-8">
           <Button
@@ -176,6 +173,5 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
           </div>
         </div>
       </main>
-    </div>
   );
 }

@@ -202,8 +202,7 @@ export function PipelineClient() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="min-h-screen flex flex-col">
-        <main className="flex-1 container py-8 max-w-[1400px] mx-auto px-6">
+      <main className="container py-8 max-w-[1400px] mx-auto px-6">
           <PipelineHeader
             openModal={() => setIsModalOpen(true)}
             searchTerm={searchTerm}
@@ -241,7 +240,6 @@ export function PipelineClient() {
             )}
           </div>
         </main>
-      </div>
       <DragOverlay>
         {activeOrganization ? (
           <div className="opacity-80 rotate-3 scale-105">

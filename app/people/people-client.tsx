@@ -55,8 +55,7 @@ export function PeopleClient() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-1 container py-8 max-w-[1400px] mx-auto px-6">
+      <main className="container py-8 max-w-[1400px] mx-auto px-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold">People</h1>
           <div className="flex gap-3">
@@ -260,6 +259,5 @@ export function PeopleClient() {
           onAdd={addPerson}
         />
       </main>
-    </div>
   );
 }

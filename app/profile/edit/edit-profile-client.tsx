@@ -48,13 +48,11 @@ export function EditProfileClient() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <main className="flex-1 container py-8 max-w-[1400px] mx-auto px-6">
-          <div className="flex items-center justify-center">
-            <div>Loading...</div>
-          </div>
-        </main>
-      </div>
+      <main className="container py-8 max-w-[1400px] mx-auto px-6">
+        <div className="flex items-center justify-center">
+          <div>Loading...</div>
+        </div>
+      </main>
     );
   }
 
@@ -63,8 +61,7 @@ export function EditProfileClient() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-1 container py-8 max-w-[1400px] mx-auto px-6">
+    <main className="container py-8 max-w-[1400px] mx-auto px-6">
         <Card className="max-w-md mx-auto">
           <CardHeader>
             <CardTitle>Edit Profile</CardTitle>
@@ -106,7 +103,6 @@ export function EditProfileClient() {
             </form>
           </CardContent>
         </Card>
-      </main>
-    </div>
+    </main>
   );
 }
