@@ -7,9 +7,19 @@ import { PublicHeader } from "@/components/public-header";
 
 const publicRoutes = ["/login", "/signup"];
 
+// Customer-facing routes: no app menu (standalone experience)
+const noHeaderRoutes = ["/customer/sign"];
+
 export function HeaderWrapper() {
   const { user, isLoading } = useAuth();
   const pathname = usePathname();
+
+  const isNoHeaderRoute =
+    pathname && noHeaderRoutes.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+
+  if (isNoHeaderRoute) {
+    return null;
+  }
 
   const isPublicRoute = !pathname || publicRoutes.includes(pathname);
 

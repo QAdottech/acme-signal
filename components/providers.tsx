@@ -5,7 +5,7 @@ import { HeaderWrapper } from "@/components/header-wrapper";
 import { usePathname } from "next/navigation";
 
 // Routes that don't require auth loading to complete before rendering
-const publicRoutes = ["/login", "/signup"];
+const publicRoutes = ["/login", "/signup", "/customer/sign"];
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isLoading } = useAuth();
