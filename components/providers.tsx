@@ -5,7 +5,8 @@ import { AppShell } from "@/components/app-shell";
 import { PublicHeader } from "@/components/public-header";
 import { usePathname } from "next/navigation";
 
-const publicRoutes = ["/login", "/signup"];
+// Routes that don't require auth loading to complete before rendering
+const publicRoutes = ["/login", "/signup", "/customer/sign"];
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isLoading } = useAuth();
