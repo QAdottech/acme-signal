@@ -435,6 +435,15 @@ export function OrganizationsClient() {
               ))}
             </TableBody>
           </Table>
+          {filteredOrganizations.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500 dark:text-gray-400">
+                {searchTerm || Object.values(filters).flat().length > 0
+                  ? "No organizations found matching your criteria."
+                  : "No organizations yet. Click 'Add Organization' to get started."}
+              </p>
+            </div>
+          )}
           <AddOrganizationModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
