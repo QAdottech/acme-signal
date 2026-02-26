@@ -17,8 +17,8 @@ export default function RootLayout({
 
 export const metadata = {
   title: {
-    default: "Deal Management System",
-    template: "%s | Deal Management System",
+    default: "ACME Signal",
+    template: "%s | ACME Signal",
   },
-  description: "Manage your deals and organizations",
+  description: "CRM platform for managing your contacts and organizations",
 };

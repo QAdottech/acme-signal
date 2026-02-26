@@ -136,7 +136,7 @@ export function DashboardClient() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
-            Overview of your deal pipeline and activities
+            Overview of your CRM pipeline and activities
           </p>
         </div>
 
