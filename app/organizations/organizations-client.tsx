@@ -1,0 +1,567 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  Search,
+  Plus,
+  Filter,
+  X,
+  Download,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
+import { AddOrganizationModal } from "@/components/add-organization-modal";
+import { BulkActionsBar } from "@/components/bulk-actions-bar";
+import Link from "next/link";
+import type { Organization } from "@/types/organization";
+import { FilterPopover } from "@/components/filter-popover";
+import { cn } from "@/lib/utils";
+import { OrganizationImage } from "@/components/organization-image";
+import { getOrganizations } from "@/lib/organizationData";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { exportOrganizationsToCSV } from "@/lib/exportUtils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+type SortField =
+  | "name"
+  | "industry"
+  | "location"
+  | "employees"
+  | "assessmentStatus"
+  | "exitStatus"
+  | "totalFunding";
+type SortDirection = "asc" | "desc";
+
+const calculateTotalFunding = (org: Organization): number => {
+  if (!org.fundingRounds || org.fundingRounds.length === 0) {
+    return 0;
+  }
+
+  return org.fundingRounds
+    .filter(
+      (round) => round.roundType !== "IPO" && round.roundType !== "Acquisition"
+    )
+    .reduce((total, round) => {
+      const amount = round.amount.replace(/[^0-9.]/g, "");
+      const numericAmount = parseFloat(amount);
+
+      if (isNaN(numericAmount)) {
+        return total;
+      }
+
+      // Convert to USD millions for consistent comparison
+      if (round.amount.includes("€")) {
+        return total + numericAmount * 1.1; // Rough EUR to USD conversion
+      } else if (round.amount.includes("SEK")) {
+        return total + numericAmount * 0.095; // Rough SEK to USD conversion
+      } else if (round.amount.includes("B")) {
+        return total + numericAmount * 1000; // Billions to millions
+      } else if (round.amount.includes("K")) {
+        return total + numericAmount / 1000; // Thousands to millions
+      }
+
+      return total + numericAmount;
+    }, 0);
+};
+
+const formatFunding = (amount: number): string => {
+  if (amount === 0) return "-";
+  if (amount >= 1000) {
+    return `$${(amount / 1000).toFixed(2)}B`;
+  }
+  return `$${amount.toFixed(1)}M`;
+};
+
+export function OrganizationsClient() {
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [filters, setFilters] = useState({
+    location: [] as string[],
+    assessmentStatus: [] as string[],
+    industry: [] as string[],
+  });
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  useEffect(() => {
+    setOrganizations(getOrganizations());
+  }, []);
+
+  const saveOrganizations = (newOrganizations: Organization[]) => {
+    setOrganizations(newOrganizations);
+    localStorage.setItem("organizations", JSON.stringify(newOrganizations));
+  };
+
+  const addOrganization = (newOrganization: Omit<Organization, "id">) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    const updatedOrganizations = [...organizations, { ...newOrganization, id }];
+    saveOrganizations(updatedOrganizations);
+    setIsModalOpen(false);
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const sortOrganizations = (orgs: Organization[]) => {
+    return [...orgs].sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortField) {
+        case "name":
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case "industry":
+          aValue = a.industry.toLowerCase();
+          bValue = b.industry.toLowerCase();
+          break;
+        case "location":
+          aValue = a.location.toLowerCase();
+          bValue = b.location.toLowerCase();
+          break;
+        case "employees":
+          aValue = a.employees;
+          bValue = b.employees;
+          break;
+        case "assessmentStatus":
+          aValue = a.assessmentStatus.toLowerCase();
+          bValue = b.assessmentStatus.toLowerCase();
+          break;
+        case "exitStatus":
+          aValue = a.exitStatus?.toLowerCase() || "";
+          bValue = b.exitStatus?.toLowerCase() || "";
+          break;
+        case "totalFunding":
+          aValue = calculateTotalFunding(a);
+          bValue = calculateTotalFunding(b);
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const filteredOrganizations = sortOrganizations(
+    organizations.filter((org) => {
+      const matchesSearch = org.name
+        .toLowerCase()
+        .startsWith(searchTerm.toLowerCase());
+      const matchesLocation =
+        filters.location.length === 0 ||
+        filters.location.includes(org.location);
+      const matchesStatus =
+        filters.assessmentStatus.length === 0 ||
+        filters.assessmentStatus.includes(org.assessmentStatus);
+      const matchesIndustry =
+        filters.industry.length === 0 ||
+        filters.industry.includes(org.industry);
+      return (
+        matchesSearch && matchesLocation && matchesStatus && matchesIndustry
+      );
+    })
+  );
+
+  const clearFilters = () => {
+    setFilters({
+      location: [] as string[],
+      assessmentStatus: [] as string[],
+      industry: [] as string[],
+    });
+  };
+
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredOrganizations.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredOrganizations.map((org) => org.id)));
+    }
+  };
+
+  const handleBulkStatusChange = (status: string) => {
+    const updatedOrganizations = organizations.map((org) =>
+      selectedIds.has(org.id)
+        ? { ...org, assessmentStatus: status as any }
+        : org
+    );
+    saveOrganizations(updatedOrganizations);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkExport = () => {
+    const selectedOrgs = organizations.filter((org) => selectedIds.has(org.id));
+    exportOrganizationsToCSV(selectedOrgs);
+  };
+
+  const handleBulkDelete = () => {
+    if (
+      confirm(
+        `Are you sure you want to delete ${selectedIds.size} organizations?`
+      )
+    ) {
+      const updatedOrganizations = organizations.filter(
+        (org) => !selectedIds.has(org.id)
+      );
+      saveOrganizations(updatedOrganizations);
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleExportAll = () => {
+    exportOrganizationsToCSV(filteredOrganizations);
+  };
+
+  return (
+    <TooltipProvider>
+      <div className="min-h-screen flex flex-col">
+        <main className="flex-1 container py-8 max-w-[1400px] mx-auto px-6">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-semibold">Organizations</h1>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleExportAll}
+                variant="outline"
+                className="gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </Button>
+              <Button
+                onClick={() => setIsModalOpen(true)}
+                className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                <Plus className="w-4 h-4" />
+                Add Organization
+              </Button>
+            </div>
+          </div>
+          <div className="mb-6 flex items-center gap-4">
+            <div className="relative flex-grow max-w-md">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search organizations..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 bg-gray-50 dark:bg-gray-800 border-transparent focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+              />
+            </div>
+            <FilterPopover filters={filters} setFilters={setFilters}>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "gap-2 bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2",
+                  Object.values(filters).flat().length > 0 &&
+                    "bg-orange-50 border-orange-300 text-orange-600 hover:bg-orange-100"
+                )}
+              >
+                <Filter className="w-4 h-4" />
+                Filters{" "}
+                {Object.values(filters).flat().length > 0 &&
+                  `(${Object.values(filters).flat().length})`}
+              </Button>
+            </FilterPopover>
+            {Object.values(filters).flat().length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="gap-2 text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-4 h-4" />
+                Clear filters
+              </Button>
+            )}
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={
+                      selectedIds.size === filteredOrganizations.length &&
+                      filteredOrganizations.length > 0
+                    }
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+                <TableHead>Logo</TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  onClick={() => handleSort("name")}
+                >
+                  <div className="flex items-center gap-2">
+                    Name
+                    {sortField === "name" &&
+                      (sortDirection === "asc" ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      ))}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  onClick={() => handleSort("industry")}
+                >
+                  <div className="flex items-center gap-2">
+                    Industry
+                    {sortField === "industry" &&
+                      (sortDirection === "asc" ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      ))}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  onClick={() => handleSort("location")}
+                >
+                  <div className="flex items-center gap-2">
+                    Location
+                    {sortField === "location" &&
+                      (sortDirection === "asc" ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      ))}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  onClick={() => handleSort("employees")}
+                >
+                  <div className="flex items-center gap-2">
+                    Employees
+                    {sortField === "employees" &&
+                      (sortDirection === "asc" ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      ))}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  onClick={() => handleSort("assessmentStatus")}
+                >
+                  <div className="flex items-center gap-2">
+                    Assessment Status
+                    {sortField === "assessmentStatus" &&
+                      (sortDirection === "asc" ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      ))}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  onClick={() => handleSort("totalFunding")}
+                >
+                  <div className="flex items-center gap-2">
+                    Total Funding
+                    {sortField === "totalFunding" &&
+                      (sortDirection === "asc" ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      ))}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  onClick={() => handleSort("exitStatus")}
+                >
+                  <div className="flex items-center gap-2">
+                    Exit Status
+                    {sortField === "exitStatus" &&
+                      (sortDirection === "asc" ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      ))}
+                  </div>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredOrganizations.map((org) => (
+                <TableRow
+                  key={org.id}
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds.has(org.id)}
+                      onCheckedChange={() => toggleSelection(org.id)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Link href={`/organizations/${org.id}`} className="block">
+                      <div className="w-10 h-10 relative rounded-full overflow-hidden">
+                        <OrganizationImage
+                          src={org.logo || "/placeholder.svg"}
+                          alt={`${org.name} logo`}
+                          width={40}
+                          height={40}
+                          className="rounded-full"
+                        />
+                      </div>
+                    </Link>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    <Link href={`/organizations/${org.id}`} className="block">
+                      {org.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link href={`/organizations/${org.id}`} className="block">
+                      {org.industry}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link href={`/organizations/${org.id}`} className="block">
+                      {org.location}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link href={`/organizations/${org.id}`} className="block">
+                      {org.employees}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link href={`/organizations/${org.id}`} className="block">
+                      {org.assessmentStatus}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link href={`/organizations/${org.id}`} className="block">
+                      {formatFunding(calculateTotalFunding(org))}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link href={`/organizations/${org.id}`} className="block">
+                      {org.exitStatus && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="inline-block">
+                              <Badge
+                                variant={
+                                  org.exitStatus === "IPO" ? "ipo" : "acquired"
+                                }
+                              >
+                                {org.exitStatus}
+                              </Badge>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-sm">
+                              {org.exitStatus === "IPO" ? (
+                                <div>
+                                  <div className="font-semibold">IPO</div>
+                                  <div className="text-muted-foreground">
+                                    {org.exitDate &&
+                                      `Date: ${new Date(
+                                        org.exitDate
+                                      ).toLocaleDateString("en-US", {
+                                        year: "numeric",
+                                        month: "long",
+                                        day:
+                                          org.exitDate.length > 7
+                                            ? "numeric"
+                                            : undefined,
+                                      })}`}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div>
+                                  <div className="font-semibold">Acquired</div>
+                                  {org.acquiredBy && (
+                                    <div className="text-muted-foreground">
+                                      By: {org.acquiredBy}
+                                    </div>
+                                  )}
+                                  {org.exitDate && (
+                                    <div className="text-muted-foreground">
+                                      Date:{" "}
+                                      {new Date(
+                                        org.exitDate
+                                      ).toLocaleDateString("en-US", {
+                                        year: "numeric",
+                                        month: "long",
+                                        day:
+                                          org.exitDate.length > 7
+                                            ? "numeric"
+                                            : undefined,
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <AddOrganizationModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onAdd={addOrganization}
+          />
+          <BulkActionsBar
+            selectedCount={selectedIds.size}
+            onClearSelection={() => setSelectedIds(new Set())}
+            onChangeStatus={handleBulkStatusChange}
+            onExport={handleBulkExport}
+            onDelete={handleBulkDelete}
+          />
+        </main>
+      </div>
+    </TooltipProvider>
+  );
+}
