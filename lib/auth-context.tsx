@@ -86,8 +86,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const defaultUsers = [
         {
           id: "1",
-          email: "vilhelm@qa.tech",
-          fullName: "Vilhelm von Ehrenheim",
+          email: "prj-anip7v@qatech.email",
+          fullName: "Sarah Chen",
+          avatar: "",
+          role: "admin" as const,
+          password: "testingpassword",
+        },
+        {
+          id: "2",
+          email: "james.morrison@example.com",
+          fullName: "James Morrison",
+          avatar: "",
+          role: "admin" as const,
+          password: "testingpassword",
+        },
+        {
+          id: "3",
+          email: "elena.vasquez@example.com",
+          fullName: "Elena Vasquez",
           avatar: "",
           role: "admin" as const,
           password: "testingpassword",
