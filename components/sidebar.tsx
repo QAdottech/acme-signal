@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3,
+  FileBarChart,
   Building2,
   Users,
   FolderKanban,
@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 const mainNavItems = [
   { href: "/", label: "Pipeline", icon: Kanban },
   { href: "/deals", label: "Deals", icon: CircleDollarSign },
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
+  { href: "/reports", label: "Reports", icon: FileBarChart },
   { href: "/organizations", label: "Companies", icon: Building2 },
   { href: "/people", label: "People", icon: Users },
 ];
