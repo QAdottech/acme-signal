@@ -105,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: "elena.vasquez@example.com",
           fullName: "Elena Vasquez",
           avatar: "",
-          role: "admin" as const,
+          role: "member" as const,
           password: "testingpassword",
         },
       ];
