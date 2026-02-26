@@ -83,7 +83,7 @@ export function AddTaskModal({
       title,
       status: "todo" as TaskStatus,
       priority,
-      assignee,
+      ...(assignee && assignee !== "none" && { assignee }),
       ...(description && { description }),
       ...(dueDate && { dueDate }),
       ...(relatedDealId && relatedDealId !== "none" && { relatedDealId }),
@@ -242,7 +242,7 @@ export function AddTaskModal({
             <Button
               type="submit"
               className="bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={!title.trim() || !assignee}
+              disabled={!title.trim()}
             >
               Create Task
             </Button>
