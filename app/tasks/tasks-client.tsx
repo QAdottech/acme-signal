@@ -15,11 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, Plus, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import type { Task, TaskStatus, TaskPriority } from "@/types/task";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
-import { getTasks, saveTasks, addTask as addTaskToStore } from "@/lib/taskData";
+import { getTasks, saveTasks, addTask as addTaskToStore, deleteTask as deleteTaskFromStore } from "@/lib/taskData";
 import { getDeals } from "@/lib/dealData";
 import { getOrganizations } from "@/lib/organizationData";
 import { getPeople } from "@/lib/personData";
@@ -146,6 +146,11 @@ export function TasksClient() {
     const newTask = addTaskToStore(taskData);
     setTasks([...tasks, newTask]);
     setIsModalOpen(false);
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    deleteTaskFromStore(taskId);
+    setTasks(tasks.filter((t) => t.id !== taskId));
   };
 
   const getRelatedEntity = (task: Task) => {
@@ -312,6 +317,18 @@ export function TasksClient() {
           )}
         </TableCell>
         <TableCell className="text-sm">{task.assignee}</TableCell>
+        <TableCell className="w-10">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteTask(task.id);
+            }}
+            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-all"
+            aria-label="Delete task"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </TableCell>
       </TableRow>
     );
   };
@@ -371,6 +388,7 @@ export function TasksClient() {
                 <TableHead>Due Date</TableHead>
                 <TableHead>Related</TableHead>
                 <TableHead>Assignee</TableHead>
+                <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -399,6 +417,7 @@ export function TasksClient() {
                 <TableHead>Due Date</TableHead>
                 <TableHead>Related</TableHead>
                 <TableHead>Assignee</TableHead>
+                <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -427,6 +446,7 @@ export function TasksClient() {
                 <TableHead>Due Date</TableHead>
                 <TableHead>Related</TableHead>
                 <TableHead>Assignee</TableHead>
+                <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
