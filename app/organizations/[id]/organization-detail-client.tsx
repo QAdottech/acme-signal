@@ -8,6 +8,7 @@ import type { Organization } from "@/types/organization";
 import type { Person } from "@/types/person";
 import type { Activity } from "@/types/activity";
 import type { Note } from "@/lib/notesData";
+import type { Deal } from "@/types/deal";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,6 +40,7 @@ import {
   addNote,
   deleteNote,
 } from "@/lib/notesData";
+import { getDealsForOrganization, formatDealValue } from "@/lib/dealData";
 import {
   Command,
   CommandEmpty,
@@ -106,6 +108,7 @@ export function OrganizationDetailClient({
   const [contacts, setContacts] = useState<Person[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
   const [newNote, setNewNote] = useState("");
   const router = useRouter();
 
@@ -133,6 +136,7 @@ export function OrganizationDetailClient({
         );
         // Load notes
         setNotes(getNotesForOrganization(params.id));
+        setDeals(getDealsForOrganization(params.id));
       } else {
         router.push("/organizations");
       }
@@ -364,6 +368,47 @@ export function OrganizationDetailClient({
                       ) : (
                         <p className="text-sm text-gray-500 text-center py-4">
                           No contacts linked to this organization
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Deals */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">
+                        Deals ({deals.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {deals.length > 0 ? (
+                        <div className="space-y-3">
+                          {deals.map((deal) => (
+                            <Link
+                              key={deal.id}
+                              href={`/deals/${deal.id}`}
+                              className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                            >
+                              <div>
+                                <p className="text-sm font-medium">{deal.title}</p>
+                                <p className="text-xs text-gray-500">
+                                  {deal.stage} &middot; {deal.owner}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-semibold">
+                                  {formatDealValue(deal.value)}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {deal.probability}% probability
+                                </p>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 text-center py-4">
+                          No deals linked to this organization
                         </p>
                       )}
                     </CardContent>

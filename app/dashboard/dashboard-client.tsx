@@ -15,9 +15,11 @@ import {
 import { getOrganizations } from "@/lib/organizationData";
 import { getPeople } from "@/lib/personData";
 import { getActivities } from "@/lib/activityData";
+import { getDeals, formatDealValue } from "@/lib/dealData";
 import { Organization } from "@/types/organization";
 import { Person } from "@/types/person";
 import { Activity } from "@/types/activity";
+import type { Deal } from "@/types/deal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart,
@@ -39,12 +41,14 @@ export function DashboardClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
   const [showPipelineModal, setShowPipelineModal] = useState(false);
 
   useEffect(() => {
     setOrganizations(getOrganizations());
     setPeople(getPeople());
     setActivities(getActivities());
+    setDeals(getDeals());
   }, []);
 
   // Calculate stats
@@ -60,7 +64,10 @@ export function DashboardClient() {
       org.dealStage === "Negotiation"
   );
 
-  const activePipeline = pipelineOrganizations.length;
+  const pipelineDeals = deals.filter((d) =>
+    ["Lead", "Qualified", "Proposal", "Negotiation"].includes(d.stage)
+  );
+  const totalPipelineValue = pipelineDeals.reduce((sum, d) => sum + d.value, 0);
 
   const activePeople = people.filter(
     (person) => person.status === "Active"
@@ -68,31 +75,10 @@ export function DashboardClient() {
 
   // Prepare chart data
   const statusData = [
-    {
-      name: "Lead",
-      count: organizations.filter((o) => o.dealStage === "Lead")
-        .length,
-    },
-    {
-      name: "Qualified",
-      count: organizations.filter((o) => o.dealStage === "Qualified")
-        .length,
-    },
-    {
-      name: "Proposal",
-      count: organizations.filter((o) => o.dealStage === "Proposal")
-        .length,
-    },
-    {
-      name: "Negotiation",
-      count: organizations.filter((o) => o.dealStage === "Negotiation")
-        .length,
-    },
-    {
-      name: "Customer",
-      count: organizations.filter((o) => o.dealStage === "Customer")
-        .length,
-    },
+    { name: "Lead", count: deals.filter((d) => d.stage === "Lead").length },
+    { name: "Qualified", count: deals.filter((d) => d.stage === "Qualified").length },
+    { name: "Proposal", count: deals.filter((d) => d.stage === "Proposal").length },
+    { name: "Negotiation", count: deals.filter((d) => d.stage === "Negotiation").length },
   ];
 
   const industryData = organizations.reduce((acc, org) => {
@@ -155,8 +141,8 @@ export function DashboardClient() {
           />
           <StatsCard
             title="Active Pipeline"
-            value={activePipeline}
-            description="In pipeline stages"
+            value={pipelineDeals.length}
+            description={formatDealValue(totalPipelineValue) + " total value"}
             icon={Target}
             trend={{ value: 8, isPositive: true }}
             onClick={() => setShowPipelineModal(true)}
@@ -293,7 +279,7 @@ export function DashboardClient() {
       <ActiveDealsModal
         isOpen={showPipelineModal}
         onClose={() => setShowPipelineModal(false)}
-        deals={pipelineOrganizations}
+        deals={pipelineDeals}
       />
     </>
   );
