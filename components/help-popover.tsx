@@ -13,7 +13,7 @@ export function HelpPopover() {
     {
       icon: Book,
       title: "Getting Started",
-      description: "Learn the basics of managing your deal pipeline",
+      description: "Learn the basics of managing your CRM",
       action: () => console.log("Getting started clicked"),
     },
     {
@@ -44,7 +44,7 @@ export function HelpPopover() {
       <PopoverContent className="w-80 p-0" align="end">
         <div className="p-4">
           <h3 className="font-semibold text-lg mb-2">Help & Support</h3>
-          <p className="text-sm text-muted-foreground mb-4">Get help with using your deal management system</p>
+          <p className="text-sm text-muted-foreground mb-4">Get help with using ACME Signal</p>
         </div>
         <Separator />
         <div className="p-2">
