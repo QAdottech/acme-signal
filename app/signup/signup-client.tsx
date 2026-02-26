@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { SignupStep2 } from "@/components/signup-step2";
+import { Mail, Loader2 } from "lucide-react";
 
 export function SignupClient() {
   const [email, setEmail] = useState("");
@@ -15,7 +15,7 @@ export function SignupClient() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [step, setStep] = useState(1);
-  const router = useRouter();
+  const [isSending, setIsSending] = useState(false);
   const { signup } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -35,22 +35,56 @@ export function SignupClient() {
     setStep(2);
   };
 
-  const handleSignup = (fullName: string, avatar: string) => {
-    const success = signup(email, password, fullName, avatar);
-    if (success) {
-      router.push("/");
-    } else {
-      setError("Failed to create account");
+  const sendVerificationEmail = async (userEmail: string, userName?: string) => {
+    // Generate a verification token
+    const token = Math.random().toString(36).substr(2, 9) +
+      Math.random().toString(36).substr(2, 9);
+
+    // Store token in localStorage for verification
+    const storedTokens = localStorage.getItem("verification-tokens");
+    const tokens = storedTokens ? JSON.parse(storedTokens) : {};
+    tokens[userEmail] = token;
+    localStorage.setItem("verification-tokens", JSON.stringify(tokens));
+
+    // Send the email via API
+    try {
+      const response = await fetch("/api/send-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: userEmail, token, userName }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error("Failed to send verification email:", data.error);
+      }
+    } catch (err) {
+      console.error("Failed to send verification email:", err);
     }
   };
 
-  const handleSkip = () => {
-    const success = signup(email, password);
+  const handleSignup = async (fullName: string, avatar: string) => {
+    setIsSending(true);
+    const success = signup(email, password, fullName, avatar);
     if (success) {
-      router.push("/");
+      await sendVerificationEmail(email, fullName);
+      setStep(3);
     } else {
       setError("Failed to create account");
     }
+    setIsSending(false);
+  };
+
+  const handleSkip = async () => {
+    setIsSending(true);
+    const success = signup(email, password);
+    if (success) {
+      await sendVerificationEmail(email);
+      setStep(3);
+    } else {
+      setError("Failed to create account");
+    }
+    setIsSending(false);
   };
 
   return (
@@ -61,12 +95,16 @@ export function SignupClient() {
             <div className="w-12 h-12 rounded-xl bg-[#2D1A45] flex items-center justify-center mx-auto mb-4">
               <span className="text-white font-bold text-xl">A</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Create your account
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Get started with ACME Signal
-            </p>
+            {step !== 3 && (
+              <>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  Create your account
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Get started with ACME Signal
+                </p>
+              </>
+            )}
           </div>
           <div className="bg-white dark:bg-gray-900 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
             {step === 1 ? (
@@ -135,19 +173,54 @@ export function SignupClient() {
                   Continue
                 </Button>
               </form>
+            ) : step === 2 ? (
+              <>
+                {isSending ? (
+                  <div className="text-center py-4">
+                    <Loader2 className="w-8 h-8 text-orange-500 animate-spin mx-auto mb-3" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Creating your account...
+                    </p>
+                  </div>
+                ) : (
+                  <SignupStep2 onSignup={handleSignup} onSkip={handleSkip} />
+                )}
+              </>
             ) : (
-              <SignupStep2 onSignup={handleSignup} onSkip={handleSkip} />
+              <div className="text-center">
+                <Mail className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  Check your email
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                  We&apos;ve sent a verification link to
+                </p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white mb-6">
+                  {email}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+                  Click the link in the email to verify your account. You can
+                  also continue to the app and verify later.
+                </p>
+                <Link href="/">
+                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
+                    Continue to ACME Signal
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
-          <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-            Already have an account?{" "}
-            <Link
-              href="/login"
-              className="text-orange-500 hover:text-orange-600 font-medium"
-            >
-              Sign in
-            </Link>
-          </p>
+          {step < 3 && (
+            <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+              Already have an account?{" "}
+              <Link
+                href="/login"
+                className="text-orange-500 hover:text-orange-600 font-medium"
+              >
+                Sign in
+              </Link>
+            </p>
+          )}
         </div>
       </main>
     </div>

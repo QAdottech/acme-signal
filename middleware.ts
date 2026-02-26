@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Routes that don't require authentication
-const publicRoutes = ["/login", "/signup", "/customer/sign"];
+const publicRoutes = ["/login", "/signup", "/verify-email", "/customer/sign"];
 
 // Routes that authenticated users should be redirected away from
 const authRoutes = ["/login", "/signup"];
