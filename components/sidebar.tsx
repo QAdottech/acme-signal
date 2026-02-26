@@ -11,6 +11,7 @@ import {
   Settings,
   UsersRound,
   CircleDollarSign,
+  StickyNote,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
@@ -25,6 +26,7 @@ const mainNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
   { href: "/organizations", label: "Companies", icon: Building2 },
   { href: "/people", label: "People", icon: Users },
+  { href: "/notes", label: "Notes", icon: StickyNote },
 ];
 
 export function Sidebar() {
