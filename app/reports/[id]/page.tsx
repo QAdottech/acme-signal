@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, RefreshCw, Trash2 } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -31,6 +31,7 @@ import {
   type KpiData,
   type TableData,
 } from "@/lib/reports";
+import { DeleteReportDialog } from "@/components/reports/delete-report-dialog";
 
 // ── Custom tooltip ─────────────────────────────────────────────────────
 
@@ -65,19 +66,12 @@ function BarChartWidget({ data }: { data: ChartDataPoint[] }) {
     <ResponsiveContainer width="100%" height={300}>
       <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis
-          dataKey="name"
-          tick={{ fontSize: 12 }}
-          className="text-muted-foreground"
-        />
+        <XAxis dataKey="name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
         <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
         <Tooltip content={<CustomTooltip />} />
         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
           {data.map((_, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={CHART_COLORS[index % CHART_COLORS.length]}
-            />
+            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
           ))}
         </Bar>
       </BarChart>
@@ -98,16 +92,11 @@ function DonutChartWidget({ data }: { data: ChartDataPoint[] }) {
           paddingAngle={3}
           dataKey="value"
           nameKey="name"
-          label={({ name, percent }) =>
-            `${name}: ${(percent * 100).toFixed(0)}%`
-          }
+          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
           labelLine={true}
         >
           {data.map((_, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={CHART_COLORS[index % CHART_COLORS.length]}
-            />
+            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
           ))}
         </Pie>
         <Tooltip content={<CustomTooltip />} />
@@ -124,7 +113,6 @@ function DonutChartWidget({ data }: { data: ChartDataPoint[] }) {
 }
 
 function LineChartWidget({ data }: { data: ChartDataPoint[] }) {
-  // Determine which keys to plot (beyond 'name' and 'value')
   const extraKeys = data.length > 0
     ? Object.keys(data[0]).filter((k) => k !== "name" && k !== "value")
     : [];
@@ -186,13 +174,8 @@ function KpiCardWidget({ data }: { data: KpiData }) {
       <p className="text-4xl font-bold tracking-tight">{data.value}</p>
       <p className="text-sm text-muted-foreground mt-1">{data.label}</p>
       {data.trend && (
-        <p
-          className={`text-xs mt-2 font-medium ${
-            data.trend.isPositive ? "text-green-600" : "text-red-600"
-          }`}
-        >
-          {data.trend.isPositive ? "+" : "-"}
-          {Math.abs(data.trend.value)}% from last month
+        <p className={`text-xs mt-2 font-medium ${data.trend.isPositive ? "text-green-600" : "text-red-600"}`}>
+          {data.trend.isPositive ? "+" : "-"}{Math.abs(data.trend.value)}% from last month
         </p>
       )}
     </div>
@@ -206,25 +189,15 @@ function DataTableWidget({ data }: { data: TableData }) {
         <thead>
           <tr className="border-b">
             {data.headers.map((h) => (
-              <th
-                key={h}
-                className="text-left py-2.5 px-3 font-medium text-muted-foreground"
-              >
-                {h}
-              </th>
+              <th key={h} className="text-left py-2.5 px-3 font-medium text-muted-foreground">{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {data.rows.map((row, rowIdx) => (
-            <tr
-              key={rowIdx}
-              className="border-b last:border-0 hover:bg-muted/50 transition-colors"
-            >
+            <tr key={rowIdx} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
               {row.map((cell, cellIdx) => (
-                <td key={cellIdx} className="py-2.5 px-3">
-                  {cell}
-                </td>
+                <td key={cellIdx} className="py-2.5 px-3">{cell}</td>
               ))}
             </tr>
           ))}
@@ -274,6 +247,7 @@ export default function ReportDetailPage() {
   const router = useRouter();
   const [report, setReport] = useState<ReportDefinition | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const loadReport = useCallback(() => {
     const id = params.id as string;
@@ -306,11 +280,7 @@ export default function ReportDetailPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/reports")}
-          >
+          <Button variant="ghost" size="icon" onClick={() => router.push("/reports")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -318,26 +288,30 @@ export default function ReportDetailPage() {
             <p className="text-muted-foreground mt-1">{report.description}</p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => setRefreshKey((k) => k + 1)}
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh data
-        </Button>
+        <div className="flex items-center gap-2">
+          {!report.isBuiltIn && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="text-destructive hover:text-destructive"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => setRefreshKey((k) => k + 1)}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh data
+          </Button>
+        </div>
       </div>
 
       {/* Widget grid */}
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2" key={refreshKey}>
         {report.widgets.map((widget) => (
-          <Card
-            key={widget.id}
-            className={widget.span === 2 ? "md:col-span-2" : ""}
-          >
+          <Card key={widget.id} className={widget.span === 2 ? "md:col-span-2" : ""}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-medium">
-                {widget.title}
-              </CardTitle>
+              <CardTitle className="text-base font-medium">{widget.title}</CardTitle>
             </CardHeader>
             <CardContent>
               <WidgetRenderer widget={widget} />
@@ -345,6 +319,15 @@ export default function ReportDetailPage() {
           </Card>
         ))}
       </div>
+
+      {!report.isBuiltIn && (
+        <DeleteReportDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          reportId={report.id}
+          reportTitle={report.title}
+        />
+      )}
     </main>
   );
 }
