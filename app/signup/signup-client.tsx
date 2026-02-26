@@ -55,54 +55,97 @@ export function SignupClient() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <main className="flex-1 flex items-center justify-center">
+      <main className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="w-full max-w-md">
-          <h1 className="text-2xl font-bold mb-6 text-center">Sign Up</h1>
-          {step === 1 ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                />
-              </div>
-              <div>
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-              </div>
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-              <Button type="submit" className="w-full">
-                Next
-              </Button>
-            </form>
-          ) : (
-            <SignupStep2 onSignup={handleSignup} onSkip={handleSkip} />
-          )}
-          <p className="mt-4 text-center">
+          <div className="text-center mb-8">
+            <div className="w-12 h-12 rounded-xl bg-[#2D1A45] flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-xl">A</span>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Create your account
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Get started with ACME Signal
+            </p>
+          </div>
+          <div className="bg-white dark:bg-gray-900 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
+            {step === 1 ? (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label
+                    htmlFor="email"
+                    className="text-gray-700 dark:text-gray-300"
+                  >
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="mt-1.5 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    placeholder="you@company.com"
+                  />
+                </div>
+                <div>
+                  <Label
+                    htmlFor="password"
+                    className="text-gray-700 dark:text-gray-300"
+                  >
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    className="mt-1.5 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    placeholder="At least 8 characters"
+                  />
+                </div>
+                <div>
+                  <Label
+                    htmlFor="confirmPassword"
+                    className="text-gray-700 dark:text-gray-300"
+                  >
+                    Confirm Password
+                  </Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="mt-1.5 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    placeholder="Re-enter your password"
+                  />
+                </div>
+                {error && (
+                  <p className="text-red-500 dark:text-red-400 text-sm">
+                    {error}
+                  </p>
+                )}
+                <Button
+                  type="submit"
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  Continue
+                </Button>
+              </form>
+            ) : (
+              <SignupStep2 onSignup={handleSignup} onSkip={handleSkip} />
+            )}
+          </div>
+          <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
             Already have an account?{" "}
-            <Link href="/login" className="text-blue-500 hover:underline">
-              Login
+            <Link
+              href="/login"
+              className="text-orange-500 hover:text-orange-600 font-medium"
+            >
+              Sign in
             </Link>
           </p>
         </div>
