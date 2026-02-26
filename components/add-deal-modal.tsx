@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import type { Deal } from "@/types/deal";
 import type { Organization, DealStage } from "@/types/organization";
 import { getOrganizations } from "@/lib/organizationData";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Popover,
@@ -53,6 +53,19 @@ const owners = [
   "David Martinez",
 ];
 
+const AVAILABLE_TAGS = [
+  "Pre POC",
+  "POC",
+  "POC Complete",
+  "Enterprise",
+  "Startup",
+  "Expansion",
+  "Renewal",
+  "At Risk",
+  "Champion Identified",
+  "Technical Eval",
+];
+
 export function AddDealModal({
   isOpen,
   onClose,
@@ -66,6 +79,10 @@ export function AddDealModal({
   const [expectedCloseDate, setExpectedCloseDate] = useState("");
   const [owner, setOwner] = useState("");
   const [probability, setProbability] = useState("20");
+  const [nextStep, setNextStep] = useState("");
+  const [tagsInput, setTagsInput] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagsOpen, setTagsOpen] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [orgOpen, setOrgOpen] = useState(false);
   const [stageOpen, setStageOpen] = useState(false);
@@ -80,6 +97,17 @@ export function AddDealModal({
 
   const selectedOrg = organizations.find((o) => o.id === organizationId);
 
+  const handleAddTag = (tag: string) => {
+    if (!selectedTags.includes(tag)) {
+      setSelectedTags([...selectedTags, tag]);
+    }
+    setTagsOpen(false);
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    setSelectedTags(selectedTags.filter((t) => t !== tag));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onAdd({
@@ -91,6 +119,8 @@ export function AddDealModal({
       expectedCloseDate,
       owner,
       probability: Number(probability),
+      nextStep: nextStep || undefined,
+      tags: selectedTags.length > 0 ? selectedTags : undefined,
     });
     setTitle("");
     setOrganizationId("");
@@ -99,11 +129,14 @@ export function AddDealModal({
     setExpectedCloseDate("");
     setOwner("");
     setProbability("20");
+    setNextStep("");
+    setSelectedTags([]);
+    setTagsInput("");
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Deal</DialogTitle>
           <DialogDescription>
@@ -287,6 +320,73 @@ export function AddDealModal({
                 onChange={(e) => setProbability(e.target.value)}
                 className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
               />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="deal-next-step" className="text-right">
+                Next Step
+              </Label>
+              <Input
+                id="deal-next-step"
+                value={nextStep}
+                onChange={(e) => setNextStep(e.target.value)}
+                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                placeholder="Schedule demo with CTO"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label className="text-right pt-2">Tags</Label>
+              <div className="col-span-3 space-y-2">
+                {selectedTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {selectedTags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          className="hover:text-orange-900 dark:hover:text-orange-100"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between text-sm"
+                      type="button"
+                    >
+                      Add tag...
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[250px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search tags..." />
+                      <CommandEmpty>No tag found.</CommandEmpty>
+                      <CommandGroup className="max-h-[200px] overflow-auto">
+                        {AVAILABLE_TAGS.filter(
+                          (t) => !selectedTags.includes(t)
+                        ).map((tag) => (
+                          <CommandItem
+                            key={tag}
+                            onSelect={() => handleAddTag(tag)}
+                          >
+                            {tag}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
           <DialogFooter>
