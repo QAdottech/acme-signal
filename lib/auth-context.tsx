@@ -9,6 +9,7 @@ interface User {
   fullName: string;
   avatar: string;
   role: "admin" | "member";
+  emailVerified?: boolean;
   password?: string; // For demo purposes only - never do this in production!
 }
 
