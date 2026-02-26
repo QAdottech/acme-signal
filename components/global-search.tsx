@@ -7,7 +7,7 @@ import { Organization } from "@/types/organization";
 import { getOrganizations } from "@/lib/organizationData";
 import Link from "next/link";
 import { OrganizationImage } from "@/components/organization-image";
-import { Badge } from "@/components/ui/badge";
+
 
 export function GlobalSearch() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,7 +57,7 @@ export function GlobalSearch() {
         <Search className="absolute left-2 top-2.5 h-4 w-4 focus:outline-none text-muted-foreground" />
         <Input
           placeholder="Search..."
-          className="pl-8 bg-white/10 border-transparent text-white placeholder:text-white/70 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+          className="pl-8 bg-gray-100 dark:bg-gray-800 border-transparent text-gray-900 dark:text-white placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -90,23 +90,13 @@ export function GlobalSearch() {
                       <span className="font-medium text-gray-800 dark:text-white truncate">
                         {org.name}
                       </span>
-                      {org.exitStatus && (
-                        <Badge
-                          variant={
-                            org.exitStatus === "IPO" ? "ipo" : "acquired"
-                          }
-                          className="text-[10px] px-1.5 py-0"
-                        >
-                          {org.exitStatus}
-                        </Badge>
-                      )}
                       <span className="text-muted-foreground">•</span>
                       <span className="text-sm text-muted-foreground truncate">
                         {org.location}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {org.industry} • {org.assessmentStatus}
+                      {org.industry} • {org.dealStage}
                     </p>
                   </div>
                 </Link>

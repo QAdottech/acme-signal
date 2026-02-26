@@ -5,21 +5,42 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { EditOrganizationModal } from "@/components/edit-organization-modal";
 import type { Organization } from "@/types/organization";
+import type { Person } from "@/types/person";
+import type { Activity } from "@/types/activity";
+import type { Note } from "@/lib/notesData";
+import type { Deal } from "@/types/deal";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Globe, Users, MapPin, ChevronsUpDown, Check } from "lucide-react";
+  Globe,
+  Users,
+  MapPin,
+  ChevronsUpDown,
+  Check,
+  Mail,
+  Phone,
+  Linkedin,
+  Building2,
+  ArrowRight,
+  StickyNote,
+  Calendar,
+  FolderKanban,
+  Trash2,
+  Send,
+} from "lucide-react";
 import { CollectionManager } from "@/components/collection-manager";
 import { deduplicateCollectionOrganizationIds } from "@/lib/organizationData";
 import { OrganizationImage } from "@/components/organization-image";
-import { Badge } from "@/components/ui/badge";
+import { getPeople } from "@/lib/personData";
+import { getActivities } from "@/lib/activityData";
+import {
+  getNotesForOrganization,
+  addNote,
+  deleteNote,
+} from "@/lib/notesData";
+import { getDealsForOrganization, formatDealValue } from "@/lib/dealData";
 import {
   Command,
   CommandEmpty,
@@ -34,45 +55,47 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-const calculateTotalFunding = (org: Organization): number => {
-  if (!org.fundingRounds || org.fundingRounds.length === 0) {
-    return 0;
-  }
+const dealStages = [
+  "New",
+  "Lead",
+  "Qualified",
+  "Proposal",
+  "Negotiation",
+  "Customer",
+  "Churned",
+  "Closed Lost",
+] as const;
 
-  return org.fundingRounds
-    .filter(
-      (round) => round.roundType !== "IPO" && round.roundType !== "Acquisition"
-    )
-    .reduce((total, round) => {
-      const amount = round.amount.replace(/[^0-9.]/g, "");
-      const numericAmount = parseFloat(amount);
-
-      if (isNaN(numericAmount)) {
-        return total;
-      }
-
-      // Convert to USD millions for consistent comparison
-      if (round.amount.includes("€")) {
-        return total + numericAmount * 1.1; // Rough EUR to USD conversion
-      } else if (round.amount.includes("SEK")) {
-        return total + numericAmount * 0.095; // Rough SEK to USD conversion
-      } else if (round.amount.includes("B")) {
-        return total + numericAmount * 1000; // Billions to millions
-      } else if (round.amount.includes("K")) {
-        return total + numericAmount / 1000; // Thousands to millions
-      }
-
-      return total + numericAmount;
-    }, 0);
+const activityIcons: Record<string, typeof Building2> = {
+  organization_added: Building2,
+  person_added: Users,
+  collection_created: FolderKanban,
+  stage_changed: ArrowRight,
+  note_added: StickyNote,
+  meeting_scheduled: Calendar,
 };
 
-const formatFunding = (amount: number): string => {
-  if (amount === 0) return "-";
-  if (amount >= 1000) {
-    return `$${(amount / 1000).toFixed(2)}B`;
-  }
-  return `$${amount.toFixed(1)}M`;
+const activityColors: Record<string, string> = {
+  organization_added: "text-blue-500 bg-blue-50 dark:bg-blue-950",
+  person_added: "text-green-500 bg-green-50 dark:bg-green-950",
+  collection_created: "text-purple-500 bg-purple-50 dark:bg-purple-950",
+  stage_changed: "text-orange-500 bg-orange-50 dark:bg-orange-950",
+  note_added: "text-yellow-500 bg-yellow-50 dark:bg-yellow-950",
+  meeting_scheduled: "text-pink-500 bg-pink-50 dark:bg-pink-950",
 };
+
+function getTimeAgo(timestamp: string) {
+  const now = new Date();
+  const time = new Date(timestamp);
+  const diffMs = now.getTime() - time.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
+}
 
 export function OrganizationDetailClient({
   params,
@@ -82,10 +105,14 @@ export function OrganizationDetailClient({
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [contacts, setContacts] = useState<Person[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [newNote, setNewNote] = useState("");
   const router = useRouter();
 
   useEffect(() => {
-    // Clean up any existing duplicates
     deduplicateCollectionOrganizationIds();
     const storedOrganizations = localStorage.getItem("organizations");
     if (storedOrganizations) {
@@ -93,6 +120,23 @@ export function OrganizationDetailClient({
       const org = organizations.find((o) => o.id === params.id);
       if (org) {
         setOrganization(org);
+        // Load related contacts
+        const allPeople = getPeople();
+        setContacts(
+          allPeople.filter((p) => p.organization === org.name)
+        );
+        // Load activities related to this org
+        const allActivities = getActivities();
+        setActivities(
+          allActivities.filter(
+            (a) =>
+              a.relatedEntityId === params.id ||
+              a.description?.toLowerCase().includes(org.name.toLowerCase())
+          )
+        );
+        // Load notes
+        setNotes(getNotesForOrganization(params.id));
+        setDeals(getDealsForOrganization(params.id));
       } else {
         router.push("/organizations");
       }
@@ -132,11 +176,11 @@ export function OrganizationDetailClient({
     }
   };
 
-  const handleAssessmentStatusChange = (value: string) => {
+  const handleDealStageChange = (value: string) => {
     if (organization) {
       const updatedOrg = {
         ...organization,
-        assessmentStatus: value as Organization["assessmentStatus"],
+        dealStage: value as Organization["dealStage"],
       };
       handleEdit(updatedOrg);
       setStatusOpen(false);
@@ -145,7 +189,6 @@ export function OrganizationDetailClient({
 
   const handleCollectionsChange = useCallback(
     (updatedCollections: string[]) => {
-      // Read fresh data from localStorage to ensure we have the latest state
       const storedOrganizations = localStorage.getItem("organizations");
       if (storedOrganizations) {
         const organizations: Organization[] = JSON.parse(storedOrganizations);
@@ -158,17 +201,34 @@ export function OrganizationDetailClient({
     [params.id]
   );
 
+  const handleAddNote = () => {
+    if (!newNote.trim() || !organization) return;
+    const note = addNote({
+      organizationId: organization.id,
+      content: newNote.trim(),
+      authorName: "You",
+    });
+    setNotes([note, ...notes]);
+    setNewNote("");
+  };
+
+  const handleDeleteNote = (noteId: string) => {
+    deleteNote(noteId);
+    setNotes(notes.filter((n) => n.id !== noteId));
+  };
+
   if (!organization) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="bg-[#2D1A45] text-white">
-        <div className="container max-w-[1400px] mx-auto px-6 py-12">
+    <>
+      {/* Header */}
+      <div className="border-b bg-white dark:bg-gray-950">
+        <div className="container max-w-[1400px] mx-auto px-6 py-6">
           <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-6">
-              <div className="w-24 h-24 relative flex-shrink-0 bg-white rounded-full overflow-hidden border-4 border-white">
+            <div className="flex items-start space-x-4">
+              <div className="w-14 h-14 relative flex-shrink-0 bg-gray-100 rounded-xl overflow-hidden">
                 <OrganizationImage
                   src={organization.logo || "/placeholder.svg"}
                   alt={`${organization.name} logo`}
@@ -176,188 +236,335 @@ export function OrganizationDetailClient({
                   objectFit="cover"
                 />
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h1 className="text-3xl font-bold">{organization.name}</h1>
-                  {organization.exitStatus && (
-                    <Badge
-                      variant={
-                        organization.exitStatus === "IPO" ? "ipo" : "acquired"
-                      }
-                    >
-                      {organization.exitStatus}
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-xl text-gray-200 mb-6">
-                  {organization.industry}
-                </p>
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="w-5 h-5 text-gray-300" />
-                    <span className="text-gray-100">
-                      {organization.location}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-5 h-5 text-gray-300" />
-                    <span className="text-gray-100">
-                      {organization.employees} employees
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Globe className="w-5 h-5 text-gray-300" />
-                    <Link
-                      href={organization.website_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-gray-100 hover:text-white hover:underline"
-                    >
-                      {organization.website_url}
-                    </Link>
-                  </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {organization.name}
+                </h1>
+                <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <Building2 className="w-3.5 h-3.5" />
+                    {organization.industry}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5" />
+                    {organization.location}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5" />
+                    {organization.employees} employees
+                  </span>
+                  <Link
+                    href={organization.website_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-orange-600 hover:underline"
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    Website
+                  </Link>
                 </div>
               </div>
             </div>
             <Button
               onClick={() => setIsEditModalOpen(true)}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              variant="outline"
+              size="sm"
             >
-              Edit Organization
+              Edit
             </Button>
           </div>
         </div>
       </div>
 
-      <main className="flex-1 container py-8 max-w-[1400px] mx-auto px-6">
+      {/* Content */}
+      <div className="container max-w-[1400px] mx-auto px-6 py-6">
         <div className="flex gap-8">
-          <div className="flex-1 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>About {organization.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 leading-relaxed">
-                  {organization.description}
-                </p>
-              </CardContent>
-            </Card>
+          {/* Left panel with tabs */}
+          <div className="flex-1 min-w-0">
+            <Tabs defaultValue="overview">
+              <TabsList>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="activity">Activity</TabsTrigger>
+                <TabsTrigger value="notes">
+                  Notes{notes.length > 0 && ` (${notes.length})`}
+                </TabsTrigger>
+              </TabsList>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Founders</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {organization.founders && organization.founders.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                    {organization.founders.map((founder, index) => (
-                      <div
-                        key={index}
-                        className="flex flex-col items-center p-4 border rounded-lg text-center"
-                      >
-                        <div className="flex-1 mb-3">
-                          <h4 className="font-semibold text-gray-900 text-sm">
-                            {founder.name}
-                          </h4>
-                          {founder.role && (
-                            <p className="text-xs text-gray-600 mt-1">
-                              {founder.role}
-                            </p>
-                          )}
-                        </div>
-                        {founder.linkedin && (
-                          <a
-                            href={founder.linkedin}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 transition-colors"
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="currentColor"
-                              viewBox="0 0 24 24"
-                              xmlns="http://www.w3.org/2000/svg"
+              {/* Overview Tab */}
+              <TabsContent value="overview">
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">About</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                        {organization.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Contacts at this organization */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">
+                        Contacts ({contacts.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {contacts.length > 0 ? (
+                        <div className="space-y-3">
+                          {contacts.map((person) => (
+                            <div
+                              key={person.id}
+                              className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                             >
-                              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                            </svg>
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">
-                    No founder information available
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                  <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                    {person.name.charAt(0)}
+                                  </span>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    {person.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {person.role}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {person.email && (
+                                  <a
+                                    href={`mailto:${person.email}`}
+                                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600"
+                                  >
+                                    <Mail className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                                {person.phone && (
+                                  <a
+                                    href={`tel:${person.phone}`}
+                                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600"
+                                  >
+                                    <Phone className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                                {person.linkedIn && (
+                                  <a
+                                    href={person.linkedIn}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600"
+                                  >
+                                    <Linkedin className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 text-center py-4">
+                          No contacts linked to this organization
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Funding History</span>
-                  {organization.fundingRounds &&
-                    organization.fundingRounds.length > 0 && (
-                      <span className="text-sm font-normal text-gray-600">
-                        Total:{" "}
-                        {formatFunding(calculateTotalFunding(organization))}
-                        <span className="text-xs text-gray-500 ml-1">
-                          (excl. IPO & acquisitions)
-                        </span>
-                      </span>
-                    )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-24">Date</TableHead>
-                      <TableHead className="w-28">Amount</TableHead>
-                      <TableHead className="w-32">Round Type</TableHead>
-                      <TableHead>Investors</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {organization.fundingRounds &&
-                    organization.fundingRounds.length > 0 ? (
-                      organization.fundingRounds.map((round) => (
-                        <TableRow key={round.id}>
-                          <TableCell className="align-top">
-                            {round.date}
-                          </TableCell>
-                          <TableCell className="align-top whitespace-nowrap">
-                            {round.amount}
-                          </TableCell>
-                          <TableCell className="align-top">
-                            {round.roundType}
-                          </TableCell>
-                          <TableCell className="whitespace-normal break-words">
-                            {round.investors.join(", ")}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="text-center text-gray-500"
+                  {/* Deals */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">
+                        Deals ({deals.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {deals.length > 0 ? (
+                        <div className="space-y-3">
+                          {deals.map((deal) => (
+                            <Link
+                              key={deal.id}
+                              href={`/deals/${deal.id}`}
+                              className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                            >
+                              <div>
+                                <p className="text-sm font-medium">{deal.title}</p>
+                                <p className="text-xs text-gray-500">
+                                  {deal.stage} &middot; {deal.owner}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-semibold">
+                                  {formatDealValue(deal.value)}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {deal.probability}% probability
+                                </p>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 text-center py-4">
+                          No deals linked to this organization
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Recent Notes preview */}
+                  {notes.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">
+                          Latest Note
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {notes[0].content}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          {notes[0].authorName} &middot;{" "}
+                          {getTimeAgo(notes[0].createdAt)}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* Activity Tab */}
+              <TabsContent value="activity">
+                <div className="space-y-3">
+                  {activities.length > 0 ? (
+                    activities.map((activity) => {
+                      const Icon = activityIcons[activity.type] || ArrowRight;
+                      const colorClass =
+                        activityColors[activity.type] ||
+                        "text-gray-500 bg-gray-50";
+
+                      return (
+                        <div
+                          key={activity.id}
+                          className="flex items-start gap-3 p-3 rounded-lg border"
                         >
-                          No funding rounds yet
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+                          <div
+                            className={`p-2 rounded-lg flex-shrink-0 ${colorClass}`}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">
+                              {activity.title}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {activity.description}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-400">
+                                {getTimeAgo(activity.timestamp)}
+                              </span>
+                              {activity.userName && (
+                                <>
+                                  <span className="text-xs text-gray-300">
+                                    &middot;
+                                  </span>
+                                  <span className="text-xs text-gray-400">
+                                    {activity.userName}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-12 text-sm text-gray-500">
+                      No activity recorded for this organization
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* Notes Tab */}
+              <TabsContent value="notes">
+                <div className="space-y-4">
+                  {/* Add note form */}
+                  <div className="flex gap-2">
+                    <Textarea
+                      placeholder="Write a note..."
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      className="min-h-[80px] resize-none text-sm"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && e.metaKey) {
+                          handleAddNote();
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleAddNote}
+                      disabled={!newNote.trim()}
+                      size="sm"
+                      className="gap-1.5"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      Add Note
+                    </Button>
+                  </div>
+
+                  {/* Notes list */}
+                  {notes.length > 0 ? (
+                    <div className="space-y-3">
+                      {notes.map((note) => (
+                        <div
+                          key={note.id}
+                          className="p-4 rounded-lg border group"
+                        >
+                          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                            {note.content}
+                          </p>
+                          <div className="flex items-center justify-between mt-3">
+                            <p className="text-xs text-gray-400">
+                              {note.authorName} &middot;{" "}
+                              {getTimeAgo(note.createdAt)}
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0 text-gray-400 hover:text-red-500"
+                              onClick={() => handleDeleteNote(note.id)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-sm text-gray-500">
+                      No notes yet. Add one above.
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
-          <div className="w-96 space-y-4">
+          {/* Right sidebar */}
+          <div className="w-80 space-y-4 flex-shrink-0">
+            {/* Deal Stage */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Assessment Status</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-500">
+                  Deal Stage
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <Popover open={statusOpen} onOpenChange={setStatusOpen}>
@@ -366,151 +573,89 @@ export function OrganizationDetailClient({
                       variant="outline"
                       role="combobox"
                       aria-expanded={statusOpen}
-                      className="w-full justify-between"
+                      className="w-full justify-between text-sm"
                     >
-                      {organization.assessmentStatus || "Select status"}
+                      {organization.dealStage || "Select stage"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0">
+                  <PopoverContent className="w-[250px] p-0">
                     <Command>
-                      <CommandInput placeholder="Search status..." />
-                      <CommandEmpty>No status found.</CommandEmpty>
+                      <CommandInput placeholder="Search stage..." />
+                      <CommandEmpty>No stage found.</CommandEmpty>
                       <CommandGroup>
-                        <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Not assessed")
-                          }
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              organization.assessmentStatus === "Not assessed"
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          Not assessed
-                        </CommandItem>
-                        <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Screening")
-                          }
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              organization.assessmentStatus === "Screening"
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          Screening
-                        </CommandItem>
-                        <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Passive follow")
-                          }
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              organization.assessmentStatus === "Passive follow"
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          Passive follow
-                        </CommandItem>
-                        <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Hitlist")
-                          }
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              organization.assessmentStatus === "Hitlist"
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          Hitlist
-                        </CommandItem>
-                        <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Preparing for NDC")
-                          }
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              organization.assessmentStatus ===
-                                "Preparing for NDC"
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          Preparing for NDC
-                        </CommandItem>
-                        <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Portfolio company")
-                          }
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              organization.assessmentStatus ===
-                                "Portfolio company"
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          Portfolio company
-                        </CommandItem>
-                        <CommandItem
-                          onSelect={() => handleAssessmentStatusChange("Lost")}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              organization.assessmentStatus === "Lost"
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          Lost
-                        </CommandItem>
-                        <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Not interesting")
-                          }
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              organization.assessmentStatus ===
-                                "Not interesting"
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          Not interesting
-                        </CommandItem>
+                        {dealStages.map((stage) => (
+                          <CommandItem
+                            key={stage}
+                            onSelect={() => handleDealStageChange(stage)}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                organization.dealStage === stage
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {stage}
+                          </CommandItem>
+                        ))}
                       </CommandGroup>
                     </Command>
                   </PopoverContent>
                 </Popover>
               </CardContent>
             </Card>
+
+            {/* Details */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-500">
+                  Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">Owner</span>
+                  <span className="text-sm font-medium">
+                    {organization.owner || "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">Revenue</span>
+                  <span className="text-sm font-medium">
+                    {organization.annualRevenue || "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">Last Contacted</span>
+                  <span className="text-sm font-medium">
+                    {organization.lastContacted || "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">Employees</span>
+                  <span className="text-sm font-medium">
+                    {organization.employees.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">Industry</span>
+                  <span className="text-sm font-medium">
+                    {organization.industry}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Collections */}
             <CollectionManager
               organization={organization}
               onCollectionsChange={handleCollectionsChange}
             />
           </div>
         </div>
-      </main>
+      </div>
 
       {organization && (
         <EditOrganizationModal
@@ -521,6 +666,6 @@ export function OrganizationDetailClient({
           organization={organization}
         />
       )}
-    </div>
+    </>
   );
 }

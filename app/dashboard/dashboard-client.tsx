@@ -15,9 +15,11 @@ import {
 import { getOrganizations } from "@/lib/organizationData";
 import { getPeople } from "@/lib/personData";
 import { getActivities } from "@/lib/activityData";
+import { getDeals, formatDealValue } from "@/lib/dealData";
 import { Organization } from "@/types/organization";
 import { Person } from "@/types/person";
 import { Activity } from "@/types/activity";
+import type { Deal } from "@/types/deal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart,
@@ -39,27 +41,33 @@ export function DashboardClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [showActiveDealsModal, setShowActiveDealsModal] = useState(false);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [showPipelineModal, setShowPipelineModal] = useState(false);
 
   useEffect(() => {
     setOrganizations(getOrganizations());
     setPeople(getPeople());
     setActivities(getActivities());
+    setDeals(getDeals());
   }, []);
 
   // Calculate stats
-  const portfolioCompanies = organizations.filter(
-    (org) => org.assessmentStatus === "Portfolio company"
+  const activeCustomers = organizations.filter(
+    (org) => org.dealStage === "Customer"
   ).length;
 
-  const activeDealOrganizations = organizations.filter(
+  const pipelineOrganizations = organizations.filter(
     (org) =>
-      org.assessmentStatus === "Screening" ||
-      org.assessmentStatus === "Hitlist" ||
-      org.assessmentStatus === "Preparing for NDC"
+      org.dealStage === "Lead" ||
+      org.dealStage === "Qualified" ||
+      org.dealStage === "Proposal" ||
+      org.dealStage === "Negotiation"
   );
 
-  const activeDeals = activeDealOrganizations.length;
+  const pipelineDeals = deals.filter((d) =>
+    ["Lead", "Qualified", "Proposal", "Negotiation"].includes(d.stage)
+  );
+  const totalPipelineValue = pipelineDeals.reduce((sum, d) => sum + d.value, 0);
 
   const activePeople = people.filter(
     (person) => person.status === "Active"
@@ -67,28 +75,10 @@ export function DashboardClient() {
 
   // Prepare chart data
   const statusData = [
-    {
-      name: "Screening",
-      count: organizations.filter((o) => o.assessmentStatus === "Screening")
-        .length,
-    },
-    {
-      name: "Hitlist",
-      count: organizations.filter((o) => o.assessmentStatus === "Hitlist")
-        .length,
-    },
-    {
-      name: "Preparing for NDC",
-      count: organizations.filter(
-        (o) => o.assessmentStatus === "Preparing for NDC"
-      ).length,
-    },
-    {
-      name: "Portfolio",
-      count: organizations.filter(
-        (o) => o.assessmentStatus === "Portfolio company"
-      ).length,
-    },
+    { name: "Lead", count: deals.filter((d) => d.stage === "Lead").length },
+    { name: "Qualified", count: deals.filter((d) => d.stage === "Qualified").length },
+    { name: "Proposal", count: deals.filter((d) => d.stage === "Proposal").length },
+    { name: "Negotiation", count: deals.filter((d) => d.stage === "Negotiation").length },
   ];
 
   const industryData = organizations.reduce((acc, org) => {
@@ -122,17 +112,17 @@ export function DashboardClient() {
 
   // Mock growth data
   const growthData = [
-    { month: "Jan", deals: 12, people: 24 },
-    { month: "Feb", deals: 15, people: 28 },
-    { month: "Mar", deals: 18, people: 35 },
-    { month: "Apr", deals: 22, people: 42 },
-    { month: "May", deals: 25, people: 48 },
-    { month: "Jun", deals: organizations.length, people: people.length },
+    { month: "Jan", companies: 12, people: 24 },
+    { month: "Feb", companies: 15, people: 28 },
+    { month: "Mar", companies: 18, people: 35 },
+    { month: "Apr", companies: 22, people: 42 },
+    { month: "May", companies: 25, people: 48 },
+    { month: "Jun", companies: organizations.length, people: people.length },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-1 container py-8 max-w-[1400px] mx-auto px-6">
+    <>
+      <main className="container py-8 max-w-[1400px] mx-auto px-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
@@ -150,17 +140,17 @@ export function DashboardClient() {
             trend={{ value: 12, isPositive: true }}
           />
           <StatsCard
-            title="Active Deals"
-            value={activeDeals}
-            description="In screening or hitlist"
+            title="Active Pipeline"
+            value={pipelineDeals.length}
+            description={formatDealValue(totalPipelineValue) + " total value"}
             icon={Target}
             trend={{ value: 8, isPositive: true }}
-            onClick={() => setShowActiveDealsModal(true)}
+            onClick={() => setShowPipelineModal(true)}
           />
           <StatsCard
-            title="Portfolio Companies"
-            value={portfolioCompanies}
-            description="Current investments"
+            title="Active Customers"
+            value={activeCustomers}
+            description="Current customers"
             icon={DollarSign}
             trend={{ value: 5, isPositive: true }}
           />
@@ -177,7 +167,7 @@ export function DashboardClient() {
         <div className="grid gap-6 md:grid-cols-2 mb-6">
           <Card>
             <CardHeader>
-              <CardTitle>Deals by Status</CardTitle>
+              <CardTitle>Pipeline by Stage</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -246,7 +236,7 @@ export function DashboardClient() {
                   <Legend />
                   <Line
                     type="monotone"
-                    dataKey="deals"
+                    dataKey="companies"
                     stroke="#f97316"
                     strokeWidth={2}
                     name="Organizations"
@@ -285,12 +275,12 @@ export function DashboardClient() {
         <ActivityFeed activities={activities} maxItems={8} />
       </main>
 
-      {/* Active Deals Modal */}
+      {/* Active Pipeline Modal */}
       <ActiveDealsModal
-        isOpen={showActiveDealsModal}
-        onClose={() => setShowActiveDealsModal(false)}
-        deals={activeDealOrganizations}
+        isOpen={showPipelineModal}
+        onClose={() => setShowPipelineModal(false)}
+        deals={pipelineDeals}
       />
-    </div>
+    </>
   );
 }

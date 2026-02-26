@@ -11,9 +11,9 @@ const defaultActivities: Activity[] = [
   },
   {
     id: "2",
-    type: "deal_moved",
-    title: "Deal Stage Changed",
-    description: "Figma moved from Screening to Hitlist",
+    type: "stage_changed",
+    title: "Stage Changed",
+    description: "Figma moved from Lead to Qualified",
     timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
     userName: "Michael Chen",
   },

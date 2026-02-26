@@ -27,13 +27,11 @@ export function TeamClient() {
   // Show loading state while authentication is being determined
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <main className="flex-1 container py-16 max-w-[1400px] mx-auto px-6">
-          <div className="flex items-center justify-center">
-            <div>Loading...</div>
-          </div>
-        </main>
-      </div>
+      <main className="container py-16 max-w-[1400px] mx-auto px-6">
+        <div className="flex items-center justify-center">
+          <div>Loading...</div>
+        </div>
+      </main>
     );
   }
 

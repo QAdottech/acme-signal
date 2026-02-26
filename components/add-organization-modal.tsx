@@ -56,14 +56,10 @@ export function AddOrganizationModal({
   const [logoPreview, setLogoPreview] = useState("");
   const [website_url, setWebsiteUrl] = useState("");
   const [description, setDescription] = useState("");
-  const [assessmentStatus, setAssessmentStatus] =
-    useState<Organization["assessmentStatus"]>("Not assessed");
-  const [exitStatus, setExitStatus] = useState<"IPO" | "Acquired" | undefined>(
-    undefined
-  );
+  const [dealStage, setDealStage] =
+    useState<Organization["dealStage"]>("New");
   const [industryOpen, setIndustryOpen] = useState(false);
-  const [assessmentOpen, setAssessmentOpen] = useState(false);
-  const [exitOpen, setExitOpen] = useState(false);
+  const [dealStageOpen, setDealStageOpen] = useState(false);
 
   const handleLogoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,8 +95,7 @@ export function AddOrganizationModal({
       logo,
       website_url,
       description,
-      assessmentStatus,
-      exitStatus,
+      dealStage,
       collections: [],
     });
     // Reset form
@@ -112,8 +107,7 @@ export function AddOrganizationModal({
     setLogoPreview("");
     setWebsiteUrl("");
     setDescription("");
-    setAssessmentStatus("Not assessed");
-    setExitStatus(undefined);
+    setDealStage("New");
   };
 
   return (
@@ -303,224 +297,54 @@ export function AddOrganizationModal({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="assessmentStatus" className="text-right">
-                Assessment Status
+              <Label htmlFor="dealStage" className="text-right">
+                Deal Stage
               </Label>
-              <Popover open={assessmentOpen} onOpenChange={setAssessmentOpen}>
+              <Popover open={dealStageOpen} onOpenChange={setDealStageOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     role="combobox"
-                    aria-expanded={assessmentOpen}
+                    aria-expanded={dealStageOpen}
                     className="w-[200px] col-span-3 justify-between"
                   >
-                    {assessmentStatus || "Select status"}
+                    {dealStage || "Select stage"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[200px] p-0">
                   <Command>
-                    <CommandInput placeholder="Search status..." />
-                    <CommandEmpty>No status found.</CommandEmpty>
+                    <CommandInput placeholder="Search stage..." />
+                    <CommandEmpty>No stage found.</CommandEmpty>
                     <CommandGroup>
-                      <CommandItem
-                        onSelect={() => {
-                          setAssessmentStatus("Not assessed");
-                          setAssessmentOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            assessmentStatus === "Not assessed"
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        Not assessed
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => {
-                          setAssessmentStatus("Screening");
-                          setAssessmentOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            assessmentStatus === "Screening"
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        Screening
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => {
-                          setAssessmentStatus("Passive follow");
-                          setAssessmentOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            assessmentStatus === "Passive follow"
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        Passive follow
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => {
-                          setAssessmentStatus("Hitlist");
-                          setAssessmentOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            assessmentStatus === "Hitlist"
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        Hitlist
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => {
-                          setAssessmentStatus("Preparing for NDC");
-                          setAssessmentOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            assessmentStatus === "Preparing for NDC"
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        Preparing for NDC
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => {
-                          setAssessmentStatus("Portfolio company");
-                          setAssessmentOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            assessmentStatus === "Portfolio company"
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        Portfolio company
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => {
-                          setAssessmentStatus("Lost");
-                          setAssessmentOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            assessmentStatus === "Lost"
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        Lost
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => {
-                          setAssessmentStatus("Not interesting");
-                          setAssessmentOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            assessmentStatus === "Not interesting"
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        Not interesting
-                      </CommandItem>
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="exitStatus" className="text-right">
-                Exit Status
-              </Label>
-              <Popover open={exitOpen} onOpenChange={setExitOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={exitOpen}
-                    className="w-[200px] col-span-3 justify-between"
-                  >
-                    {exitStatus || "None"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0">
-                  <Command>
-                    <CommandInput placeholder="Search exit status..." />
-                    <CommandEmpty>No exit status found.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        onSelect={() => {
-                          setExitStatus(undefined);
-                          setExitOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            !exitStatus ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        None
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => {
-                          setExitStatus("IPO");
-                          setExitOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            exitStatus === "IPO" ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        IPO
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => {
-                          setExitStatus("Acquired");
-                          setExitOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            exitStatus === "Acquired"
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        Acquired
-                      </CommandItem>
+                      {([
+                        "New",
+                        "Lead",
+                        "Qualified",
+                        "Proposal",
+                        "Negotiation",
+                        "Customer",
+                        "Churned",
+                        "Closed Lost",
+                      ] as const).map((stage) => (
+                        <CommandItem
+                          key={stage}
+                          onSelect={() => {
+                            setDealStage(stage);
+                            setDealStageOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              dealStage === stage
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          {stage}
+                        </CommandItem>
+                      ))}
                     </CommandGroup>
                   </Command>
                 </PopoverContent>

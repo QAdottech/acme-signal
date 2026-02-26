@@ -1,21 +1,9 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Filter, Star, Search, X, ChevronsUpDown, Check } from "lucide-react";
+import { Filter, Search, X, Plus } from "lucide-react";
 import { FilterPopover } from "@/components/filter-popover";
 import { cn } from "@/lib/utils";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { formatDealValue } from "@/lib/dealData";
 
 interface PipelineHeaderProps {
   openModal: () => void;
@@ -23,17 +11,18 @@ interface PipelineHeaderProps {
   onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   filters: {
     location: string[];
-    assessmentStatus: string[];
+    dealStage: string[];
     industry: string[];
   };
   setFilters: React.Dispatch<
     React.SetStateAction<{
       location: string[];
-      assessmentStatus: string[];
+      dealStage: string[];
       industry: string[];
     }>
   >;
-  onSwimlanesChange: (value: string) => void;
+  totalValue: number;
+  dealCount: number;
 }
 
 export function PipelineHeader({
@@ -42,27 +31,13 @@ export function PipelineHeader({
   onSearchChange,
   filters,
   setFilters,
-  onSwimlanesChange,
+  totalValue,
+  dealCount,
 }: PipelineHeaderProps) {
-  const [swimlanesOpen, setSwimlanesOpen] = useState(false);
-  const [selectedSwimlanesValue, setSelectedSwimlanesValue] =
-    useState("no-swimlanes");
   const totalFilters = Object.values(filters).flat().length;
 
   const clearFilters = () => {
-    setFilters({ location: [], assessmentStatus: [], industry: [] });
-  };
-
-  const swimlanesOptions = [
-    { value: "no-swimlanes", label: "No swimlanes" },
-    { value: "industry", label: "Industry" },
-    { value: "location", label: "Location" },
-  ];
-
-  const handleSwimlanesSelect = (value: string) => {
-    setSelectedSwimlanesValue(value);
-    onSwimlanesChange(value);
-    setSwimlanesOpen(false);
+    setFilters({ location: [], dealStage: [], industry: [] });
   };
 
   return (
@@ -70,33 +45,31 @@ export function PipelineHeader({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Technology pipeline
+            Sales Pipeline
           </h1>
           <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
             <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-              Early Stage
+              {dealCount} deals
             </span>
             <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-              Technology
-            </span>
-            <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-              Global
-            </span>
-            <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-              Hitlist
+              {formatDealValue(totalValue)} total value
             </span>
           </div>
         </div>
-        <Button variant="ghost" size="sm" className="gap-2">
-          <Star className="w-4 h-4" />
-          Favorite
+        <Button
+          onClick={openModal}
+          size="sm"
+          className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
+        >
+          <Plus className="w-4 h-4" />
+          Add Deal
         </Button>
       </div>
       <div className="flex items-center gap-4 border-t pt-6">
         <div className="relative flex-grow max-w-md">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Filter organizations..."
+            placeholder="Filter deals..."
             value={searchTerm}
             onChange={onSearchChange}
             className="pl-8 w-full bg-gray-50 dark:bg-gray-800 border-transparent focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
@@ -127,45 +100,6 @@ export function PipelineHeader({
             Clear filters
           </Button>
         )}
-        <Popover open={swimlanesOpen} onOpenChange={setSwimlanesOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={swimlanesOpen}
-              className="w-[180px] justify-between"
-            >
-              {swimlanesOptions.find(
-                (option) => option.value === selectedSwimlanesValue
-              )?.label || "Select swimlanes"}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[180px] p-0">
-            <Command>
-              <CommandInput placeholder="Search..." />
-              <CommandEmpty>No option found.</CommandEmpty>
-              <CommandGroup>
-                {swimlanesOptions.map((option) => (
-                  <CommandItem
-                    key={option.value}
-                    onSelect={() => handleSwimlanesSelect(option.value)}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        selectedSwimlanesValue === option.value
-                          ? "opacity-100"
-                          : "opacity-0"
-                      )}
-                    />
-                    {option.label}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </Command>
-          </PopoverContent>
-        </Popover>
       </div>
     </div>
   );

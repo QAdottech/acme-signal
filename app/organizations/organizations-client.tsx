@@ -28,65 +28,28 @@ import { FilterPopover } from "@/components/filter-popover";
 import { cn } from "@/lib/utils";
 import { OrganizationImage } from "@/components/organization-image";
 import { getOrganizations } from "@/lib/organizationData";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { exportOrganizationsToCSV } from "@/lib/exportUtils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+
+const stageColors: Record<string, string> = {
+  New: "bg-gray-100 text-gray-700",
+  Lead: "bg-blue-100 text-blue-700",
+  Qualified: "bg-orange-100 text-orange-700",
+  Proposal: "bg-purple-100 text-purple-700",
+  Negotiation: "bg-amber-100 text-amber-700",
+  Customer: "bg-green-100 text-green-700",
+  Churned: "bg-red-100 text-red-700",
+  "Closed Lost": "bg-red-100 text-red-700",
+};
 
 type SortField =
   | "name"
   | "industry"
   | "location"
   | "employees"
-  | "assessmentStatus"
-  | "exitStatus"
-  | "totalFunding";
+  | "dealStage"
+  | "owner";
 type SortDirection = "asc" | "desc";
-
-const calculateTotalFunding = (org: Organization): number => {
-  if (!org.fundingRounds || org.fundingRounds.length === 0) {
-    return 0;
-  }
-
-  return org.fundingRounds
-    .filter(
-      (round) => round.roundType !== "IPO" && round.roundType !== "Acquisition"
-    )
-    .reduce((total, round) => {
-      const amount = round.amount.replace(/[^0-9.]/g, "");
-      const numericAmount = parseFloat(amount);
-
-      if (isNaN(numericAmount)) {
-        return total;
-      }
-
-      // Convert to USD millions for consistent comparison
-      if (round.amount.includes("€")) {
-        return total + numericAmount * 1.1; // Rough EUR to USD conversion
-      } else if (round.amount.includes("SEK")) {
-        return total + numericAmount * 0.095; // Rough SEK to USD conversion
-      } else if (round.amount.includes("B")) {
-        return total + numericAmount * 1000; // Billions to millions
-      } else if (round.amount.includes("K")) {
-        return total + numericAmount / 1000; // Thousands to millions
-      }
-
-      return total + numericAmount;
-    }, 0);
-};
-
-const formatFunding = (amount: number): string => {
-  if (amount === 0) return "-";
-  if (amount >= 1000) {
-    return `$${(amount / 1000).toFixed(2)}B`;
-  }
-  return `$${amount.toFixed(1)}M`;
-};
 
 export function OrganizationsClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -95,7 +58,7 @@ export function OrganizationsClient() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
     location: [] as string[],
-    assessmentStatus: [] as string[],
+    dealStage: [] as string[],
     industry: [] as string[],
   });
   const [sortField, setSortField] = useState<SortField>("name");
@@ -148,17 +111,13 @@ export function OrganizationsClient() {
           aValue = a.employees;
           bValue = b.employees;
           break;
-        case "assessmentStatus":
-          aValue = a.assessmentStatus.toLowerCase();
-          bValue = b.assessmentStatus.toLowerCase();
+        case "dealStage":
+          aValue = a.dealStage.toLowerCase();
+          bValue = b.dealStage.toLowerCase();
           break;
-        case "exitStatus":
-          aValue = a.exitStatus?.toLowerCase() || "";
-          bValue = b.exitStatus?.toLowerCase() || "";
-          break;
-        case "totalFunding":
-          aValue = calculateTotalFunding(a);
-          bValue = calculateTotalFunding(b);
+        case "owner":
+          aValue = (a.owner || "").toLowerCase();
+          bValue = (b.owner || "").toLowerCase();
           break;
         default:
           return 0;
@@ -172,15 +131,17 @@ export function OrganizationsClient() {
 
   const filteredOrganizations = sortOrganizations(
     organizations.filter((org) => {
-      const matchesSearch = org.name
-        .toLowerCase()
-        .startsWith(searchTerm.toLowerCase());
+      const matchesSearch =
+        org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        org.industry.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        org.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (org.owner || "").toLowerCase().includes(searchTerm.toLowerCase());
       const matchesLocation =
         filters.location.length === 0 ||
         filters.location.includes(org.location);
       const matchesStatus =
-        filters.assessmentStatus.length === 0 ||
-        filters.assessmentStatus.includes(org.assessmentStatus);
+        filters.dealStage.length === 0 ||
+        filters.dealStage.includes(org.dealStage);
       const matchesIndustry =
         filters.industry.length === 0 ||
         filters.industry.includes(org.industry);
@@ -193,7 +154,7 @@ export function OrganizationsClient() {
   const clearFilters = () => {
     setFilters({
       location: [] as string[],
-      assessmentStatus: [] as string[],
+      dealStage: [] as string[],
       industry: [] as string[],
     });
   };
@@ -219,7 +180,7 @@ export function OrganizationsClient() {
   const handleBulkStatusChange = (status: string) => {
     const updatedOrganizations = organizations.map((org) =>
       selectedIds.has(org.id)
-        ? { ...org, assessmentStatus: status as any }
+        ? { ...org, dealStage: status as Organization["dealStage"] }
         : org
     );
     saveOrganizations(updatedOrganizations);
@@ -250,11 +211,16 @@ export function OrganizationsClient() {
   };
 
   return (
-    <TooltipProvider>
-      <div className="min-h-screen flex flex-col">
-        <main className="flex-1 container py-8 max-w-[1400px] mx-auto px-6">
+      <main className="container py-8 max-w-[1400px] mx-auto px-6">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-semibold">Organizations</h1>
+            <div>
+              <h1 className="text-2xl font-semibold">Organizations</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {filteredOrganizations.length === organizations.length
+                  ? `${organizations.length} companies`
+                  : `${filteredOrganizations.length} of ${organizations.length} companies`}
+              </p>
+            </div>
             <div className="flex gap-3">
               <Button
                 onClick={handleExportAll}
@@ -382,11 +348,11 @@ export function OrganizationsClient() {
                 </TableHead>
                 <TableHead
                   className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
-                  onClick={() => handleSort("assessmentStatus")}
+                  onClick={() => handleSort("dealStage")}
                 >
                   <div className="flex items-center gap-2">
-                    Assessment Status
-                    {sortField === "assessmentStatus" &&
+                    Deal Stage
+                    {sortField === "dealStage" &&
                       (sortDirection === "asc" ? (
                         <ChevronUp className="w-4 h-4" />
                       ) : (
@@ -396,25 +362,11 @@ export function OrganizationsClient() {
                 </TableHead>
                 <TableHead
                   className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
-                  onClick={() => handleSort("totalFunding")}
+                  onClick={() => handleSort("owner")}
                 >
                   <div className="flex items-center gap-2">
-                    Total Funding
-                    {sortField === "totalFunding" &&
-                      (sortDirection === "asc" ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      ))}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
-                  onClick={() => handleSort("exitStatus")}
-                >
-                  <div className="flex items-center gap-2">
-                    Exit Status
-                    {sortField === "exitStatus" &&
+                    Owner
+                    {sortField === "owner" &&
                       (sortDirection === "asc" ? (
                         <ChevronUp className="w-4 h-4" />
                       ) : (
@@ -471,77 +423,12 @@ export function OrganizationsClient() {
                   </TableCell>
                   <TableCell>
                     <Link href={`/organizations/${org.id}`} className="block">
-                      {org.assessmentStatus}
+                      <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", stageColors[org.dealStage] || "bg-gray-100 text-gray-700")}>{org.dealStage}</span>
                     </Link>
                   </TableCell>
                   <TableCell>
                     <Link href={`/organizations/${org.id}`} className="block">
-                      {formatFunding(calculateTotalFunding(org))}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/organizations/${org.id}`} className="block">
-                      {org.exitStatus && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="inline-block">
-                              <Badge
-                                variant={
-                                  org.exitStatus === "IPO" ? "ipo" : "acquired"
-                                }
-                              >
-                                {org.exitStatus}
-                              </Badge>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="text-sm">
-                              {org.exitStatus === "IPO" ? (
-                                <div>
-                                  <div className="font-semibold">IPO</div>
-                                  <div className="text-muted-foreground">
-                                    {org.exitDate &&
-                                      `Date: ${new Date(
-                                        org.exitDate
-                                      ).toLocaleDateString("en-US", {
-                                        year: "numeric",
-                                        month: "long",
-                                        day:
-                                          org.exitDate.length > 7
-                                            ? "numeric"
-                                            : undefined,
-                                      })}`}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div>
-                                  <div className="font-semibold">Acquired</div>
-                                  {org.acquiredBy && (
-                                    <div className="text-muted-foreground">
-                                      By: {org.acquiredBy}
-                                    </div>
-                                  )}
-                                  {org.exitDate && (
-                                    <div className="text-muted-foreground">
-                                      Date:{" "}
-                                      {new Date(
-                                        org.exitDate
-                                      ).toLocaleDateString("en-US", {
-                                        year: "numeric",
-                                        month: "long",
-                                        day:
-                                          org.exitDate.length > 7
-                                            ? "numeric"
-                                            : undefined,
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
+                      {org.owner || "-"}
                     </Link>
                   </TableCell>
                 </TableRow>
@@ -560,8 +447,6 @@ export function OrganizationsClient() {
             onExport={handleBulkExport}
             onDelete={handleBulkDelete}
           />
-        </main>
-      </div>
-    </TooltipProvider>
+      </main>
   );
 }
