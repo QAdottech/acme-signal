@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Bell,
   Building2,
   Users,
   FolderKanban,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { getCollections } from "@/lib/organizationData";
+import { getUnreadCount } from "@/lib/activityData";
 import { useEffect, useState } from "react";
 import type { Collection } from "@/types/organization";
 import { cn } from "@/lib/utils";
@@ -30,9 +32,11 @@ export function Sidebar() {
   const pathname = usePathname();
   const { isAdmin } = useAuth();
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     setCollections(getCollections());
+    setUnreadCount(getUnreadCount());
   }, []);
 
   const isActive = (href: string) => {
@@ -57,20 +61,42 @@ export function Sidebar() {
       {/* Main navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-3">
         <div className="space-y-0.5">
-          {mainNavItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors",
-                isActive(item.href)
-                  ? "bg-gray-200/80 dark:bg-gray-800 text-gray-900 dark:text-white"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
+          {mainNavItems.map((item, index) => (
+            <div key={item.href}>
+              <Link
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors",
+                  isActive(item.href)
+                    ? "bg-gray-200/80 dark:bg-gray-800 text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
+                )}
+              >
+                <item.icon className="w-4 h-4 flex-shrink-0" />
+                {item.label}
+              </Link>
+              {index === 0 && (
+                <Link
+                  href="/notifications"
+                  className={cn(
+                    "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors",
+                    isActive("/notifications")
+                      ? "bg-gray-200/80 dark:bg-gray-800 text-gray-900 dark:text-white"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
+                  )}
+                >
+                  <Bell className="w-4 h-4 flex-shrink-0" />
+                  <span className="flex items-center gap-2">
+                    Notifications
+                    {unreadCount > 0 && (
+                      <span className="bg-orange-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </span>
+                </Link>
               )}
-            >
-              <item.icon className="w-4 h-4 flex-shrink-0" />
-              {item.label}
-            </Link>
+            </div>
           ))}
         </div>
 
