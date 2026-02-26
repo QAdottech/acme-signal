@@ -1,10 +1,5 @@
-import { Metadata } from "next";
-import { DashboardClient } from "./dashboard-client";
-
-export const metadata: Metadata = {
-  title: "Dashboard",
-};
+import { redirect } from "next/navigation";
 
 export default function DashboardPage() {
-  return <DashboardClient />;
+  redirect("/reports");
 }
