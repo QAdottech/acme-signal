@@ -13,6 +13,7 @@ import {
   Settings,
   UsersRound,
   CircleDollarSign,
+  Mail,
   CheckSquare,
   StickyNote,
 } from "lucide-react";
@@ -31,6 +32,7 @@ const mainNavItems = [
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/organizations", label: "Companies", icon: Building2 },
   { href: "/people", label: "People", icon: Users },
+  { href: "/emails", label: "Emails", icon: Mail },
   { href: "/notes", label: "Notes", icon: StickyNote },
 ];
 
