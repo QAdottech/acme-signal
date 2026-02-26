@@ -31,12 +31,24 @@ import { getOrganizations } from "@/lib/organizationData";
 import { Checkbox } from "@/components/ui/checkbox";
 import { exportOrganizationsToCSV } from "@/lib/exportUtils";
 
+const stageColors: Record<string, string> = {
+  New: "bg-gray-100 text-gray-700",
+  Lead: "bg-blue-100 text-blue-700",
+  Qualified: "bg-orange-100 text-orange-700",
+  Proposal: "bg-purple-100 text-purple-700",
+  Negotiation: "bg-amber-100 text-amber-700",
+  Customer: "bg-green-100 text-green-700",
+  Churned: "bg-red-100 text-red-700",
+  "Closed Lost": "bg-red-100 text-red-700",
+};
+
 type SortField =
   | "name"
   | "industry"
   | "location"
   | "employees"
-  | "dealStage";
+  | "dealStage"
+  | "owner";
 type SortDirection = "asc" | "desc";
 
 export function OrganizationsClient() {
@@ -103,6 +115,10 @@ export function OrganizationsClient() {
           aValue = a.dealStage.toLowerCase();
           bValue = b.dealStage.toLowerCase();
           break;
+        case "owner":
+          aValue = (a.owner || "").toLowerCase();
+          bValue = (b.owner || "").toLowerCase();
+          break;
         default:
           return 0;
       }
@@ -115,9 +131,11 @@ export function OrganizationsClient() {
 
   const filteredOrganizations = sortOrganizations(
     organizations.filter((org) => {
-      const matchesSearch = org.name
-        .toLowerCase()
-        .startsWith(searchTerm.toLowerCase());
+      const matchesSearch =
+        org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        org.industry.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        org.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (org.owner || "").toLowerCase().includes(searchTerm.toLowerCase());
       const matchesLocation =
         filters.location.length === 0 ||
         filters.location.includes(org.location);
@@ -195,7 +213,14 @@ export function OrganizationsClient() {
   return (
       <main className="container py-8 max-w-[1400px] mx-auto px-6">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-semibold">Organizations</h1>
+            <div>
+              <h1 className="text-2xl font-semibold">Organizations</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {filteredOrganizations.length === organizations.length
+                  ? `${organizations.length} companies`
+                  : `${filteredOrganizations.length} of ${organizations.length} companies`}
+              </p>
+            </div>
             <div className="flex gap-3">
               <Button
                 onClick={handleExportAll}
@@ -335,7 +360,20 @@ export function OrganizationsClient() {
                       ))}
                   </div>
                 </TableHead>
-                <TableHead>Owner</TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  onClick={() => handleSort("owner")}
+                >
+                  <div className="flex items-center gap-2">
+                    Owner
+                    {sortField === "owner" &&
+                      (sortDirection === "asc" ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      ))}
+                  </div>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -385,7 +423,7 @@ export function OrganizationsClient() {
                   </TableCell>
                   <TableCell>
                     <Link href={`/organizations/${org.id}`} className="block">
-                      {org.dealStage}
+                      <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", stageColors[org.dealStage] || "bg-gray-100 text-gray-700")}>{org.dealStage}</span>
                     </Link>
                   </TableCell>
                   <TableCell>
