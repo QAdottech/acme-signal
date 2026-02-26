@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Image from "next/image";
 import Link from "next/link";
 import { SignupStep2 } from "@/components/signup-step2";
 
@@ -57,18 +58,23 @@ export function SignupClient() {
     <div className="min-h-screen flex flex-col">
       <main className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="w-12 h-12 rounded-xl bg-[#2D1A45] flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-bold text-xl">A</span>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Create your account
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Get started with ACME Signal
-            </p>
+          <div className="text-center mb-10">
+            <Image
+              src="/logos/acme-full-logo.png"
+              alt="ACME Signal"
+              width={360}
+              height={102}
+              className="mx-auto dark:invert"
+              priority
+            />
           </div>
           <div className="bg-white dark:bg-gray-900 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
+              Create your account
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              Get started with ACME Signal
+            </p>
             {step === 1 ? (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>

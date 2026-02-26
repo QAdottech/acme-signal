@@ -12,6 +12,7 @@ import {
   UsersRound,
   CircleDollarSign,
 } from "lucide-react";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { getCollections } from "@/lib/organizationData";
 import { useEffect, useState } from "react";
@@ -44,13 +45,14 @@ export function Sidebar() {
     <aside className="w-60 h-screen sticky top-0 flex flex-col border-r bg-gray-50/80 dark:bg-gray-900">
       {/* Workspace header */}
       <div className="h-14 flex items-center px-4 border-b">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-[#2D1A45] flex items-center justify-center">
-            <span className="text-white font-bold text-sm">A</span>
-          </div>
-          <span className="font-semibold text-sm text-gray-900 dark:text-white">
-            ACME Signal
-          </span>
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/logos/acme-full-logo.png"
+            alt="ACME Signal"
+            width={240}
+            height={68}
+            className="dark:invert"
+          />
         </Link>
       </div>
 
