@@ -6,6 +6,7 @@ import { BarChart3, PieChart, TrendingUp, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getAllReports, type ReportDefinition } from "@/lib/reports";
+import { CreateReportDialog } from "@/components/reports/create-report-dialog";
 
 const reportIcons: Record<string, React.ElementType> = {
   "pipeline-overview": BarChart3,
@@ -15,11 +16,19 @@ const reportIcons: Record<string, React.ElementType> = {
 
 export default function ReportsPage() {
   const [reports, setReports] = useState<ReportDefinition[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     setReports(getAllReports());
   }, []);
+
+  // Refresh list when dialog closes (new report may have been added)
+  useEffect(() => {
+    if (!createOpen) {
+      setReports(getAllReports());
+    }
+  }, [createOpen]);
 
   return (
     <main className="container py-8 max-w-[1400px] mx-auto px-6">
@@ -31,7 +40,7 @@ export default function ReportsPage() {
             Analyze your CRM data with built-in and custom reports.
           </p>
         </div>
-        <Button disabled>
+        <Button onClick={() => setCreateOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add report
         </Button>
@@ -52,9 +61,13 @@ export default function ReportsPage() {
                   <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                     <Icon className="h-5 w-5 text-primary" />
                   </div>
-                  {report.isBuiltIn && (
+                  {report.isBuiltIn ? (
                     <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                       Built-in
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium uppercase tracking-wider text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-950 px-2 py-0.5 rounded-full">
+                      Custom
                     </span>
                   )}
                 </div>
@@ -74,6 +87,8 @@ export default function ReportsPage() {
           );
         })}
       </div>
+
+      <CreateReportDialog open={createOpen} onOpenChange={setCreateOpen} />
     </main>
   );
 }
