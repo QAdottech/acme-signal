@@ -23,13 +23,13 @@ interface PipelineHeaderProps {
   onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   filters: {
     location: string[];
-    assessmentStatus: string[];
+    dealStage: string[];
     industry: string[];
   };
   setFilters: React.Dispatch<
     React.SetStateAction<{
       location: string[];
-      assessmentStatus: string[];
+      dealStage: string[];
       industry: string[];
     }>
   >;
@@ -50,7 +50,7 @@ export function PipelineHeader({
   const totalFilters = Object.values(filters).flat().length;
 
   const clearFilters = () => {
-    setFilters({ location: [], assessmentStatus: [], industry: [] });
+    setFilters({ location: [], dealStage: [], industry: [] });
   };
 
   const swimlanesOptions = [
@@ -70,20 +70,17 @@ export function PipelineHeader({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Technology pipeline
+            Sales Pipeline
           </h1>
           <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
             <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-              Early Stage
+              All Stages
             </span>
             <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-              Technology
+              Active
             </span>
             <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
               Global
-            </span>
-            <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-              Hitlist
             </span>
           </div>
         </div>

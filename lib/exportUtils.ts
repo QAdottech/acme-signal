@@ -35,46 +35,6 @@ export function exportToCSV(data: any[], filename: string) {
   downloadFile(csvContent, filename, "text/csv");
 }
 
-const calculateTotalFunding = (org: Organization): number => {
-  if (!org.fundingRounds || org.fundingRounds.length === 0) {
-    return 0;
-  }
-
-  return org.fundingRounds
-    .filter(
-      (round) => round.roundType !== "IPO" && round.roundType !== "Acquisition"
-    )
-    .reduce((total, round) => {
-      const amount = round.amount.replace(/[^0-9.]/g, "");
-      const numericAmount = parseFloat(amount);
-
-      if (isNaN(numericAmount)) {
-        return total;
-      }
-
-      // Convert to USD millions for consistent comparison
-      if (round.amount.includes("€")) {
-        return total + numericAmount * 1.1; // Rough EUR to USD conversion
-      } else if (round.amount.includes("SEK")) {
-        return total + numericAmount * 0.095; // Rough SEK to USD conversion
-      } else if (round.amount.includes("B")) {
-        return total + numericAmount * 1000; // Billions to millions
-      } else if (round.amount.includes("K")) {
-        return total + numericAmount / 1000; // Thousands to millions
-      }
-
-      return total + numericAmount;
-    }, 0);
-};
-
-const formatFunding = (amount: number): string => {
-  if (amount === 0) return "-";
-  if (amount >= 1000) {
-    return `$${(amount / 1000).toFixed(2)}B`;
-  }
-  return `$${amount.toFixed(1)}M`;
-};
-
 export function exportOrganizationsToCSV(organizations: Organization[]) {
   const data = organizations.map((org) => ({
     name: org.name,
@@ -82,9 +42,9 @@ export function exportOrganizationsToCSV(organizations: Organization[]) {
     location: org.location,
     employees: org.employees,
     website: org.website_url,
-    assessmentStatus: org.assessmentStatus,
-    totalFunding: formatFunding(calculateTotalFunding(org)),
-    exitStatus: org.exitStatus || "",
+    dealStage: org.dealStage,
+    annualRevenue: org.annualRevenue || "",
+    owner: org.owner || "",
     description: org.description,
   }));
   exportToCSV(

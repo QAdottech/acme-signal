@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { Organization } from "@/types/organization";
 import { useRouter } from "next/navigation";
 import { OrganizationImage } from "@/components/organization-image";
-import { Badge } from "@/components/ui/badge";
 
 interface DealCardProps {
   organization: Organization;
@@ -36,23 +35,13 @@ export function DealCard({ organization }: DealCardProps) {
             <div className="flex flex-col">
               <div className="flex items-center space-x-1">
                 <h3 className="font-medium truncate">{organization.name}</h3>
-                {organization.exitStatus && (
-                  <Badge
-                    variant={
-                      organization.exitStatus === "IPO" ? "ipo" : "acquired"
-                    }
-                    className="text-[10px] px-1.5 py-0"
-                  >
-                    {organization.exitStatus}
-                  </Badge>
-                )}
                 <span className="text-muted-foreground">•</span>
                 <span className="text-sm text-muted-foreground truncate">
                   {organization.location}
                 </span>
               </div>
               <p className="text-sm text-muted-foreground truncate">
-                {organization.industry} • {organization.assessmentStatus}
+                {organization.industry} • {organization.dealStage}
               </p>
             </div>
           </div>

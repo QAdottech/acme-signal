@@ -7,19 +7,10 @@ import { EditOrganizationModal } from "@/components/edit-organization-modal";
 import type { Organization } from "@/types/organization";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Globe, Users, MapPin, ChevronsUpDown, Check } from "lucide-react";
 import { CollectionManager } from "@/components/collection-manager";
 import { deduplicateCollectionOrganizationIds } from "@/lib/organizationData";
 import { OrganizationImage } from "@/components/organization-image";
-import { Badge } from "@/components/ui/badge";
 import {
   Command,
   CommandEmpty,
@@ -33,46 +24,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-
-const calculateTotalFunding = (org: Organization): number => {
-  if (!org.fundingRounds || org.fundingRounds.length === 0) {
-    return 0;
-  }
-
-  return org.fundingRounds
-    .filter(
-      (round) => round.roundType !== "IPO" && round.roundType !== "Acquisition"
-    )
-    .reduce((total, round) => {
-      const amount = round.amount.replace(/[^0-9.]/g, "");
-      const numericAmount = parseFloat(amount);
-
-      if (isNaN(numericAmount)) {
-        return total;
-      }
-
-      // Convert to USD millions for consistent comparison
-      if (round.amount.includes("€")) {
-        return total + numericAmount * 1.1; // Rough EUR to USD conversion
-      } else if (round.amount.includes("SEK")) {
-        return total + numericAmount * 0.095; // Rough SEK to USD conversion
-      } else if (round.amount.includes("B")) {
-        return total + numericAmount * 1000; // Billions to millions
-      } else if (round.amount.includes("K")) {
-        return total + numericAmount / 1000; // Thousands to millions
-      }
-
-      return total + numericAmount;
-    }, 0);
-};
-
-const formatFunding = (amount: number): string => {
-  if (amount === 0) return "-";
-  if (amount >= 1000) {
-    return `$${(amount / 1000).toFixed(2)}B`;
-  }
-  return `$${amount.toFixed(1)}M`;
-};
 
 export function OrganizationDetailClient({
   params,
@@ -132,11 +83,11 @@ export function OrganizationDetailClient({
     }
   };
 
-  const handleAssessmentStatusChange = (value: string) => {
+  const handleDealStageChange = (value: string) => {
     if (organization) {
       const updatedOrg = {
         ...organization,
-        assessmentStatus: value as Organization["assessmentStatus"],
+        dealStage: value as Organization["dealStage"],
       };
       handleEdit(updatedOrg);
       setStatusOpen(false);
@@ -179,15 +130,6 @@ export function OrganizationDetailClient({
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <h1 className="text-3xl font-bold">{organization.name}</h1>
-                  {organization.exitStatus && (
-                    <Badge
-                      variant={
-                        organization.exitStatus === "IPO" ? "ipo" : "acquired"
-                      }
-                    >
-                      {organization.exitStatus}
-                    </Badge>
-                  )}
                 </div>
                 <p className="text-xl text-gray-200 mb-6">
                   {organization.industry}
@@ -243,121 +185,12 @@ export function OrganizationDetailClient({
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Founders</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {organization.founders && organization.founders.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                    {organization.founders.map((founder, index) => (
-                      <div
-                        key={index}
-                        className="flex flex-col items-center p-4 border rounded-lg text-center"
-                      >
-                        <div className="flex-1 mb-3">
-                          <h4 className="font-semibold text-gray-900 text-sm">
-                            {founder.name}
-                          </h4>
-                          {founder.role && (
-                            <p className="text-xs text-gray-600 mt-1">
-                              {founder.role}
-                            </p>
-                          )}
-                        </div>
-                        {founder.linkedin && (
-                          <a
-                            href={founder.linkedin}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 transition-colors"
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="currentColor"
-                              viewBox="0 0 24 24"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                            </svg>
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 text-center py-4">
-                    No founder information available
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Funding History</span>
-                  {organization.fundingRounds &&
-                    organization.fundingRounds.length > 0 && (
-                      <span className="text-sm font-normal text-gray-600">
-                        Total:{" "}
-                        {formatFunding(calculateTotalFunding(organization))}
-                        <span className="text-xs text-gray-500 ml-1">
-                          (excl. IPO & acquisitions)
-                        </span>
-                      </span>
-                    )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-24">Date</TableHead>
-                      <TableHead className="w-28">Amount</TableHead>
-                      <TableHead className="w-32">Round Type</TableHead>
-                      <TableHead>Investors</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {organization.fundingRounds &&
-                    organization.fundingRounds.length > 0 ? (
-                      organization.fundingRounds.map((round) => (
-                        <TableRow key={round.id}>
-                          <TableCell className="align-top">
-                            {round.date}
-                          </TableCell>
-                          <TableCell className="align-top whitespace-nowrap">
-                            {round.amount}
-                          </TableCell>
-                          <TableCell className="align-top">
-                            {round.roundType}
-                          </TableCell>
-                          <TableCell className="whitespace-normal break-words">
-                            {round.investors.join(", ")}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="text-center text-gray-500"
-                        >
-                          No funding rounds yet
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
           </div>
 
           <div className="w-96 space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Assessment Status</CardTitle>
+                <CardTitle className="text-base">Deal Stage</CardTitle>
               </CardHeader>
               <CardContent>
                 <Popover open={statusOpen} onOpenChange={setStatusOpen}>
@@ -368,140 +201,148 @@ export function OrganizationDetailClient({
                       aria-expanded={statusOpen}
                       className="w-full justify-between"
                     >
-                      {organization.assessmentStatus || "Select status"}
+                      {organization.dealStage || "Select stage"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0">
                     <Command>
-                      <CommandInput placeholder="Search status..." />
-                      <CommandEmpty>No status found.</CommandEmpty>
+                      <CommandInput placeholder="Search stage..." />
+                      <CommandEmpty>No stage found.</CommandEmpty>
                       <CommandGroup>
                         <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Not assessed")
-                          }
+                          onSelect={() => handleDealStageChange("New")}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              organization.assessmentStatus === "Not assessed"
+                              organization.dealStage === "New"
                                 ? "opacity-100"
                                 : "opacity-0"
                             )}
                           />
-                          Not assessed
+                          New
                         </CommandItem>
                         <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Screening")
-                          }
+                          onSelect={() => handleDealStageChange("Lead")}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              organization.assessmentStatus === "Screening"
+                              organization.dealStage === "Lead"
                                 ? "opacity-100"
                                 : "opacity-0"
                             )}
                           />
-                          Screening
+                          Lead
                         </CommandItem>
                         <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Passive follow")
-                          }
+                          onSelect={() => handleDealStageChange("Qualified")}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              organization.assessmentStatus === "Passive follow"
+                              organization.dealStage === "Qualified"
                                 ? "opacity-100"
                                 : "opacity-0"
                             )}
                           />
-                          Passive follow
+                          Qualified
                         </CommandItem>
                         <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Hitlist")
-                          }
+                          onSelect={() => handleDealStageChange("Proposal")}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              organization.assessmentStatus === "Hitlist"
+                              organization.dealStage === "Proposal"
                                 ? "opacity-100"
                                 : "opacity-0"
                             )}
                           />
-                          Hitlist
+                          Proposal
                         </CommandItem>
                         <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Preparing for NDC")
-                          }
+                          onSelect={() => handleDealStageChange("Negotiation")}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              organization.assessmentStatus ===
-                                "Preparing for NDC"
+                              organization.dealStage === "Negotiation"
                                 ? "opacity-100"
                                 : "opacity-0"
                             )}
                           />
-                          Preparing for NDC
+                          Negotiation
                         </CommandItem>
                         <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Portfolio company")
-                          }
+                          onSelect={() => handleDealStageChange("Customer")}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              organization.assessmentStatus ===
-                                "Portfolio company"
+                              organization.dealStage === "Customer"
                                 ? "opacity-100"
                                 : "opacity-0"
                             )}
                           />
-                          Portfolio company
+                          Customer
                         </CommandItem>
                         <CommandItem
-                          onSelect={() => handleAssessmentStatusChange("Lost")}
+                          onSelect={() => handleDealStageChange("Churned")}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              organization.assessmentStatus === "Lost"
+                              organization.dealStage === "Churned"
                                 ? "opacity-100"
                                 : "opacity-0"
                             )}
                           />
-                          Lost
+                          Churned
                         </CommandItem>
                         <CommandItem
-                          onSelect={() =>
-                            handleAssessmentStatusChange("Not interesting")
-                          }
+                          onSelect={() => handleDealStageChange("Closed Lost")}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              organization.assessmentStatus ===
-                                "Not interesting"
+                              organization.dealStage === "Closed Lost"
                                 ? "opacity-100"
                                 : "opacity-0"
                             )}
                           />
-                          Not interesting
+                          Closed Lost
                         </CommandItem>
                       </CommandGroup>
                     </Command>
                   </PopoverContent>
                 </Popover>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Organization Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500">Owner</span>
+                  <span className="text-sm font-medium">
+                    {organization.owner || "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500">Annual Revenue</span>
+                  <span className="text-sm font-medium">
+                    {organization.annualRevenue || "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-500">Last Contacted</span>
+                  <span className="text-sm font-medium">
+                    {organization.lastContacted || "-"}
+                  </span>
+                </div>
               </CardContent>
             </Card>
             <CollectionManager

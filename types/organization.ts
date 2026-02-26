@@ -1,16 +1,12 @@
-export interface FundingRound {
-  id: string;
-  date: string;
-  amount: string;
-  roundType: string;
-  investors: string[];
-}
-
-export interface Founder {
-  name: string;
-  role?: string;
-  linkedin?: string;
-}
+export type DealStage =
+  | "New"
+  | "Lead"
+  | "Qualified"
+  | "Proposal"
+  | "Negotiation"
+  | "Customer"
+  | "Churned"
+  | "Closed Lost";
 
 export interface Organization {
   id: string;
@@ -21,21 +17,11 @@ export interface Organization {
   logo: string;
   website_url: string;
   description: string;
-  assessmentStatus:
-    | "Not assessed"
-    | "Screening"
-    | "Passive follow"
-    | "Hitlist"
-    | "Preparing for NDC"
-    | "Portfolio company"
-    | "Lost"
-    | "Not interesting";
+  dealStage: DealStage;
   collections: string[];
-  fundingRounds?: FundingRound[];
-  exitStatus?: "IPO" | "Acquired";
-  exitDate?: string;
-  acquiredBy?: string;
-  founders?: Founder[];
+  annualRevenue?: string;
+  owner?: string;
+  lastContacted?: string;
 }
 
 export interface Collection {

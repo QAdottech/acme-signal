@@ -19,11 +19,11 @@ interface ActiveDealsModalProps {
 export function ActiveDealsModal({ isOpen, onClose, deals }: ActiveDealsModalProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Screening":
+      case "Lead":
         return "bg-blue-100 text-blue-800";
-      case "Hitlist":
+      case "Qualified":
         return "bg-orange-100 text-orange-800";
-      case "Preparing for NDC":
+      case "Proposal":
         return "bg-purple-100 text-purple-800";
       default:
         return "bg-gray-100 text-gray-800";
@@ -34,16 +34,16 @@ export function ActiveDealsModal({ isOpen, onClose, deals }: ActiveDealsModalPro
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Active Deals ({deals.length})</DialogTitle>
+          <DialogTitle>Active Pipeline ({deals.length})</DialogTitle>
           <DialogDescription>
-            Organizations currently in Screening, Hitlist, or Preparing for NDC
+            Organizations currently in Lead, Qualified, or Proposal stage
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 space-y-3">
           {deals.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No active deals found
+              No active pipeline items found
             </div>
           ) : (
             deals.map((deal) => (
@@ -76,8 +76,8 @@ export function ActiveDealsModal({ isOpen, onClose, deals }: ActiveDealsModalPro
                         </span>
                       </div>
                     </div>
-                    <Badge className={getStatusColor(deal.assessmentStatus)}>
-                      {deal.assessmentStatus}
+                    <Badge className={getStatusColor(deal.dealStage)}>
+                      {deal.dealStage}
                     </Badge>
                   </div>
                   

@@ -8,19 +8,19 @@ interface FilterPopoverProps {
   children: React.ReactNode;
   filters: {
     location: string[];
-    assessmentStatus: string[];
+    dealStage: string[];
     industry: string[];
   };
   setFilters: React.Dispatch<React.SetStateAction<{
     location: string[];
-    assessmentStatus: string[];
+    dealStage: string[];
     industry: string[];
   }>>;
 }
 
 const filterOptions = {
   location: ['Stockholm', 'Helsinki', 'San Francisco', 'New York', 'Copenhagen', 'Austin', 'Amsterdam'],
-  assessmentStatus: ['Not assessed', 'Screening', 'Passive follow', 'Hitlist', 'Preparing for NDC', 'Portfolio company', 'Lost', 'Not interesting'],
+  dealStage: ['New', 'Lead', 'Qualified', 'Proposal', 'Negotiation', 'Customer', 'Churned', 'Closed Lost'],
   industry: ['Music', 'Food', 'Software testing', 'Web Development', 'HR Technology', 'Gaming', 'Fintech', 'Contract Management', 'Developer Tools', 'Analytics', 'Artificial Intelligence', 'E-commerce AI', 'EdTech', 'Design Tools', 'Biotechnology', 'Financial Technology', 'Legal Technology'],
 };
 
@@ -52,7 +52,7 @@ export function FilterPopover({ children, filters, setFilters }: FilterPopoverPr
         <div className="space-y-3">
           {Object.entries(filterOptions).map(([key, options]) => (
             <div key={key}>
-              <h5 className="text-xs font-semibold mb-1">{key === 'industry' ? 'Industry' : key.charAt(0).toUpperCase() + key.slice(1)}</h5>
+              <h5 className="text-xs font-semibold mb-1">{key === 'industry' ? 'Industry' : key === 'dealStage' ? 'Deal Stage' : key.charAt(0).toUpperCase() + key.slice(1)}</h5>
               <div className="grid grid-cols-2 gap-x-2 gap-y-1">
                 {options.map(option => (
                   <div key={option} className="flex items-center space-x-2">

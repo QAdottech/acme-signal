@@ -166,7 +166,7 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
                     </div>
                     <div className="mt-3">
                       <Badge variant="secondary" className="text-xs">
-                        {org.assessmentStatus}
+                        {org.dealStage}
                       </Badge>
                     </div>
                   </CardContent>

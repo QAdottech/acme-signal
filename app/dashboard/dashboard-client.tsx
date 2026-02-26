@@ -39,7 +39,7 @@ export function DashboardClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [showActiveDealsModal, setShowActiveDealsModal] = useState(false);
+  const [showPipelineModal, setShowPipelineModal] = useState(false);
 
   useEffect(() => {
     setOrganizations(getOrganizations());
@@ -48,18 +48,19 @@ export function DashboardClient() {
   }, []);
 
   // Calculate stats
-  const portfolioCompanies = organizations.filter(
-    (org) => org.assessmentStatus === "Portfolio company"
+  const activeCustomers = organizations.filter(
+    (org) => org.dealStage === "Customer"
   ).length;
 
-  const activeDealOrganizations = organizations.filter(
+  const pipelineOrganizations = organizations.filter(
     (org) =>
-      org.assessmentStatus === "Screening" ||
-      org.assessmentStatus === "Hitlist" ||
-      org.assessmentStatus === "Preparing for NDC"
+      org.dealStage === "Lead" ||
+      org.dealStage === "Qualified" ||
+      org.dealStage === "Proposal" ||
+      org.dealStage === "Negotiation"
   );
 
-  const activeDeals = activeDealOrganizations.length;
+  const activePipeline = pipelineOrganizations.length;
 
   const activePeople = people.filter(
     (person) => person.status === "Active"
@@ -68,26 +69,29 @@ export function DashboardClient() {
   // Prepare chart data
   const statusData = [
     {
-      name: "Screening",
-      count: organizations.filter((o) => o.assessmentStatus === "Screening")
+      name: "Lead",
+      count: organizations.filter((o) => o.dealStage === "Lead")
         .length,
     },
     {
-      name: "Hitlist",
-      count: organizations.filter((o) => o.assessmentStatus === "Hitlist")
+      name: "Qualified",
+      count: organizations.filter((o) => o.dealStage === "Qualified")
         .length,
     },
     {
-      name: "Preparing for NDC",
-      count: organizations.filter(
-        (o) => o.assessmentStatus === "Preparing for NDC"
-      ).length,
+      name: "Proposal",
+      count: organizations.filter((o) => o.dealStage === "Proposal")
+        .length,
     },
     {
-      name: "Portfolio",
-      count: organizations.filter(
-        (o) => o.assessmentStatus === "Portfolio company"
-      ).length,
+      name: "Negotiation",
+      count: organizations.filter((o) => o.dealStage === "Negotiation")
+        .length,
+    },
+    {
+      name: "Customer",
+      count: organizations.filter((o) => o.dealStage === "Customer")
+        .length,
     },
   ];
 
@@ -122,12 +126,12 @@ export function DashboardClient() {
 
   // Mock growth data
   const growthData = [
-    { month: "Jan", deals: 12, people: 24 },
-    { month: "Feb", deals: 15, people: 28 },
-    { month: "Mar", deals: 18, people: 35 },
-    { month: "Apr", deals: 22, people: 42 },
-    { month: "May", deals: 25, people: 48 },
-    { month: "Jun", deals: organizations.length, people: people.length },
+    { month: "Jan", companies: 12, people: 24 },
+    { month: "Feb", companies: 15, people: 28 },
+    { month: "Mar", companies: 18, people: 35 },
+    { month: "Apr", companies: 22, people: 42 },
+    { month: "May", companies: 25, people: 48 },
+    { month: "Jun", companies: organizations.length, people: people.length },
   ];
 
   return (
@@ -150,17 +154,17 @@ export function DashboardClient() {
             trend={{ value: 12, isPositive: true }}
           />
           <StatsCard
-            title="Active Deals"
-            value={activeDeals}
-            description="In screening or hitlist"
+            title="Active Pipeline"
+            value={activePipeline}
+            description="In pipeline stages"
             icon={Target}
             trend={{ value: 8, isPositive: true }}
-            onClick={() => setShowActiveDealsModal(true)}
+            onClick={() => setShowPipelineModal(true)}
           />
           <StatsCard
-            title="Portfolio Companies"
-            value={portfolioCompanies}
-            description="Current investments"
+            title="Active Customers"
+            value={activeCustomers}
+            description="Current customers"
             icon={DollarSign}
             trend={{ value: 5, isPositive: true }}
           />
@@ -177,7 +181,7 @@ export function DashboardClient() {
         <div className="grid gap-6 md:grid-cols-2 mb-6">
           <Card>
             <CardHeader>
-              <CardTitle>Deals by Status</CardTitle>
+              <CardTitle>Pipeline by Stage</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -246,7 +250,7 @@ export function DashboardClient() {
                   <Legend />
                   <Line
                     type="monotone"
-                    dataKey="deals"
+                    dataKey="companies"
                     stroke="#f97316"
                     strokeWidth={2}
                     name="Organizations"
@@ -285,11 +289,11 @@ export function DashboardClient() {
         <ActivityFeed activities={activities} maxItems={8} />
       </main>
 
-      {/* Active Deals Modal */}
+      {/* Active Pipeline Modal */}
       <ActiveDealsModal
-        isOpen={showActiveDealsModal}
-        onClose={() => setShowActiveDealsModal(false)}
-        deals={activeDealOrganizations}
+        isOpen={showPipelineModal}
+        onClose={() => setShowPipelineModal(false)}
+        deals={pipelineOrganizations}
       />
     </div>
   );

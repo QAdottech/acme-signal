@@ -28,65 +28,16 @@ import { FilterPopover } from "@/components/filter-popover";
 import { cn } from "@/lib/utils";
 import { OrganizationImage } from "@/components/organization-image";
 import { getOrganizations } from "@/lib/organizationData";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { exportOrganizationsToCSV } from "@/lib/exportUtils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 type SortField =
   | "name"
   | "industry"
   | "location"
   | "employees"
-  | "assessmentStatus"
-  | "exitStatus"
-  | "totalFunding";
+  | "dealStage";
 type SortDirection = "asc" | "desc";
-
-const calculateTotalFunding = (org: Organization): number => {
-  if (!org.fundingRounds || org.fundingRounds.length === 0) {
-    return 0;
-  }
-
-  return org.fundingRounds
-    .filter(
-      (round) => round.roundType !== "IPO" && round.roundType !== "Acquisition"
-    )
-    .reduce((total, round) => {
-      const amount = round.amount.replace(/[^0-9.]/g, "");
-      const numericAmount = parseFloat(amount);
-
-      if (isNaN(numericAmount)) {
-        return total;
-      }
-
-      // Convert to USD millions for consistent comparison
-      if (round.amount.includes("€")) {
-        return total + numericAmount * 1.1; // Rough EUR to USD conversion
-      } else if (round.amount.includes("SEK")) {
-        return total + numericAmount * 0.095; // Rough SEK to USD conversion
-      } else if (round.amount.includes("B")) {
-        return total + numericAmount * 1000; // Billions to millions
-      } else if (round.amount.includes("K")) {
-        return total + numericAmount / 1000; // Thousands to millions
-      }
-
-      return total + numericAmount;
-    }, 0);
-};
-
-const formatFunding = (amount: number): string => {
-  if (amount === 0) return "-";
-  if (amount >= 1000) {
-    return `$${(amount / 1000).toFixed(2)}B`;
-  }
-  return `$${amount.toFixed(1)}M`;
-};
 
 export function OrganizationsClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -95,7 +46,7 @@ export function OrganizationsClient() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
     location: [] as string[],
-    assessmentStatus: [] as string[],
+    dealStage: [] as string[],
     industry: [] as string[],
   });
   const [sortField, setSortField] = useState<SortField>("name");
@@ -148,17 +99,9 @@ export function OrganizationsClient() {
           aValue = a.employees;
           bValue = b.employees;
           break;
-        case "assessmentStatus":
-          aValue = a.assessmentStatus.toLowerCase();
-          bValue = b.assessmentStatus.toLowerCase();
-          break;
-        case "exitStatus":
-          aValue = a.exitStatus?.toLowerCase() || "";
-          bValue = b.exitStatus?.toLowerCase() || "";
-          break;
-        case "totalFunding":
-          aValue = calculateTotalFunding(a);
-          bValue = calculateTotalFunding(b);
+        case "dealStage":
+          aValue = a.dealStage.toLowerCase();
+          bValue = b.dealStage.toLowerCase();
           break;
         default:
           return 0;
@@ -179,8 +122,8 @@ export function OrganizationsClient() {
         filters.location.length === 0 ||
         filters.location.includes(org.location);
       const matchesStatus =
-        filters.assessmentStatus.length === 0 ||
-        filters.assessmentStatus.includes(org.assessmentStatus);
+        filters.dealStage.length === 0 ||
+        filters.dealStage.includes(org.dealStage);
       const matchesIndustry =
         filters.industry.length === 0 ||
         filters.industry.includes(org.industry);
@@ -193,7 +136,7 @@ export function OrganizationsClient() {
   const clearFilters = () => {
     setFilters({
       location: [] as string[],
-      assessmentStatus: [] as string[],
+      dealStage: [] as string[],
       industry: [] as string[],
     });
   };
@@ -219,7 +162,7 @@ export function OrganizationsClient() {
   const handleBulkStatusChange = (status: string) => {
     const updatedOrganizations = organizations.map((org) =>
       selectedIds.has(org.id)
-        ? { ...org, assessmentStatus: status as any }
+        ? { ...org, dealStage: status as Organization["dealStage"] }
         : org
     );
     saveOrganizations(updatedOrganizations);
@@ -250,7 +193,6 @@ export function OrganizationsClient() {
   };
 
   return (
-    <TooltipProvider>
       <div className="min-h-screen flex flex-col">
         <main className="flex-1 container py-8 max-w-[1400px] mx-auto px-6">
           <div className="flex justify-between items-center mb-6">
@@ -382,11 +324,11 @@ export function OrganizationsClient() {
                 </TableHead>
                 <TableHead
                   className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
-                  onClick={() => handleSort("assessmentStatus")}
+                  onClick={() => handleSort("dealStage")}
                 >
                   <div className="flex items-center gap-2">
-                    Assessment Status
-                    {sortField === "assessmentStatus" &&
+                    Deal Stage
+                    {sortField === "dealStage" &&
                       (sortDirection === "asc" ? (
                         <ChevronUp className="w-4 h-4" />
                       ) : (
@@ -394,34 +336,7 @@ export function OrganizationsClient() {
                       ))}
                   </div>
                 </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
-                  onClick={() => handleSort("totalFunding")}
-                >
-                  <div className="flex items-center gap-2">
-                    Total Funding
-                    {sortField === "totalFunding" &&
-                      (sortDirection === "asc" ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      ))}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
-                  onClick={() => handleSort("exitStatus")}
-                >
-                  <div className="flex items-center gap-2">
-                    Exit Status
-                    {sortField === "exitStatus" &&
-                      (sortDirection === "asc" ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      ))}
-                  </div>
-                </TableHead>
+                <TableHead>Owner</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -471,77 +386,12 @@ export function OrganizationsClient() {
                   </TableCell>
                   <TableCell>
                     <Link href={`/organizations/${org.id}`} className="block">
-                      {org.assessmentStatus}
+                      {org.dealStage}
                     </Link>
                   </TableCell>
                   <TableCell>
                     <Link href={`/organizations/${org.id}`} className="block">
-                      {formatFunding(calculateTotalFunding(org))}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/organizations/${org.id}`} className="block">
-                      {org.exitStatus && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="inline-block">
-                              <Badge
-                                variant={
-                                  org.exitStatus === "IPO" ? "ipo" : "acquired"
-                                }
-                              >
-                                {org.exitStatus}
-                              </Badge>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <div className="text-sm">
-                              {org.exitStatus === "IPO" ? (
-                                <div>
-                                  <div className="font-semibold">IPO</div>
-                                  <div className="text-muted-foreground">
-                                    {org.exitDate &&
-                                      `Date: ${new Date(
-                                        org.exitDate
-                                      ).toLocaleDateString("en-US", {
-                                        year: "numeric",
-                                        month: "long",
-                                        day:
-                                          org.exitDate.length > 7
-                                            ? "numeric"
-                                            : undefined,
-                                      })}`}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div>
-                                  <div className="font-semibold">Acquired</div>
-                                  {org.acquiredBy && (
-                                    <div className="text-muted-foreground">
-                                      By: {org.acquiredBy}
-                                    </div>
-                                  )}
-                                  {org.exitDate && (
-                                    <div className="text-muted-foreground">
-                                      Date:{" "}
-                                      {new Date(
-                                        org.exitDate
-                                      ).toLocaleDateString("en-US", {
-                                        year: "numeric",
-                                        month: "long",
-                                        day:
-                                          org.exitDate.length > 7
-                                            ? "numeric"
-                                            : undefined,
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
+                      {org.owner || "-"}
                     </Link>
                   </TableCell>
                 </TableRow>
@@ -562,6 +412,5 @@ export function OrganizationsClient() {
           />
         </main>
       </div>
-    </TooltipProvider>
   );
 }

@@ -20,11 +20,11 @@ import {
 } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
 
-const assessmentStatuses = [
-  { id: "screening", name: "Screening", count: 0 },
-  { id: "hitlist", name: "Hitlist", count: 0 },
-  { id: "preparing-for-ndc", name: "Preparing for NDC", count: 0 },
-  { id: "portfolio-company", name: "Portfolio company", count: 0 },
+const dealStages = [
+  { id: "lead", name: "Lead", count: 0 },
+  { id: "qualified", name: "Qualified", count: 0 },
+  { id: "proposal", name: "Proposal", count: 0 },
+  { id: "negotiation", name: "Negotiation", count: 0 },
 ];
 
 function DraggableCard({ organization }: { organization: Organization }) {
@@ -96,7 +96,7 @@ export function PipelineClient() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filters, setFilters] = useState({
     location: [],
-    assessmentStatus: [],
+    dealStage: [],
     industry: [],
   });
   const [swimlanes, setSwimlanesOption] = useState("no-swimlanes"); // Options: 'no-swimlanes', 'industry', 'location'
@@ -123,8 +123,8 @@ export function PipelineClient() {
         filters.location.length === 0 ||
         filters.location.includes(org.location);
       const matchesStatus =
-        filters.assessmentStatus.length === 0 ||
-        filters.assessmentStatus.includes(org.assessmentStatus);
+        filters.dealStage.length === 0 ||
+        filters.dealStage.includes(org.dealStage);
       const matchesIndustry =
         filters.industry.length === 0 ||
         filters.industry.includes(org.industry);
@@ -170,13 +170,13 @@ export function PipelineClient() {
     const orgId = active.id as string;
     const newStatus = over.id as string;
 
-    // Update the organization's assessment status
+    // Update the organization's deal stage
     const updatedOrganizations = organizations.map((org) => {
       if (org.id === orgId) {
-        // Convert status id back to proper format (e.g., "hitlist" -> "Hitlist")
-        const statusObj = assessmentStatuses.find((s) => s.id === newStatus);
-        if (statusObj) {
-          return { ...org, assessmentStatus: statusObj.name };
+        // Convert stage id back to proper format (e.g., "lead" -> "Lead")
+        const stageObj = dealStages.find((s) => s.id === newStatus);
+        if (stageObj) {
+          return { ...org, dealStage: stageObj.name };
         }
       }
       return org;
@@ -220,17 +220,17 @@ export function PipelineClient() {
                     <h2 className="text-xl font-semibold mb-4">{groupName}</h2>
                   )}
                   <div className="grid grid-cols-4 gap-8">
-                    {assessmentStatuses.map((status) => (
+                    {dealStages.map((stage) => (
                       <DroppableColumn
-                        key={status.id}
-                        id={status.id}
-                        title={status.name}
+                        key={stage.id}
+                        id={stage.id}
+                        title={stage.name}
                         organizations={groupOrgs.filter(
                           (org) =>
-                            org.assessmentStatus &&
-                            org.assessmentStatus
+                            org.dealStage &&
+                            org.dealStage
                               .toLowerCase()
-                              .replace(/ /g, "-") === status.id
+                              .replace(/ /g, "-") === stage.id
                         )}
                         isActiveColumn={activeId !== null}
                       />

@@ -90,23 +90,13 @@ export function GlobalSearch() {
                       <span className="font-medium text-gray-800 dark:text-white truncate">
                         {org.name}
                       </span>
-                      {org.exitStatus && (
-                        <Badge
-                          variant={
-                            org.exitStatus === "IPO" ? "ipo" : "acquired"
-                          }
-                          className="text-[10px] px-1.5 py-0"
-                        >
-                          {org.exitStatus}
-                        </Badge>
-                      )}
                       <span className="text-muted-foreground">•</span>
                       <span className="text-sm text-muted-foreground truncate">
                         {org.location}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {org.industry} • {org.assessmentStatus}
+                      {org.industry} • {org.dealStage}
                     </p>
                   </div>
                 </Link>
