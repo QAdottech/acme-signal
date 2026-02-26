@@ -11,6 +11,7 @@ import {
   Settings,
   UsersRound,
   CircleDollarSign,
+  CheckSquare,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { getCollections } from "@/lib/organizationData";
@@ -22,6 +23,7 @@ const mainNavItems = [
   { href: "/", label: "Pipeline", icon: Kanban },
   { href: "/deals", label: "Deals", icon: CircleDollarSign },
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
+  { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/organizations", label: "Companies", icon: Building2 },
   { href: "/people", label: "People", icon: Users },
 ];
