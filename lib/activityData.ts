@@ -2,6 +2,16 @@ import { Activity } from "@/types/activity";
 
 const defaultActivities: Activity[] = [
   {
+    id: "16",
+    type: "email_sent",
+    title: "Email Sent",
+    description: "Proposal sent to Anthropic team",
+    timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    userName: "Emma Wilson",
+    relatedEntityId: "12",
+    relatedEntityType: "organization",
+  },
+  {
     id: "1",
     type: "stage_changed",
     title: "Deal Stage Updated",
@@ -22,6 +32,16 @@ const defaultActivities: Activity[] = [
     relatedEntityType: "organization",
   },
   {
+    id: "17",
+    type: "deal_updated",
+    title: "Deal Updated",
+    description: "Cursor deal value updated to $180,000",
+    timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    userName: "David Martinez",
+    relatedEntityId: "23",
+    relatedEntityType: "organization",
+  },
+  {
     id: "3",
     type: "meeting_scheduled",
     title: "Meeting Scheduled",
@@ -29,6 +49,16 @@ const defaultActivities: Activity[] = [
     timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
     userName: "David Martinez",
     relatedEntityId: "24",
+    relatedEntityType: "organization",
+  },
+  {
+    id: "18",
+    type: "meeting_scheduled",
+    title: "Meeting Scheduled",
+    description: "Onboarding call with lovable.dev team",
+    timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    userName: "Sarah Johnson",
+    relatedEntityId: "25",
     relatedEntityType: "organization",
   },
   {
@@ -40,6 +70,17 @@ const defaultActivities: Activity[] = [
     userName: "Sarah Johnson",
     relatedEntityId: "24",
     relatedEntityType: "organization",
+    read: true,
+  },
+  {
+    id: "19",
+    type: "email_sent",
+    title: "Email Sent",
+    description: "Follow-up sent to Vercel partnership team",
+    timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+    userName: "Emma Wilson",
+    relatedEntityId: "4",
+    relatedEntityType: "organization",
   },
   {
     id: "5",
@@ -50,6 +91,7 @@ const defaultActivities: Activity[] = [
     userName: "David Martinez",
     relatedEntityId: "12",
     relatedEntityType: "organization",
+    read: true,
   },
   {
     id: "6",
@@ -59,6 +101,17 @@ const defaultActivities: Activity[] = [
     timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
     userName: "Sarah Johnson",
     relatedEntityId: "25",
+    relatedEntityType: "organization",
+    read: true,
+  },
+  {
+    id: "20",
+    type: "stage_changed",
+    title: "Deal Stage Updated",
+    description: "Sana Labs deal moved to Qualified",
+    timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    userName: "Michael Chen",
+    relatedEntityId: "15",
     relatedEntityType: "organization",
   },
   {
@@ -70,6 +123,18 @@ const defaultActivities: Activity[] = [
     userName: "Michael Chen",
     relatedEntityId: "8",
     relatedEntityType: "organization",
+    read: true,
+  },
+  {
+    id: "21",
+    type: "note_added",
+    title: "Note Added",
+    description: "Competitive analysis updated for Wolt evaluation",
+    timestamp: new Date(Date.now() - 1.5 * 24 * 60 * 60 * 1000).toISOString(),
+    userName: "Emma Wilson",
+    relatedEntityId: "10",
+    relatedEntityType: "organization",
+    read: true,
   },
   {
     id: "8",
@@ -80,6 +145,7 @@ const defaultActivities: Activity[] = [
     userName: "Emma Wilson",
     relatedEntityId: "4",
     relatedEntityType: "organization",
+    read: true,
   },
   {
     id: "9",
@@ -90,6 +156,7 @@ const defaultActivities: Activity[] = [
     userName: "David Martinez",
     relatedEntityId: "4",
     relatedEntityType: "organization",
+    read: true,
   },
   {
     id: "10",
@@ -98,6 +165,18 @@ const defaultActivities: Activity[] = [
     description: "New list 'Developer Tools' created with 4 companies",
     timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     userName: "Emma Wilson",
+    read: true,
+  },
+  {
+    id: "22",
+    type: "person_added",
+    title: "New Contact Added",
+    description: "Lisa Berglund added as contact for Peakon",
+    timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    userName: "Sarah Johnson",
+    relatedEntityId: "11",
+    relatedEntityType: "organization",
+    read: true,
   },
   {
     id: "11",
@@ -108,6 +187,7 @@ const defaultActivities: Activity[] = [
     userName: "Emma Wilson",
     relatedEntityId: "23",
     relatedEntityType: "organization",
+    read: true,
   },
   {
     id: "12",
@@ -118,6 +198,7 @@ const defaultActivities: Activity[] = [
     userName: "David Martinez",
     relatedEntityId: "20",
     relatedEntityType: "organization",
+    read: true,
   },
   {
     id: "13",
@@ -128,6 +209,7 @@ const defaultActivities: Activity[] = [
     userName: "Sarah Johnson",
     relatedEntityId: "1",
     relatedEntityType: "organization",
+    read: true,
   },
   {
     id: "14",
@@ -138,6 +220,7 @@ const defaultActivities: Activity[] = [
     userName: "Emma Wilson",
     relatedEntityId: "3",
     relatedEntityType: "organization",
+    read: true,
   },
   {
     id: "15",
@@ -148,6 +231,7 @@ const defaultActivities: Activity[] = [
     userName: "David Martinez",
     relatedEntityId: "16",
     relatedEntityType: "organization",
+    read: true,
   },
 ];
 
@@ -182,4 +266,29 @@ export function addActivity(activity: Omit<Activity, "id" | "timestamp">): void 
   };
   const updatedActivities = [newActivity, ...activities].slice(0, 100); // Keep last 100
   saveActivities(updatedActivities);
+}
+
+export function getUnreadCount(): number {
+  const activities = getActivities();
+  return activities.filter((a) => a.read !== true).length;
+}
+
+export function markAsRead(id: string): void {
+  const activities = getActivities();
+  const updated = activities.map((a) =>
+    a.id === id ? { ...a, read: true } : a
+  );
+  saveActivities(updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("notifications-updated"));
+  }
+}
+
+export function markAllAsRead(): void {
+  const activities = getActivities();
+  const updated = activities.map((a) => ({ ...a, read: true }));
+  saveActivities(updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("notifications-updated"));
+  }
 }

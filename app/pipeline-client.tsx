@@ -9,7 +9,7 @@ import { AddDealModal } from "@/components/add-deal-modal";
 import type { Organization, DealStage } from "@/types/organization";
 import type { Deal } from "@/types/deal";
 import { getOrganizations } from "@/lib/organizationData";
-import { getDeals, saveDeals, addDeal, formatDealValue } from "@/lib/dealData";
+import { getDeals, saveDeals, addDeal, formatDealValue, STAGE_PROBABILITIES } from "@/lib/dealData";
 import {
   DndContext,
   DragEndEvent,
@@ -23,11 +23,14 @@ import {
 } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
 
-const pipelineStages = [
-  { id: "lead", name: "Lead" as DealStage },
-  { id: "qualified", name: "Qualified" as DealStage },
-  { id: "proposal", name: "Proposal" as DealStage },
-  { id: "negotiation", name: "Negotiation" as DealStage },
+const pipelineStages: { id: string; name: DealStage }[] = [
+  { id: "new", name: "New" },
+  { id: "lead", name: "Lead" },
+  { id: "qualified", name: "Qualified" },
+  { id: "proposal", name: "Proposal" },
+  { id: "negotiation", name: "Negotiation" },
+  { id: "customer", name: "Customer" },
+  { id: "closed-lost", name: "Closed Lost" },
 ];
 
 function DraggableCard({
@@ -62,35 +65,44 @@ function DroppableColumn({
   deals,
   organizations,
   isActiveColumn,
+  probability,
 }: {
   id: string;
   title: string;
   deals: Deal[];
   organizations: Organization[];
   isActiveColumn: boolean;
+  probability: number;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id,
   });
 
-  const columnValue = deals.reduce((sum, d) => sum + d.value, 0);
+  const columnTotal = deals.reduce((sum, d) => sum + d.value, 0);
+  const columnWeighted = deals.reduce(
+    (sum, d) => sum + d.value * (probability / 100),
+    0
+  );
 
   return (
-    <div className="space-y-4">
-      <div className="bg-gray-100 dark:bg-gray-800/50 px-4 py-3 rounded-md">
+    <div className="flex flex-col min-w-[280px] max-w-[320px]">
+      {/* Column header */}
+      <div className="bg-gray-100 dark:bg-gray-800/50 px-4 py-3 rounded-md mb-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-medium">{title}</h3>
-          <span className="text-sm text-muted-foreground bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+          <h3 className="font-medium text-sm">
+            <span className="text-muted-foreground">({probability}%)</span>{" "}
+            {title}
+          </h3>
+          <span className="text-xs text-muted-foreground bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
             {deals.length}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          {formatDealValue(columnValue)}
-        </p>
       </div>
+
+      {/* Card list */}
       <div
         ref={setNodeRef}
-        className={`space-y-3 px-1 min-h-[200px] rounded-lg transition-colors ${
+        className={`flex-1 space-y-3 px-1 min-h-[200px] rounded-lg transition-colors ${
           isOver
             ? "bg-orange-50 dark:bg-orange-900/10 ring-2 ring-orange-500"
             : ""
@@ -109,6 +121,20 @@ function DroppableColumn({
             )}
           />
         ))}
+      </div>
+
+      {/* Column footer - sticky at bottom */}
+      <div className="border-t border-gray-200 dark:border-gray-700 mt-4 pt-3 px-2">
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div className="flex justify-between">
+            <span>Total</span>
+            <span className="font-medium">{formatDealValue(columnTotal)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Weighted</span>
+            <span className="font-medium">{formatDealValue(columnWeighted)}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -237,20 +263,26 @@ export function PipelineClient() {
           dealCount={filteredDeals.length}
         />
         <div className="mt-10">
-          <div className="grid grid-cols-4 gap-8">
-            {pipelineStages.map((stage) => (
-              <DroppableColumn
-                key={stage.id}
-                id={stage.id}
-                title={stage.name}
-                deals={filteredDeals.filter(
+          <div className="overflow-x-auto pb-4">
+            <div className="flex gap-6 min-w-max">
+              {pipelineStages.map((stage) => {
+                const stageDeals = filteredDeals.filter(
                   (d) =>
                     d.stage.toLowerCase().replace(/ /g, "-") === stage.id
-                )}
-                organizations={organizations}
-                isActiveColumn={activeId !== null}
-              />
-            ))}
+                );
+                return (
+                  <DroppableColumn
+                    key={stage.id}
+                    id={stage.id}
+                    title={stage.name}
+                    deals={stageDeals}
+                    organizations={organizations}
+                    isActiveColumn={activeId !== null}
+                    probability={STAGE_PROBABILITIES[stage.name] ?? 0}
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
       </main>
