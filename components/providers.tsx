@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { AppShell } from "@/components/app-shell";
 import { PublicHeader } from "@/components/public-header";
 import { usePathname } from "next/navigation";
+import { Toaster } from "sonner";
 
 // Routes that don't require auth loading to complete before rendering
 const publicRoutes = ["/login", "/signup", "/customer/sign"];
@@ -34,6 +35,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <AuthGate>{children}</AuthGate>
+      <Toaster richColors position="bottom-right" />
     </AuthProvider>
   );
 }
