@@ -37,6 +37,10 @@ export function Sidebar() {
   useEffect(() => {
     setCollections(getCollections());
     setUnreadCount(getUnreadCount());
+
+    const handleUpdate = () => setUnreadCount(getUnreadCount());
+    window.addEventListener("notifications-updated", handleUpdate);
+    return () => window.removeEventListener("notifications-updated", handleUpdate);
   }, []);
 
   const isActive = (href: string) => {

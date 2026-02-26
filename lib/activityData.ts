@@ -279,10 +279,16 @@ export function markAsRead(id: string): void {
     a.id === id ? { ...a, read: true } : a
   );
   saveActivities(updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("notifications-updated"));
+  }
 }
 
 export function markAllAsRead(): void {
   const activities = getActivities();
   const updated = activities.map((a) => ({ ...a, read: true }));
   saveActivities(updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("notifications-updated"));
+  }
 }
