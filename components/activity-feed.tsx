@@ -13,7 +13,7 @@ const activityIcons = {
   organization_added: Building2,
   person_added: Users,
   collection_created: FolderKanban,
-  deal_moved: ArrowRight,
+  stage_changed: ArrowRight,
   note_added: StickyNote,
   meeting_scheduled: Calendar,
 };
@@ -22,7 +22,7 @@ const activityColors = {
   organization_added: "text-blue-500 bg-blue-50 dark:bg-blue-950",
   person_added: "text-green-500 bg-green-50 dark:bg-green-950",
   collection_created: "text-purple-500 bg-purple-50 dark:bg-purple-950",
-  deal_moved: "text-orange-500 bg-orange-50 dark:bg-orange-950",
+  stage_changed: "text-orange-500 bg-orange-50 dark:bg-orange-950",
   note_added: "text-yellow-500 bg-yellow-50 dark:bg-yellow-950",
   meeting_scheduled: "text-pink-500 bg-pink-50 dark:bg-pink-950",
 };

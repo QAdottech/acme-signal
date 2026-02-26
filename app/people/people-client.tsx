@@ -11,19 +11,38 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Mail, Phone, Linkedin, X, Download } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Mail,
+  Phone,
+  Linkedin,
+  X,
+  Download,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import { AddPersonModal } from "@/components/add-person-modal";
+import { BulkActionsBar } from "@/components/bulk-actions-bar";
 import type { Person } from "@/types/person";
 import { getPeople, savePeople } from "@/lib/personData";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { exportPeopleToCSV } from "@/lib/exportUtils";
+
+type SortField = "name" | "role" | "organization" | "status" | "lastContact";
+type SortDirection = "asc" | "desc";
 
 export function PeopleClient() {
   const [people, setPeople] = useState<Person[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   useEffect(() => {
     setPeople(getPeople());
@@ -37,28 +56,134 @@ export function PeopleClient() {
     setIsModalOpen(false);
   };
 
-  const filteredPeople = people.filter((person) => {
-    const matchesSearch =
-      person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      person.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      person.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      person.role.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
 
-    const matchesStatus =
-      statusFilter === "all" || person.status === statusFilter;
+  const sortPeople = (items: Person[]) => {
+    return [...items].sort((a, b) => {
+      let aValue: string;
+      let bValue: string;
 
-    return matchesSearch && matchesStatus;
-  });
+      switch (sortField) {
+        case "name":
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case "role":
+          aValue = a.role.toLowerCase();
+          bValue = b.role.toLowerCase();
+          break;
+        case "organization":
+          aValue = a.organization.toLowerCase();
+          bValue = b.organization.toLowerCase();
+          break;
+        case "status":
+          aValue = a.status.toLowerCase();
+          bValue = b.status.toLowerCase();
+          break;
+        case "lastContact":
+          aValue = a.lastContact || "";
+          bValue = b.lastContact || "";
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const filteredPeople = sortPeople(
+    people.filter((person) => {
+      const matchesSearch =
+        person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        person.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        person.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        person.role.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "all" || person.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    })
+  );
+
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredPeople.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredPeople.map((person) => person.id)));
+    }
+  };
+
+  const handleBulkStatusChange = (status: string) => {
+    const updatedPeople = people.map((person) =>
+      selectedIds.has(person.id)
+        ? { ...person, status: status as Person["status"] }
+        : person
+    );
+    setPeople(updatedPeople);
+    savePeople(updatedPeople);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkExport = () => {
+    const selectedPeople = people.filter((person) =>
+      selectedIds.has(person.id)
+    );
+    exportPeopleToCSV(selectedPeople);
+  };
+
+  const handleBulkDelete = () => {
+    if (
+      confirm(
+        `Are you sure you want to delete ${selectedIds.size} contacts?`
+      )
+    ) {
+      const updatedPeople = people.filter(
+        (person) => !selectedIds.has(person.id)
+      );
+      setPeople(updatedPeople);
+      savePeople(updatedPeople);
+      setSelectedIds(new Set());
+    }
+  };
 
   const handleExportAll = () => {
     exportPeopleToCSV(filteredPeople);
   };
 
+  const isFiltered = searchTerm !== "" || statusFilter !== "all";
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-1 container py-8 max-w-[1400px] mx-auto px-6">
+      <main className="container py-8 max-w-[1400px] mx-auto px-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold">People</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-semibold">People</h1>
+            <span className="text-sm text-muted-foreground">
+              {isFiltered
+                ? `${filteredPeople.length} of ${people.length} contacts`
+                : `${people.length} contacts`}
+            </span>
+          </div>
           <div className="flex gap-3">
             <Button
               onClick={handleExportAll}
@@ -144,13 +269,87 @@ export function PeopleClient() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Organization</TableHead>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={
+                    selectedIds.size === filteredPeople.length &&
+                    filteredPeople.length > 0
+                  }
+                  onCheckedChange={toggleSelectAll}
+                />
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                onClick={() => handleSort("name")}
+              >
+                <div className="flex items-center gap-2">
+                  Name
+                  {sortField === "name" &&
+                    (sortDirection === "asc" ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    ))}
+                </div>
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                onClick={() => handleSort("role")}
+              >
+                <div className="flex items-center gap-2">
+                  Role
+                  {sortField === "role" &&
+                    (sortDirection === "asc" ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    ))}
+                </div>
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                onClick={() => handleSort("organization")}
+              >
+                <div className="flex items-center gap-2">
+                  Organization
+                  {sortField === "organization" &&
+                    (sortDirection === "asc" ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    ))}
+                </div>
+              </TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last Contact</TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                onClick={() => handleSort("status")}
+              >
+                <div className="flex items-center gap-2">
+                  Status
+                  {sortField === "status" &&
+                    (sortDirection === "asc" ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    ))}
+                </div>
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                onClick={() => handleSort("lastContact")}
+              >
+                <div className="flex items-center gap-2">
+                  Last Contact
+                  {sortField === "lastContact" &&
+                    (sortDirection === "asc" ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    ))}
+                </div>
+              </TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -160,6 +359,12 @@ export function PeopleClient() {
                 key={person.id}
                 className="hover:bg-gray-50 dark:hover:bg-gray-800"
               >
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={selectedIds.has(person.id)}
+                    onCheckedChange={() => toggleSelection(person.id)}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 relative rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
@@ -224,7 +429,7 @@ export function PeopleClient() {
                 <TableCell>
                   {person.lastContact
                     ? new Date(person.lastContact).toLocaleDateString()
-                    : "—"}
+                    : "\u2014"}
                 </TableCell>
                 <TableCell>
                   {person.linkedIn && (
@@ -259,7 +464,14 @@ export function PeopleClient() {
           onClose={() => setIsModalOpen(false)}
           onAdd={addPerson}
         />
+
+        <BulkActionsBar
+          selectedCount={selectedIds.size}
+          onClearSelection={() => setSelectedIds(new Set())}
+          onChangeStatus={handleBulkStatusChange}
+          onExport={handleBulkExport}
+          onDelete={handleBulkDelete}
+        />
       </main>
-    </div>
   );
 }

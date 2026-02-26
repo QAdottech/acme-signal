@@ -69,8 +69,7 @@ export function CollectionsClient() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      <main className="flex-1 container py-16 max-w-[1400px] mx-auto px-6">
+      <main className="container py-8 max-w-[1400px] mx-auto px-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold">Collections</h1>
           <Button
@@ -191,6 +190,13 @@ export function CollectionsClient() {
             );
           })}
         </div>
+        {collections.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-gray-500 dark:text-gray-400">
+              No collections yet. Click &apos;Add Collection&apos; to organize your companies.
+            </p>
+          </div>
+        )}
         <AddCollectionModal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
@@ -210,6 +216,5 @@ export function CollectionsClient() {
           />
         )}
       </main>
-    </div>
   );
 }

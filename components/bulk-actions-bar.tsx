@@ -39,13 +39,14 @@ export function BulkActionsBar({
             <SelectValue placeholder="Change status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Screening">Screening</SelectItem>
-            <SelectItem value="Hitlist">Hitlist</SelectItem>
-            <SelectItem value="Preparing for NDC">Preparing for NDC</SelectItem>
-            <SelectItem value="Portfolio company">Portfolio company</SelectItem>
-            <SelectItem value="Passive follow">Passive follow</SelectItem>
-            <SelectItem value="Lost">Lost</SelectItem>
-            <SelectItem value="Not interesting">Not interesting</SelectItem>
+            <SelectItem value="New">New</SelectItem>
+            <SelectItem value="Lead">Lead</SelectItem>
+            <SelectItem value="Qualified">Qualified</SelectItem>
+            <SelectItem value="Proposal">Proposal</SelectItem>
+            <SelectItem value="Negotiation">Negotiation</SelectItem>
+            <SelectItem value="Customer">Customer</SelectItem>
+            <SelectItem value="Churned">Churned</SelectItem>
+            <SelectItem value="Closed Lost">Closed Lost</SelectItem>
           </SelectContent>
         </Select>
 
