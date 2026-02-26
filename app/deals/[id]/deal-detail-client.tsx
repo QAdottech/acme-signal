@@ -13,6 +13,8 @@ import { getDeal, saveDeal, deleteDeal, formatDealValue } from "@/lib/dealData";
 import { getOrganizations } from "@/lib/organizationData";
 import { getPeople } from "@/lib/personData";
 import { getNotesForOrganization } from "@/lib/notesData";
+import { getTasksForDeal } from "@/lib/taskData";
+import type { Task } from "@/types/task";
 import type { Note } from "@/lib/notesData";
 import { OrganizationImage } from "@/components/organization-image";
 import {
@@ -29,6 +31,7 @@ import {
   Users,
   ArrowRight,
   Tag,
+  CheckSquare,
 } from "lucide-react";
 import {
   Command,
@@ -110,6 +113,7 @@ export function DealDetailClient({
   const [deal, setDeal] = useState<Deal | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [organizations, setOrganizationsList] = useState<Organization[]>([]);
   const [stageOpen, setStageOpen] = useState(false);
@@ -133,6 +137,7 @@ export function DealDetailClient({
         setOrganization(org);
         setNotes(getNotesForOrganization(org.id));
       }
+      setTasks(getTasksForDeal(d.id));
       setPeople(getPeople());
     } else {
       router.push("/");
@@ -362,6 +367,96 @@ export function DealDetailClient({
                 </CardContent>
               </Card>
             )}
+
+            {/* Tasks */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CheckSquare className="w-4 h-4" />
+                  Tasks ({tasks.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {tasks.length > 0 ? (
+                  <div className="space-y-2">
+                    {tasks.map((task) => {
+                      const isDone = task.status === "done";
+                      const isOverdue =
+                        !isDone &&
+                        task.dueDate &&
+                        task.dueDate < new Date().toISOString().split("T")[0];
+                      return (
+                        <Link
+                          key={task.id}
+                          href="/tasks"
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors",
+                            isDone && "opacity-60"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center",
+                              isDone
+                                ? "bg-green-500 border-green-500"
+                                : "border-gray-300 dark:border-gray-600"
+                            )}
+                          >
+                            {isDone && (
+                              <Check className="w-3 h-3 text-white" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className={cn(
+                                "text-sm font-medium truncate",
+                                isDone && "line-through text-muted-foreground"
+                              )}
+                            >
+                              {task.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {task.dueDate && (
+                                <span
+                                  className={cn(
+                                    "text-xs",
+                                    isOverdue
+                                      ? "text-red-600 dark:text-red-400 font-medium"
+                                      : "text-gray-500"
+                                  )}
+                                >
+                                  {new Date(
+                                    task.dueDate + "T00:00:00"
+                                  ).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
+                                  {isOverdue && " (overdue)"}
+                                </span>
+                              )}
+                              {task.priority === "high" && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
+                                  High
+                                </span>
+                              )}
+                              {task.priority === "urgent" && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                                  Urgent
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">
+                    No tasks linked to this deal
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Right sidebar */}
