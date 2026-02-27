@@ -32,7 +32,12 @@ import {
   ArrowRight,
   Tag,
   CheckSquare,
+  Send,
+  FileSignature,
+  Clock,
+  CheckCircle2,
 } from "lucide-react";
+import { SendForSignatureModal } from "@/components/send-for-signature-modal";
 import {
   Command,
   CommandEmpty,
@@ -122,6 +127,7 @@ export function DealDetailClient({
   const [isEditingNextStep, setIsEditingNextStep] = useState(false);
   const [editNextStep, setEditNextStep] = useState("");
   const [tagsOpen, setTagsOpen] = useState(false);
+  const [signatureModalOpen, setSignatureModalOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -206,6 +212,19 @@ export function DealDetailClient({
     }
   };
 
+  const handleSignatureSent = (recipientEmail: string) => {
+    if (deal) {
+      const updated = {
+        ...deal,
+        signatureStatus: "sent" as const,
+        signatureSentAt: new Date().toISOString(),
+        signatureRecipientEmail: recipientEmail,
+      };
+      saveDeal(updated);
+      setDeal(updated);
+    }
+  };
+
   if (!deal || !organization) {
     return <div className="p-8">Loading...</div>;
   }
@@ -256,15 +275,26 @@ export function DealDetailClient({
                 </span>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-              onClick={handleDelete}
-            >
-              <Trash2 className="w-4 h-4 mr-1.5" />
-              Delete
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setSignatureModalOpen(true)}
+              >
+                <Send className="w-4 h-4" />
+                Send for Signature
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                onClick={handleDelete}
+              >
+                <Trash2 className="w-4 h-4 mr-1.5" />
+                Delete
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -505,6 +535,68 @@ export function DealDetailClient({
                     </Command>
                   </PopoverContent>
                 </Popover>
+              </CardContent>
+            </Card>
+
+            {/* Signature Status */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-1.5">
+                  <FileSignature className="w-3.5 h-3.5" />
+                  Signature
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {deal.signatureStatus === "signed" ? (
+                  <div className="flex items-center gap-2 text-green-600">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="text-sm font-medium">Signed</span>
+                  </div>
+                ) : deal.signatureStatus === "sent" ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-amber-600">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        Awaiting signature
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Sent to {deal.signatureRecipientEmail}
+                      {deal.signatureSentAt && (
+                        <>
+                          {" "}
+                          on{" "}
+                          {new Date(deal.signatureSentAt).toLocaleDateString(
+                            "en-US",
+                            { month: "short", day: "numeric" }
+                          )}
+                        </>
+                      )}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs gap-1.5"
+                      onClick={() => setSignatureModalOpen(true)}
+                    >
+                      <Send className="w-3 h-3" />
+                      Resend
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-400 italic">Not sent</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs gap-1.5"
+                      onClick={() => setSignatureModalOpen(true)}
+                    >
+                      <Send className="w-3 h-3" />
+                      Send for Signature
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -759,6 +851,14 @@ export function DealDetailClient({
           </div>
         </div>
       </div>
+
+      <SendForSignatureModal
+        isOpen={signatureModalOpen}
+        onClose={() => setSignatureModalOpen(false)}
+        deal={deal}
+        organization={organization}
+        onSent={handleSignatureSent}
+      />
     </>
   );
 }
