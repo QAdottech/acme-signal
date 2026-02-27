@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const verificationUrl = `${baseUrl}/verify-email?token=${token}&email=${encodeURIComponent(email)}`;
 
     const { data, error } = await resend.emails.send({
-      from: "ACME Signal <onboarding@resend.dev>",
+      from: "ACME Signal <noreply@qatech.email>",
       to: email,
       subject: "Verify your email - ACME Signal",
       react: VerificationEmail({ verificationUrl, userName }),

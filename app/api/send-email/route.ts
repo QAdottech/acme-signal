@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     }
 
     const { data, error } = await resend.emails.send({
-      from: "ACME Signal <onboarding@resend.dev>",
+      from: "ACME Signal <noreply@qatech.email>",
       to,
       subject,
       html: `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
