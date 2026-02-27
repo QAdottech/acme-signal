@@ -112,7 +112,7 @@ export function SendForSignatureModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Send for Signature</DialogTitle>
           <DialogDescription>
@@ -121,124 +121,121 @@ export function SendForSignatureModal({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSendEmail}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="sig-email" className="text-right">
-                Recipient
-              </Label>
+          <div className="space-y-5 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="sig-email">Recipient email</Label>
               <Input
                 id="sig-email"
                 type="email"
                 value={recipientEmail}
                 onChange={(e) => setRecipientEmail(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
                 placeholder="customer@company.com"
                 required
               />
             </div>
 
-            <div className="col-span-4 px-0">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3 pl-[calc(25%+8px)]">
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
                 Proposal Terms
               </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="sig-term" className="text-xs text-gray-500">
+                    Term length
+                  </Label>
+                  <Input
+                    id="sig-term"
+                    value={termLength}
+                    onChange={(e) => setTermLength(e.target.value)}
+                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    placeholder="12 months"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="sig-billing" className="text-xs text-gray-500">
+                    Billing frequency
+                  </Label>
+                  <Input
+                    id="sig-billing"
+                    value={billingFrequency}
+                    onChange={(e) => setBillingFrequency(e.target.value)}
+                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    placeholder="Annual"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="sig-payment" className="text-xs text-gray-500">
+                    Payment terms
+                  </Label>
+                  <Input
+                    id="sig-payment"
+                    value={paymentTerms}
+                    onChange={(e) => setPaymentTerms(e.target.value)}
+                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    placeholder="Net 30"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="sig-seats" className="text-xs text-gray-500">
+                    Seats
+                  </Label>
+                  <Input
+                    id="sig-seats"
+                    value={seats}
+                    onChange={(e) => setSeats(e.target.value)}
+                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    placeholder="10 seats"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="sig-sla" className="text-xs text-gray-500">
+                    SLA tier
+                  </Label>
+                  <Input
+                    id="sig-sla"
+                    value={slaTier}
+                    onChange={(e) => setSlaTier(e.target.value)}
+                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    placeholder="Standard"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="sig-renewal" className="text-xs text-gray-500">
+                    Renewal
+                  </Label>
+                  <Input
+                    id="sig-renewal"
+                    value={renewalBehavior}
+                    onChange={(e) => setRenewalBehavior(e.target.value)}
+                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    placeholder="Auto-renew"
+                  />
+                </div>
+                <div className="space-y-1.5 col-span-2">
+                  <Label htmlFor="sig-cancel" className="text-xs text-gray-500">
+                    Cancellation window
+                  </Label>
+                  <Input
+                    id="sig-cancel"
+                    value={cancellationWindow}
+                    onChange={(e) => setCancellationWindow(e.target.value)}
+                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    placeholder="30 days"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="sig-term" className="text-right">
-                Term
-              </Label>
-              <Input
-                id="sig-term"
-                value={termLength}
-                onChange={(e) => setTermLength(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
-                placeholder="12 months"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="sig-billing" className="text-right">
-                Billing
-              </Label>
-              <Input
-                id="sig-billing"
-                value={billingFrequency}
-                onChange={(e) => setBillingFrequency(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
-                placeholder="Annual"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="sig-payment" className="text-right">
-                Payment
-              </Label>
-              <Input
-                id="sig-payment"
-                value={paymentTerms}
-                onChange={(e) => setPaymentTerms(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
-                placeholder="Net 30"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="sig-seats" className="text-right">
-                Seats
-              </Label>
-              <Input
-                id="sig-seats"
-                value={seats}
-                onChange={(e) => setSeats(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
-                placeholder="10 seats"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="sig-sla" className="text-right">
-                SLA
-              </Label>
-              <Input
-                id="sig-sla"
-                value={slaTier}
-                onChange={(e) => setSlaTier(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
-                placeholder="Standard"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="sig-renewal" className="text-right">
-                Renewal
-              </Label>
-              <Input
-                id="sig-renewal"
-                value={renewalBehavior}
-                onChange={(e) => setRenewalBehavior(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
-                placeholder="Auto-renew"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="sig-cancel" className="text-right">
-                Cancel
-              </Label>
-              <Input
-                id="sig-cancel"
-                value={cancellationWindow}
-                onChange={(e) => setCancellationWindow(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
-                placeholder="30 days"
-              />
-            </div>
-
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="sig-message" className="text-right pt-2">
-                Message
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="sig-message">Personal message (optional)</Label>
               <Textarea
                 id="sig-message"
                 value={personalMessage}
                 onChange={(e) => setPersonalMessage(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
-                placeholder="Optional personal note to include in the email..."
-                rows={2}
+                className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                placeholder="Add a note to include in the email..."
+                rows={3}
               />
             </div>
           </div>
