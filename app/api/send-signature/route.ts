@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const resend = new Resend(apiKey);
 
     const { data, error } = await resend.emails.send({
-      from: "ACME Signal <onboarding@resend.dev>",
+      from: "ACME Signal <noreply@qatech.email>",
       to: recipientEmail,
       subject: `Proposal ready for signature: ${dealName || "Your proposal"}`,
       react: SignatureRequestEmail({
