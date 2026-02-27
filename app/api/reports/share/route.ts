@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     const resend = new Resend(apiKey);
 
     const { data, error } = await resend.emails.send({
-      from: "ACME Signal <onboarding@resend.dev>",
+      from: "ACME Signal <noreply@qatech.email>",
       to: recipientEmail.trim(),
       subject: `${senderName} shared a report: ${reportData.title}`,
       react: ReportEmail({
