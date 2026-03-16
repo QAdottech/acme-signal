@@ -46,9 +46,14 @@ export function Sidebar() {
     setCollections(getCollections());
     setUnreadCount(getUnreadCount());
 
-    const handleUpdate = () => setUnreadCount(getUnreadCount());
-    window.addEventListener("notifications-updated", handleUpdate);
-    return () => window.removeEventListener("notifications-updated", handleUpdate);
+    const handleNotificationsUpdate = () => setUnreadCount(getUnreadCount());
+    const handleCollectionsUpdate = () => setCollections(getCollections());
+    window.addEventListener("notifications-updated", handleNotificationsUpdate);
+    window.addEventListener("collections-updated", handleCollectionsUpdate);
+    return () => {
+      window.removeEventListener("notifications-updated", handleNotificationsUpdate);
+      window.removeEventListener("collections-updated", handleCollectionsUpdate);
+    };
   }, []);
 
   const isActive = (href: string) => {

@@ -41,6 +41,7 @@ export function CollectionsClient() {
     setCollections(updatedCollections);
     saveCollections(updatedCollections);
     setIsAddModalOpen(false);
+    window.dispatchEvent(new Event("collections-updated"));
   };
 
   const handleEditCollection = (editedCollection: Collection) => {
@@ -51,6 +52,7 @@ export function CollectionsClient() {
     saveCollections(updatedCollections);
     setIsEditModalOpen(false);
     setEditingCollection(null);
+    window.dispatchEvent(new Event("collections-updated"));
   };
 
   const handleDeleteCollection = (collectionId: string) => {
@@ -61,6 +63,7 @@ export function CollectionsClient() {
     saveCollections(updatedCollections);
     setIsEditModalOpen(false);
     setEditingCollection(null);
+    window.dispatchEvent(new Event("collections-updated"));
   };
 
   const openEditModal = (collection: Collection) => {
