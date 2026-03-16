@@ -4,18 +4,20 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collection, Organization } from "@/types/organization";
-import { getCollections, getOrganizations } from "@/lib/organizationData";
+import { getCollections, getOrganizations, saveCollections } from "@/lib/organizationData";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Edit, MapPin, Users, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EditCollectionModal } from "@/components/edit-collection-modal";
 
 export function CollectionDetailClient({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [collection, setCollection] = useState<Collection | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [collectionOrgs, setCollectionOrgs] = useState<Organization[]>([]);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     const collections = getCollections() || [];
@@ -32,6 +34,28 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
       setCollectionOrgs(orgsInCollection);
     }
   }, [params.id]);
+
+  const handleEditCollection = (editedCollection: Collection) => {
+    const collections = getCollections() || [];
+    const updatedCollections = collections.map((c) =>
+      c.id === editedCollection.id ? editedCollection : c
+    );
+    saveCollections(updatedCollections);
+    setCollection(editedCollection);
+    const allOrgs = organizations;
+    setCollectionOrgs(
+      allOrgs.filter((org) => editedCollection.organizationIds?.includes(org.id))
+    );
+    setIsEditModalOpen(false);
+  };
+
+  const handleDeleteCollection = (collectionId: string) => {
+    const collections = getCollections() || [];
+    const updatedCollections = collections.filter((c) => c.id !== collectionId);
+    saveCollections(updatedCollections);
+    setIsEditModalOpen(false);
+    router.push("/collections");
+  };
 
   if (!collection) {
     return (
@@ -73,6 +97,7 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
                 variant="ghost"
                 size="sm"
                 className="text-white hover:bg-white/20"
+                onClick={() => setIsEditModalOpen(true)}
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
@@ -172,6 +197,14 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
             ))}
           </div>
         </div>
+        <EditCollectionModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onEdit={handleEditCollection}
+          onDelete={handleDeleteCollection}
+          collection={collection}
+          organizations={organizations}
+        />
       </main>
   );
 }
