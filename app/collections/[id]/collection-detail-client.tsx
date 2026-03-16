@@ -42,11 +42,11 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
     );
     saveCollections(updatedCollections);
     setCollection(editedCollection);
-    const allOrgs = organizations;
     setCollectionOrgs(
-      allOrgs.filter((org) => editedCollection.organizationIds?.includes(org.id))
+      organizations.filter((org) => editedCollection.organizationIds?.includes(org.id))
     );
     setIsEditModalOpen(false);
+    window.dispatchEvent(new Event("collections-updated"));
   };
 
   const handleDeleteCollection = (collectionId: string) => {
@@ -54,6 +54,7 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
     const updatedCollections = collections.filter((c) => c.id !== collectionId);
     saveCollections(updatedCollections);
     setIsEditModalOpen(false);
+    window.dispatchEvent(new Event("collections-updated"));
     router.push("/collections");
   };
 
