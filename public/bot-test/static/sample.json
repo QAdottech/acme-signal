@@ -1,0 +1,6 @@
+{
+  "area": "bot-test",
+  "type": "static-json",
+  "message": "Example file under /bot-test/ for crawler allow/disallow checks.",
+  "items": ["alpha", "beta", "gamma"]
+}

@@ -2,7 +2,18 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // Routes that don't require authentication
-const publicRoutes = ["/login", "/signup", "/verify-email", "/customer/sign"];
+const publicRoutes = [
+  "/login",
+  "/signup",
+  "/verify-email",
+  "/customer/sign",
+  "/bot-test/user-agent",
+];
+
+/** Crawl / QA sandbox + robots (must not redirect to login). */
+function isPublicCrawlPath(pathname: string) {
+  return pathname === "/robots.txt" || pathname.startsWith("/bot-test");
+}
 
 // Routes that authenticated users should be redirected away from
 const authRoutes = ["/login", "/signup"];
@@ -15,7 +26,8 @@ export function middleware(request: NextRequest) {
   const isAuthenticated = !!authCookie?.value;
 
   // Check if current path is public
-  const isPublicRoute = publicRoutes.includes(pathname);
+  const isPublicRoute =
+    publicRoutes.includes(pathname) || isPublicCrawlPath(pathname);
 
   // Check if current path is an auth page (login/signup)
   const isAuthRoute = authRoutes.includes(pathname);
