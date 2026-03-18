@@ -1,0 +1,6 @@
+# Example URL list (all under disallowed /bot-test/ for QATechBot)
+https://example.com/bot-test/
+https://example.com/bot-test/docs
+https://example.com/bot-test/items
+https://example.com/bot-test/static/sample.json
+https://example.com/bot-test/static/feed.xml

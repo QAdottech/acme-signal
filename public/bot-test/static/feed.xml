@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Bot-test example feed</title>
+  <id>https://example.com/bot-test/static/feed.xml</id>
+  <updated>2025-03-18T00:00:00Z</updated>
+  <entry>
+    <title>Sample entry</title>
+    <id>tag:bot-test,2025:1</id>
+    <summary>Static XML under /bot-test/static/ for crawl testing.</summary>
+  </entry>
+</feed>
