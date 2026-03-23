@@ -204,7 +204,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const inviteUser = async (email: string): Promise<void> => {
     // In a real application, this would be an API call
-    console.log(`Invited user ${email} to the team`);
+    const newUser = {
+      id: Math.random().toString(36).substr(2, 9),
+      email,
+      fullName: "",
+      avatar: "",
+      role: "member" as const,
+    };
+    const updatedUsers = [...users, newUser];
+    setUsers(updatedUsers);
+    localStorage.setItem("users", JSON.stringify(updatedUsers));
   };
 
   return (
