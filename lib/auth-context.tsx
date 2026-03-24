@@ -203,6 +203,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const inviteUser = async (email: string): Promise<void> => {
+    const existingUser = users.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase()
+    );
+    if (existingUser) {
+      throw new Error("A team member with this email already exists");
+    }
     const newUser: User = {
       id: Math.random().toString(36).substr(2, 9),
       email,
