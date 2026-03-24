@@ -26,6 +26,7 @@ import { getPeople } from "@/lib/personData";
 import { AddTaskModal } from "@/components/add-task-modal";
 import { cn } from "@/lib/utils";
 import type { Person } from "@/types/person";
+import { useAuth } from "@/lib/auth-context";
 
 const statusConfig: Record<TaskStatus, { label: string; className: string }> = {
   todo: {
@@ -82,6 +83,7 @@ function formatDueDate(dateStr: string): string {
 }
 
 export function TasksClient() {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -201,10 +203,12 @@ export function TasksClient() {
 
     if (activeTab === "overdue") {
       filtered = filtered.filter(isOverdue);
+    } else if (activeTab === "my_tasks" && user) {
+      filtered = filtered.filter((task) => task.assignee === user.fullName);
     }
 
     return filtered.sort(sortByDueDate);
-  }, [tasks, searchTerm, activeTab]);
+  }, [tasks, searchTerm, activeTab, user]);
 
   const overdueCount = useMemo(
     () => tasks.filter(isOverdue).length,
