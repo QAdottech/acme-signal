@@ -97,6 +97,10 @@ function DroppableColumn({
             {deals.length}
           </span>
         </div>
+        <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+          <span>Total: <span className="font-medium">{formatDealValue(columnTotal)}</span></span>
+          <span>Wtd: <span className="font-medium">{formatDealValue(columnWeighted)}</span></span>
+        </div>
       </div>
 
       {/* Card list */}
