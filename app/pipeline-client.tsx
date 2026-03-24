@@ -231,7 +231,7 @@ export function PipelineClient() {
 
   const handleAddDeal = (dealData: Omit<Deal, "id" | "createdAt">) => {
     const newDeal = addDeal(dealData);
-    setDeals([...deals, newDeal]);
+    setDeals((prev) => [...prev, newDeal]);
     setIsModalOpen(false);
   };
 
