@@ -212,6 +212,11 @@ function SignForm({
             Signed on {signatureDate}
             {proposal.proposalId && <> · Proposal ID: {proposal.proposalId}</>}
           </p>
+          {poNumber.trim() && (
+            <p className="text-sm text-muted-foreground">
+              PO / reference number: <span className="font-medium text-foreground">{poNumber.trim()}</span>
+            </p>
+          )}
           <p className="text-sm text-muted-foreground">
             You signed as{' '}
             <span
