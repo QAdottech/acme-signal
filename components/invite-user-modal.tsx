@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
+import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,21 +22,12 @@ interface InviteUserModalProps {
 
 export function InviteUserModal({ isOpen, onClose }: InviteUserModalProps) {
   const [email, setEmail] = useState('')
-  const { inviteUser, users } = useAuth()
+  const { inviteUser } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     await inviteUser(email)
-    // Simulate adding a new user
-    const newUser = {
-      id: Math.random().toString(36).substr(2, 9),
-      email,
-      fullName: '',
-      avatar: '',
-      role: 'member' as const
-    }
-    const updatedUsers = [...users, newUser]
-    localStorage.setItem('users', JSON.stringify(updatedUsers))
+    toast.success(`Invitation sent to ${email}`)
     setEmail('')
     onClose()
   }
