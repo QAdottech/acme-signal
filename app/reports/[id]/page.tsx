@@ -247,6 +247,7 @@ export default function ReportDetailPage() {
   const router = useRouter();
   const [report, setReport] = useState<ReportDefinition | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const loadReport = useCallback(() => {
@@ -257,7 +258,17 @@ export default function ReportDetailPage() {
 
   useEffect(() => {
     loadReport();
-  }, [loadReport, refreshKey]);
+  }, [loadReport]);
+
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    // Brief delay so the user sees the loading state before data re-renders
+    setTimeout(() => {
+      setRefreshKey((k) => k + 1);
+      loadReport();
+      setIsRefreshing(false);
+    }, 400);
+  }, [loadReport]);
 
   if (!report) {
     return (
@@ -299,9 +310,9 @@ export default function ReportDetailPage() {
               <Trash2 className="h-4 w-4" />
             </Button>
           )}
-          <Button variant="outline" onClick={() => setRefreshKey((k) => k + 1)}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh data
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+            {isRefreshing ? "Refreshing…" : "Refresh data"}
           </Button>
         </div>
       </div>
