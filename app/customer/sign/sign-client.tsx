@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { CheckCircle2, Download, Loader2, Mail } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Download, Loader2, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ProposalConfig } from './types'
 
@@ -160,14 +160,27 @@ function SignForm({
   const [needChangesName, setNeedChangesName] = useState('')
   const [needChangesEmail, setNeedChangesEmail] = useState('')
   const [needChangesMessage, setNeedChangesMessage] = useState('')
+  const [errors, setErrors] = useState<string[]>([])
+  const [touched, setTouched] = useState(false)
 
   const customerCompany =
     proposal.customerCompany || proposal.customerName || '—'
   const countersignDays = proposal.countersignDays || '3'
 
+  const validate = (): string[] => {
+    const errs: string[] = []
+    if (!signature.trim()) errs.push('Full name is required.')
+    if (!agreeToTerms) errs.push('You must agree to the Terms of Service.')
+    if (!authorizedToSign) errs.push('You must confirm you are authorized to sign.')
+    return errs
+  }
+
   const handleSign = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!signature.trim() || !agreeToTerms) return
+    setTouched(true)
+    const errs = validate()
+    setErrors(errs)
+    if (errs.length > 0) return
     setLoading(true)
     setTimeout(() => {
       setSigned(true)
@@ -439,10 +452,20 @@ function SignForm({
                 )}
               </div>
             </div>
+            {touched && errors.length > 0 && (
+              <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 space-y-1">
+                {errors.map((err) => (
+                  <p key={err} className="text-sm text-destructive flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {err}
+                  </p>
+                ))}
+              </div>
+            )}
             <Button
               type="submit"
               className="w-full"
-              disabled={!signature.trim() || !agreeToTerms || loading}
+              disabled={loading}
             >
               {loading ? (
                 <>
