@@ -6,13 +6,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { Deal } from "@/types/deal";
 import type { Organization, DealStage } from "@/types/organization";
 import type { Person } from "@/types/person";
-import { getDeal, saveDeal, deleteDeal, formatDealValue } from "@/lib/dealData";
+import { getDeal, saveDeal, deleteDeal, formatDealValue, STAGE_PROBABILITIES } from "@/lib/dealData";
 import { getOrganizations } from "@/lib/organizationData";
 import { getPeople } from "@/lib/personData";
-import { getNotesForOrganization } from "@/lib/notesData";
+import { getNotesForOrganization, addNote } from "@/lib/notesData";
 import { getTasksForDeal } from "@/lib/taskData";
 import type { Task } from "@/types/task";
 import type { Note } from "@/lib/notesData";
@@ -36,7 +37,9 @@ import {
   FileSignature,
   Clock,
   CheckCircle2,
+  Plus,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 import { SendForSignatureModal } from "@/components/send-for-signature-modal";
 import {
   Command,
@@ -128,7 +131,10 @@ export function DealDetailClient({
   const [editNextStep, setEditNextStep] = useState("");
   const [tagsOpen, setTagsOpen] = useState(false);
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [newNoteContent, setNewNoteContent] = useState("");
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
     const d = getDeal(params.id);
@@ -159,7 +165,8 @@ export function DealDetailClient({
 
   const handleStageChange = (newStage: string) => {
     if (deal) {
-      const updated = { ...deal, stage: newStage as DealStage };
+      const probability = STAGE_PROBABILITIES[newStage] ?? deal.probability;
+      const updated = { ...deal, stage: newStage as DealStage, probability };
       saveDeal(updated);
       setDeal(updated);
       setStageOpen(false);
@@ -203,6 +210,18 @@ export function DealDetailClient({
       saveDeal(updated);
       setDeal(updated);
     }
+  };
+
+  const handleAddNote = () => {
+    if (!organization || !newNoteContent.trim()) return;
+    addNote({
+      organizationId: organization.id,
+      content: newNoteContent.trim(),
+      authorName: user?.fullName || "Unknown",
+    });
+    setNewNoteContent("");
+    setIsAddingNote(false);
+    setNotes(getNotesForOrganization(organization.id));
   };
 
   const handleDelete = () => {
@@ -373,15 +392,73 @@ export function DealDetailClient({
             </Card>
 
             {/* Recent notes from the company */}
-            {notes.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
                   <CardTitle className="text-base">
                     Recent Notes ({notes.length})
                   </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {notes.slice(0, 3).map((note) => (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={() => setIsAddingNote(true)}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Note
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {isAddingNote && (
+                  <div className="p-3 rounded-lg border border-orange-200 bg-orange-50/50 dark:border-orange-900/50 dark:bg-orange-950/20 space-y-2">
+                    <Textarea
+                      placeholder="Write your note..."
+                      value={newNoteContent}
+                      onChange={(e) => setNewNoteContent(e.target.value)}
+                      rows={3}
+                      autoFocus
+                      className="resize-none text-sm"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                          handleAddNote();
+                        }
+                        if (e.key === "Escape") {
+                          setNewNoteContent("");
+                          setIsAddingNote(false);
+                        }
+                      }}
+                    />
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-gray-400">
+                        {"\u2318"}+Enter to save
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => {
+                            setNewNoteContent("");
+                            setIsAddingNote(false);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                          disabled={!newNoteContent.trim()}
+                          onClick={handleAddNote}
+                        >
+                          Save Note
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {notes.length > 0 ? (
+                  notes.slice(0, 3).map((note) => (
                     <div
                       key={note.id}
                       className="p-3 rounded-lg border"
@@ -393,10 +470,14 @@ export function DealDetailClient({
                         {note.authorName} &middot; {getTimeAgo(note.createdAt)}
                       </p>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
+                  ))
+                ) : !isAddingNote ? (
+                  <p className="text-sm text-gray-400 italic">
+                    No notes yet. Click &quot;Add Note&quot; to create one.
+                  </p>
+                ) : null}
+              </CardContent>
+            </Card>
 
             {/* Tasks */}
             <Card>

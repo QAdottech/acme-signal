@@ -23,6 +23,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { AddPersonModal } from "@/components/add-person-modal";
+import { EditPersonModal } from "@/components/edit-person-modal";
 import { BulkActionsBar } from "@/components/bulk-actions-bar";
 import type { Person } from "@/types/person";
 import { getPeople, savePeople } from "@/lib/personData";
@@ -43,6 +44,7 @@ export function PeopleClient() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [editingPerson, setEditingPerson] = useState<Person | null>(null);
 
   useEffect(() => {
     setPeople(getPeople());
@@ -54,6 +56,15 @@ export function PeopleClient() {
     setPeople(updatedPeople);
     savePeople(updatedPeople);
     setIsModalOpen(false);
+  };
+
+  const updatePerson = (updatedPerson: Person) => {
+    const updatedPeople = people.map((p) =>
+      p.id === updatedPerson.id ? updatedPerson : p
+    );
+    setPeople(updatedPeople);
+    savePeople(updatedPeople);
+    setEditingPerson(null);
   };
 
   const handleSort = (field: SortField) => {
@@ -357,7 +368,8 @@ export function PeopleClient() {
             {filteredPeople.map((person) => (
               <TableRow
                 key={person.id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                onClick={() => setEditingPerson(person)}
               >
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <Checkbox
@@ -392,7 +404,7 @@ export function PeopleClient() {
                 </TableCell>
                 <TableCell>{person.role}</TableCell>
                 <TableCell>{person.organization}</TableCell>
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <a
                     href={`mailto:${person.email}`}
                     className="flex items-center gap-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
@@ -401,7 +413,7 @@ export function PeopleClient() {
                     {person.email}
                   </a>
                 </TableCell>
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   {person.phone && (
                     <a
                       href={`tel:${person.phone}`}
@@ -431,7 +443,7 @@ export function PeopleClient() {
                     ? new Date(person.lastContact).toLocaleDateString()
                     : "\u2014"}
                 </TableCell>
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   {person.linkedIn && (
                     <a
                       href={person.linkedIn}
@@ -463,6 +475,13 @@ export function PeopleClient() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onAdd={addPerson}
+        />
+
+        <EditPersonModal
+          isOpen={editingPerson !== null}
+          person={editingPerson}
+          onClose={() => setEditingPerson(null)}
+          onSave={updatePerson}
         />
 
         <BulkActionsBar

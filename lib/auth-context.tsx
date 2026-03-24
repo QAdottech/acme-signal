@@ -203,6 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const inviteUser = async (email: string): Promise<void> => {
+    // In a real application, this would be an API call
     const existingUser = users.find(
       (u) => u.email.toLowerCase() === email.toLowerCase()
     );

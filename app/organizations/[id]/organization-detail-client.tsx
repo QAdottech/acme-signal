@@ -67,6 +67,13 @@ const dealStages = [
   "Closed Lost",
 ] as const;
 
+const owners = [
+  "Sarah Johnson",
+  "Michael Chen",
+  "Emma Wilson",
+  "David Martinez",
+];
+
 const activityIcons: Record<string, typeof Building2> = {
   organization_added: Building2,
   person_added: Users,
@@ -110,6 +117,7 @@ export function OrganizationDetailClient({
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [ownerOpen, setOwnerOpen] = useState(false);
   const [contacts, setContacts] = useState<Person[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -189,6 +197,17 @@ export function OrganizationDetailClient({
       };
       handleEdit(updatedOrg);
       setStatusOpen(false);
+    }
+  };
+
+  const handleOwnerChange = (value: string) => {
+    if (organization) {
+      const updatedOrg = {
+        ...organization,
+        owner: value,
+      };
+      handleEdit(updatedOrg);
+      setOwnerOpen(false);
     }
   };
 
@@ -622,9 +641,43 @@ export function OrganizationDetailClient({
               <CardContent className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-500">Owner</span>
-                  <span className="text-sm font-medium">
-                    {organization.owner || "-"}
-                  </span>
+                  <Popover open={ownerOpen} onOpenChange={setOwnerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        role="combobox"
+                        aria-expanded={ownerOpen}
+                        className="h-auto p-1 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
+                      >
+                        {organization.owner || "Select owner"}
+                        <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search owner..." />
+                        <CommandEmpty>No owner found.</CommandEmpty>
+                        <CommandGroup>
+                          {owners.map((o) => (
+                            <CommandItem
+                              key={o}
+                              onSelect={() => handleOwnerChange(o)}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  organization.owner === o
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {o}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-500">Revenue</span>
