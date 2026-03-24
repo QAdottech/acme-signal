@@ -216,7 +216,8 @@ export function PipelineClient() {
 
     const updatedDeals = deals.map((d) => {
       if (d.id === dealId) {
-        return { ...d, stage: stageObj.name };
+        const probability = STAGE_PROBABILITIES[stageObj.name] ?? d.probability;
+        return { ...d, stage: stageObj.name, probability };
       }
       return d;
     });

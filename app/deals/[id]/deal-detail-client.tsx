@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Deal } from "@/types/deal";
 import type { Organization, DealStage } from "@/types/organization";
 import type { Person } from "@/types/person";
-import { getDeal, saveDeal, deleteDeal, formatDealValue } from "@/lib/dealData";
+import { getDeal, saveDeal, deleteDeal, formatDealValue, STAGE_PROBABILITIES } from "@/lib/dealData";
 import { getOrganizations } from "@/lib/organizationData";
 import { getPeople } from "@/lib/personData";
 import { getNotesForOrganization, addNote } from "@/lib/notesData";
@@ -165,7 +165,8 @@ export function DealDetailClient({
 
   const handleStageChange = (newStage: string) => {
     if (deal) {
-      const updated = { ...deal, stage: newStage as DealStage };
+      const probability = STAGE_PROBABILITIES[newStage] ?? deal.probability;
+      const updated = { ...deal, stage: newStage as DealStage, probability };
       saveDeal(updated);
       setDeal(updated);
       setStageOpen(false);
