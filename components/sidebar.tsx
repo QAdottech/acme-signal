@@ -65,14 +65,17 @@ export function Sidebar() {
     <aside className="w-60 h-screen sticky top-0 flex flex-col border-r bg-gray-50/80 dark:bg-gray-900">
       {/* Workspace header */}
       <div className="h-14 flex items-center px-4 border-b">
-        <Link href="/" className="flex items-center">
+        <Link href="/" className="flex items-center gap-2.5">
           <Image
-            src="/logos/acme-full-logo.png"
+            src="/logos/acme-icon.png"
             alt="ACME Signal"
-            width={240}
-            height={68}
+            width={28}
+            height={28}
             className="dark:invert"
           />
+          <span className="text-[15px] font-semibold text-gray-800 dark:text-gray-100 tracking-tight">
+            ACME Signal
+          </span>
         </Link>
       </div>
 
