@@ -7,7 +7,7 @@ import { DealCard } from "@/components/deal-card";
 import { PipelineHeader } from "@/components/pipeline-header";
 import { PipelineListView } from "@/components/pipeline-list-view";
 import { AddDealModal } from "@/components/add-deal-modal";
-import type { Organization, DealStage } from "@/types/organization";
+import type { Organization } from "@/types/organization";
 import type { Deal } from "@/types/deal";
 import { getOrganizations } from "@/lib/organizationData";
 import { getDeals, saveDeals, addDeal, formatDealValue, STAGE_PROBABILITIES } from "@/lib/dealData";
@@ -219,10 +219,7 @@ export function PipelineClient() {
     return sortDeals(filtered, prefs.sortBy);
   }, [deals, searchTerm, filters, orgMap, prefs.sortBy]);
 
-  const visibleStages = useMemo(
-    () => PIPELINE_STAGES.filter((s) => prefs.visibleStages.includes(s.name)),
-    [prefs.visibleStages]
-  );
+  const visibleStages = useMemo(() => PIPELINE_STAGES, []);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -296,7 +293,7 @@ export function PipelineClient() {
             <PipelineListView
               deals={filteredDeals}
               organizations={organizations}
-              visibleStages={prefs.visibleStages as DealStage[]}
+              visibleStages={visibleStages.map((stage) => stage.name)}
             />
           ) : (
             <DndContext
