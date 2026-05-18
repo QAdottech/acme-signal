@@ -5,11 +5,14 @@ import type React from "react";
 import { useState, useEffect, useMemo } from "react";
 import { DealCard } from "@/components/deal-card";
 import { PipelineHeader } from "@/components/pipeline-header";
+import { PipelineListView } from "@/components/pipeline-list-view";
 import { AddDealModal } from "@/components/add-deal-modal";
 import type { Organization, DealStage } from "@/types/organization";
 import type { Deal } from "@/types/deal";
 import { getOrganizations } from "@/lib/organizationData";
 import { getDeals, saveDeals, addDeal, formatDealValue, STAGE_PROBABILITIES } from "@/lib/dealData";
+import { PIPELINE_STAGES } from "@/lib/pipelineConfig";
+import { usePipelineViewPrefs } from "@/lib/usePipelineViewPrefs";
 import {
   DndContext,
   DragEndEvent,
@@ -23,22 +26,14 @@ import {
 } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
 
-const pipelineStages: { id: string; name: DealStage }[] = [
-  { id: "new", name: "New" },
-  { id: "lead", name: "Lead" },
-  { id: "qualified", name: "Qualified" },
-  { id: "proposal", name: "Proposal" },
-  { id: "negotiation", name: "Negotiation" },
-  { id: "customer", name: "Customer" },
-  { id: "closed-lost", name: "Closed Lost" },
-];
-
 function DraggableCard({
   deal,
   organization,
+  density,
 }: {
   deal: Deal;
   organization?: Organization;
+  density?: "comfortable" | "compact";
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -54,7 +49,7 @@ function DraggableCard({
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <DealCard deal={deal} organization={organization} />
+      <DealCard deal={deal} organization={organization} density={density} />
     </div>
   );
 }
@@ -66,6 +61,7 @@ function DroppableColumn({
   organizations,
   isActiveColumn,
   probability,
+  density,
 }: {
   id: string;
   title: string;
@@ -73,6 +69,7 @@ function DroppableColumn({
   organizations: Organization[];
   isActiveColumn: boolean;
   probability: number;
+  density?: "comfortable" | "compact";
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id,
@@ -119,11 +116,12 @@ function DroppableColumn({
             organization={organizations.find(
               (o) => o.id === deal.organizationId
             )}
+            density={density}
           />
         ))}
       </div>
 
-      {/* Column footer - sticky at bottom */}
+      {/* Column footer */}
       <div className="border-t border-gray-200 dark:border-gray-700 mt-4 pt-3 px-2">
         <div className="text-xs text-muted-foreground space-y-1">
           <div className="flex justify-between">
@@ -140,6 +138,30 @@ function DroppableColumn({
   );
 }
 
+function sortDeals(deals: Deal[], sortBy: string): Deal[] {
+  if (sortBy === "default") return deals;
+  return [...deals].sort((a, b) => {
+    switch (sortBy) {
+      case "value-desc":
+        return b.value - a.value;
+      case "close-date-asc":
+        return (
+          new Date(a.expectedCloseDate).getTime() -
+          new Date(b.expectedCloseDate).getTime()
+        );
+      case "activity-desc": {
+        const aDate = a.lastActivityDate ? new Date(a.lastActivityDate).getTime() : 0;
+        const bDate = b.lastActivityDate ? new Date(b.lastActivityDate).getTime() : 0;
+        return bDate - aDate;
+      }
+      case "created-desc":
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      default:
+        return 0;
+    }
+  });
+}
+
 export function PipelineClient() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -151,6 +173,8 @@ export function PipelineClient() {
     industry: [] as string[],
   });
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  const [prefs, setPrefs, resetPrefs] = usePipelineViewPrefs();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -174,7 +198,7 @@ export function PipelineClient() {
   }, [organizations]);
 
   const filteredDeals = useMemo(() => {
-    return deals.filter((deal) => {
+    const filtered = deals.filter((deal) => {
       const org = orgMap[deal.organizationId];
       if (!org) return false;
 
@@ -192,7 +216,13 @@ export function PipelineClient() {
         filters.industry.includes(org.industry);
       return matchesSearch && matchesLocation && matchesStage && matchesIndustry;
     });
-  }, [deals, searchTerm, filters, orgMap]);
+    return sortDeals(filtered, prefs.sortBy);
+  }, [deals, searchTerm, filters, orgMap, prefs.sortBy]);
+
+  const visibleStages = useMemo(
+    () => PIPELINE_STAGES.filter((s) => prefs.visibleStages.includes(s.name)),
+    [prefs.visibleStages]
+  );
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -211,7 +241,7 @@ export function PipelineClient() {
     const dealId = active.id as string;
     const newStageId = over.id as string;
 
-    const stageObj = pipelineStages.find((s) => s.id === newStageId);
+    const stageObj = PIPELINE_STAGES.find((s) => s.id === newStageId);
     if (!stageObj) return;
 
     const updatedDeals = deals.map((d) => {
@@ -246,13 +276,7 @@ export function PipelineClient() {
   );
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
-    >
+    <>
       <main className="container py-8 max-w-[1400px] mx-auto px-6">
         <PipelineHeader
           openModal={() => setIsModalOpen(true)}
@@ -262,46 +286,68 @@ export function PipelineClient() {
           setFilters={setFilters}
           totalValue={totalPipelineValue}
           dealCount={filteredDeals.length}
+          prefs={prefs}
+          setPrefs={setPrefs}
+          resetPrefs={resetPrefs}
         />
+
         <div className="mt-10">
-          <div className="overflow-x-auto pb-4">
-            <div className="flex gap-6 min-w-max">
-              {pipelineStages.map((stage) => {
-                const stageDeals = filteredDeals.filter(
-                  (d) =>
-                    d.stage.toLowerCase().replace(/ /g, "-") === stage.id
-                );
-                return (
-                  <DroppableColumn
-                    key={stage.id}
-                    id={stage.id}
-                    title={stage.name}
-                    deals={stageDeals}
-                    organizations={organizations}
-                    isActiveColumn={activeId !== null}
-                    probability={STAGE_PROBABILITIES[stage.name] ?? 0}
-                  />
-                );
-              })}
-            </div>
-          </div>
+          {prefs.view === "list" ? (
+            <PipelineListView
+              deals={filteredDeals}
+              organizations={organizations}
+              visibleStages={prefs.visibleStages as DealStage[]}
+            />
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCorners}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+            >
+              <div className="overflow-x-auto pb-4">
+                <div className="flex gap-6 min-w-max">
+                  {visibleStages.map((stage) => {
+                    const stageDeals = filteredDeals.filter(
+                      (d) => d.stage === stage.name
+                    );
+                    return (
+                      <DroppableColumn
+                        key={stage.id}
+                        id={stage.id}
+                        title={stage.name}
+                        deals={stageDeals}
+                        organizations={organizations}
+                        isActiveColumn={activeId !== null}
+                        probability={STAGE_PROBABILITIES[stage.name] ?? 0}
+                        density={prefs.density}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+              <DragOverlay>
+                {activeDeal ? (
+                  <div className="opacity-80 rotate-3 scale-105">
+                    <DealCard
+                      deal={activeDeal}
+                      organization={orgMap[activeDeal.organizationId]}
+                      density={prefs.density}
+                    />
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          )}
         </div>
       </main>
-      <DragOverlay>
-        {activeDeal ? (
-          <div className="opacity-80 rotate-3 scale-105">
-            <DealCard
-              deal={activeDeal}
-              organization={orgMap[activeDeal.organizationId]}
-            />
-          </div>
-        ) : null}
-      </DragOverlay>
+
       <AddDealModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddDeal}
       />
-    </DndContext>
+    </>
   );
 }
