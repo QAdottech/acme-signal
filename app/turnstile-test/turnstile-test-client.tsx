@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useLayoutEffect, useState } from "react";
 import Script from "next/script";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,11 @@ declare global {
 
 const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
-export function TurnstileTestClient() {
+type TurnstileTestClientProps = {
+  serverUserAgent: string;
+};
+
+export function TurnstileTestClient({ serverUserAgent }: TurnstileTestClientProps) {
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -38,6 +42,13 @@ export function TurnstileTestClient() {
     "idle"
   );
   const [feedback, setFeedback] = useState("");
+  const [clientUserAgent, setClientUserAgent] = useState<string | null>(null);
+
+  useLayoutEffect(() => {
+    setClientUserAgent(navigator.userAgent);
+  }, []);
+
+  const userAgent = clientUserAgent ?? serverUserAgent;
 
   const renderWidget = useCallback(() => {
     if (!siteKey || !window.turnstile) return;
@@ -125,6 +136,24 @@ export function TurnstileTestClient() {
               <code className="text-xs">.env.local</code> to render the widget.
             </p>
           )}
+
+          <div className="mt-6 space-y-2">
+            <p className="text-sm font-medium leading-none">Debug: User-Agent</p>
+            <div
+              id="debug-user-agent"
+              className="rounded-md border border-input bg-muted/50 px-3 py-2 font-mono text-xs break-all text-muted-foreground"
+              aria-describedby="debug-user-agent-hint"
+            >
+              {userAgent || "Unavailable"}
+            </div>
+            <p
+              id="debug-user-agent-hint"
+              className="text-xs text-muted-foreground"
+            >
+              From <code>navigator.userAgent</code> when JavaScript runs; otherwise
+              the request <code>User-Agent</code> header.
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             <div className="space-y-2">
