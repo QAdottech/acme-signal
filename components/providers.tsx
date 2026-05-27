@@ -7,7 +7,13 @@ import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
 
 // Routes that don't require auth loading to complete before rendering
-const publicRoutes = ["/login", "/signup", "/customer/sign"];
+const publicRoutes = [
+  "/login",
+  "/signup",
+  "/verify-email",
+  "/customer/sign",
+  "/turnstile-test",
+];
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isLoading } = useAuth();

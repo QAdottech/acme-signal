@@ -8,6 +8,7 @@ const publicRoutes = [
   "/verify-email",
   "/customer/sign",
   "/bot-test/user-agent",
+  "/turnstile-test",
 ];
 
 /** Crawl / QA sandbox + robots (must not redirect to login). */
