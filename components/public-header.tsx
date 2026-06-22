@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function PublicHeader() {
   return (
@@ -15,6 +16,7 @@ export function PublicHeader() {
           />
         </Link>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Link
             href="/login"
             className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
