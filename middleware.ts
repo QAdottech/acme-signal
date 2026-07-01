@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const BASIC_AUTH_USERNAME = "username";
+const BASIC_AUTH_PASSWORD = "p4ssw0rd";
+const BASIC_AUTH_REALM = "Protected Area";
+
 // Routes that don't require authentication
 const publicRoutes = [
   "/login",
@@ -9,6 +13,7 @@ const publicRoutes = [
   "/customer/sign",
   "/bot-test/user-agent",
   "/turnstile-test",
+  "/basic-auth",
 ];
 
 /** Crawl / QA sandbox + robots (must not redirect to login). */
@@ -19,8 +24,45 @@ function isPublicCrawlPath(pathname: string) {
 // Routes that authenticated users should be redirected away from
 const authRoutes = ["/login", "/signup"];
 
+function isBasicAuthPath(pathname: string) {
+  return pathname === "/basic-auth" || pathname.startsWith("/basic-auth/");
+}
+
+function validateBasicAuth(request: NextRequest) {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader?.startsWith("Basic ")) {
+    return false;
+  }
+
+  const credentials = atob(authHeader.slice(6));
+  const separatorIndex = credentials.indexOf(":");
+  if (separatorIndex === -1) {
+    return false;
+  }
+
+  const username = credentials.slice(0, separatorIndex);
+  const password = credentials.slice(separatorIndex + 1);
+
+  return (
+    username === BASIC_AUTH_USERNAME && password === BASIC_AUTH_PASSWORD
+  );
+}
+
+function basicAuthChallenge() {
+  return new NextResponse("Authentication required", {
+    status: 401,
+    headers: {
+      "WWW-Authenticate": `Basic realm="${BASIC_AUTH_REALM}"`,
+    },
+  });
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (isBasicAuthPath(pathname) && !validateBasicAuth(request)) {
+    return basicAuthChallenge();
+  }
 
   // Check for auth cookie
   const authCookie = request.cookies.get("auth-token");
