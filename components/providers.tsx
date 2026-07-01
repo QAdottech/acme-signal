@@ -13,6 +13,7 @@ const publicRoutes = [
   "/verify-email",
   "/customer/sign",
   "/turnstile-test",
+  "/basic-auth",
 ];
 
 function AuthGate({ children }: { children: React.ReactNode }) {
