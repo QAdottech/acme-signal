@@ -3,6 +3,7 @@
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { AppShell } from "@/components/app-shell";
 import { PublicHeader } from "@/components/public-header";
+import { ThemeProvider } from "@/components/theme-provider";
 import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
 
@@ -40,9 +41,11 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <AuthGate>{children}</AuthGate>
-      <Toaster richColors position="bottom-right" />
-    </AuthProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <AuthProvider>
+        <AuthGate>{children}</AuthGate>
+        <Toaster richColors position="bottom-right" />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
