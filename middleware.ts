@@ -13,6 +13,7 @@ const publicRoutes = [
   "/customer/sign",
   "/bot-test/user-agent",
   "/turnstile-test",
+  "/network-test",
   "/basic-auth",
 ];
 
