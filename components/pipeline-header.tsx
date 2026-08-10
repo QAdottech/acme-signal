@@ -1,9 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Filter, Search, X, Plus } from "lucide-react";
+import { Filter, Search, X, Plus, SlidersHorizontal } from "lucide-react";
 import { FilterPopover } from "@/components/filter-popover";
+import { DisplayPopover } from "@/components/display-popover";
 import { cn } from "@/lib/utils";
 import { formatDealValue } from "@/lib/dealData";
+import type { PipelineViewPrefs } from "@/lib/usePipelineViewPrefs";
+import { DEFAULT_PREFS } from "@/lib/usePipelineViewPrefs";
+import { DEFAULT_VISIBLE_STAGES } from "@/lib/pipelineConfig";
 
 interface PipelineHeaderProps {
   openModal: () => void;
@@ -23,6 +27,9 @@ interface PipelineHeaderProps {
   >;
   totalValue: number;
   dealCount: number;
+  prefs: PipelineViewPrefs;
+  setPrefs: (patch: Partial<PipelineViewPrefs>) => void;
+  resetPrefs: () => void;
 }
 
 export function PipelineHeader({
@@ -33,8 +40,19 @@ export function PipelineHeader({
   setFilters,
   totalValue,
   dealCount,
+  prefs,
+  setPrefs,
+  resetPrefs,
 }: PipelineHeaderProps) {
   const totalFilters = Object.values(filters).flat().length;
+
+  const nonDefaultDisplayCount = [
+    prefs.view !== DEFAULT_PREFS.view,
+    prefs.sortBy !== DEFAULT_PREFS.sortBy,
+    prefs.density !== DEFAULT_PREFS.density,
+    prefs.visibleStages.length !== DEFAULT_VISIBLE_STAGES.length ||
+      prefs.visibleStages.some((s) => !DEFAULT_VISIBLE_STAGES.includes(s)),
+  ].filter(Boolean).length;
 
   const clearFilters = () => {
     setFilters({ location: [], dealStage: [], industry: [] });
@@ -89,6 +107,20 @@ export function PipelineHeader({
             Filters {totalFilters > 0 && `(${totalFilters})`}
           </Button>
         </FilterPopover>
+        <DisplayPopover prefs={prefs} setPrefs={setPrefs} resetPrefs={resetPrefs}>
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "gap-2 bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2",
+              nonDefaultDisplayCount > 0 &&
+                "bg-orange-50 border-orange-300 text-orange-600 hover:bg-orange-100"
+            )}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Display{nonDefaultDisplayCount > 0 && ` (${nonDefaultDisplayCount})`}
+          </Button>
+        </DisplayPopover>
         {totalFilters > 0 && (
           <Button
             variant="ghost"
