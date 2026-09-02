@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -116,15 +115,6 @@ export function LoginForm() {
           </Button>
         </form>
       </div>
-      <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-        Don&apos;t have an account?{" "}
-        <Link
-          href="/signup"
-          className="text-orange-500 hover:text-orange-600 font-medium"
-        >
-          Create an account
-        </Link>
-      </p>
     </div>
   );
 }

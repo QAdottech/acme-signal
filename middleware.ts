@@ -8,8 +8,6 @@ const BASIC_AUTH_REALM = "Protected Area";
 // Routes that don't require authentication
 const publicRoutes = [
   "/login",
-  "/signup",
-  "/verify-email",
   "/customer/sign",
   "/bot-test/user-agent",
   "/turnstile-test",
@@ -23,7 +21,7 @@ function isPublicCrawlPath(pathname: string) {
 }
 
 // Routes that authenticated users should be redirected away from
-const authRoutes = ["/login", "/signup"];
+const authRoutes = ["/login"];
 
 function isBasicAuthPath(pathname: string) {
   return pathname === "/basic-auth" || pathname.startsWith("/basic-auth/");
@@ -73,7 +71,7 @@ export function middleware(request: NextRequest) {
   const isPublicRoute =
     publicRoutes.includes(pathname) || isPublicCrawlPath(pathname);
 
-  // Check if current path is an auth page (login/signup)
+  // Check if current path is an auth page (login)
   const isAuthRoute = authRoutes.includes(pathname);
 
   // If not authenticated and trying to access protected route, redirect to login
