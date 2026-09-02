@@ -17,15 +17,9 @@ export function PublicHeader() {
         <div className="flex items-center gap-3">
           <Link
             href="/login"
-            className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/signup"
             className="text-sm bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 rounded-md transition-colors"
           >
-            Sign up
+            Log in
           </Link>
         </div>
       </div>
