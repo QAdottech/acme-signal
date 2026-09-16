@@ -102,6 +102,8 @@ function DroppableColumn({
       {/* Card list */}
       <div
         ref={setNodeRef}
+        role="region"
+        aria-label={`${title} deals`}
         className={`flex-1 space-y-3 px-1 min-h-[200px] rounded-lg transition-colors ${
           isOver
             ? "bg-orange-50 dark:bg-orange-900/10 ring-2 ring-orange-500"
