@@ -34,10 +34,18 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  closestCorners,
+  pointerWithin,
+  rectIntersection,
+  CollisionDetection,
   useDroppable,
 } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
+
+const collisionDetection: CollisionDetection = (args) => {
+  const pointerHits = pointerWithin(args);
+  if (pointerHits.length > 0) return pointerHits;
+  return rectIntersection(args);
+};
 
 type PipelineTab = "board" | "table" | "forecast";
 
@@ -116,7 +124,12 @@ function DroppableColumn({
     isOver && activeDeal && columnIdForStage(activeDeal.stage) !== id;
 
   return (
-    <div className="flex flex-col min-w-[220px] w-[240px] flex-1 max-w-[280px] min-h-0 h-full">
+    <div
+      ref={setNodeRef}
+      className={`flex flex-col min-w-[220px] w-[240px] flex-1 max-w-[280px] min-h-0 h-full rounded-xl transition-colors ${
+        isOver ? "bg-blue-50/70" : ""
+      } ${isActiveColumn && !isOver ? "bg-neutral-50/80" : ""}`}
+    >
       <div className="flex items-baseline justify-between mb-3 px-0.5 shrink-0">
         <div className="flex items-baseline gap-1.5">
           <h3 className="text-sm font-medium text-neutral-900">{title}</h3>
@@ -127,12 +140,7 @@ function DroppableColumn({
         </span>
       </div>
 
-      <div
-        ref={setNodeRef}
-        className={`flex-1 space-y-2.5 min-h-0 overflow-y-auto rounded-xl pb-4 transition-colors ${
-          isOver ? "bg-blue-50/60" : ""
-        } ${isActiveColumn && !isOver ? "bg-neutral-50/80" : ""}`}
-      >
+      <div className="flex-1 space-y-2.5 min-h-0 overflow-y-auto pb-4">
         {deals.map((deal) => (
           <DraggableCard
             key={deal.id}
@@ -289,7 +297,7 @@ function PipelineBoard() {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
