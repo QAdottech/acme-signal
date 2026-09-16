@@ -1,103 +1,61 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
-import type { Person } from "@/types/person";
 import { useRouter } from "next/navigation";
-import { formatDealValue } from "@/lib/dealData";
-import { getPeople } from "@/lib/personData";
-import { useMemo } from "react";
+import { formatCurrency } from "@/lib/dealData";
+import {
+  dealTag,
+  getAvatarColor,
+  getDaysSinceActivity,
+  getInitials,
+  isDealStalled,
+  TAG_COLORS,
+} from "@/lib/pipeline";
+import { AlertTriangle, Check, Circle, Square } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface DealCardProps {
   deal: Deal;
   organization?: Organization;
 }
 
-const TAG_COLORS: Record<string, string> = {
-  "Pre POC": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  POC: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  "POC Complete": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-  Enterprise: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  Startup: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300",
-  Expansion: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
-  Renewal: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300",
-  "At Risk": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  "Champion Identified": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  "Technical Eval": "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300",
-};
-
-const AVATAR_COLORS = [
-  "bg-orange-500",
-  "bg-blue-500",
-  "bg-green-500",
-  "bg-purple-500",
-  "bg-pink-500",
-  "bg-teal-500",
-  "bg-indigo-500",
-  "bg-amber-500",
-  "bg-cyan-500",
-  "bg-rose-500",
-];
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+function NextStepIcon({
+  stalled,
+  nextStep,
+  signatureStatus,
+}: {
+  stalled: boolean;
+  nextStep?: string;
+  signatureStatus?: string;
+}) {
+  if (stalled) {
+    return <AlertTriangle className="w-3.5 h-3.5 text-orange-500 shrink-0 mt-0.5" />;
   }
-  return name.substring(0, 2).toUpperCase();
-}
-
-function getAvatarColor(id: string): string {
-  const num = parseInt(id, 10) || 0;
-  return AVATAR_COLORS[num % AVATAR_COLORS.length];
-}
-
-function getRelativeActivityText(
-  date: string | undefined,
-  type: string | undefined
-): string | null {
-  if (!date || !type) return null;
-  const now = Date.now();
-  const activityTime = new Date(date).getTime();
-  const diffMs = now - activityTime;
-  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-
-  const typeLabel =
-    type.charAt(0).toUpperCase() + type.slice(1);
-
-  if (diffDays < 0) {
-    const absDays = Math.abs(diffDays);
-    if (absDays === 0) return `${typeLabel} today`;
-    if (absDays === 1) return `${typeLabel} in 1d`;
-    return `${typeLabel} in ${absDays}d`;
+  const text = (nextStep || "").toLowerCase();
+  if (
+    signatureStatus === "sent" ||
+    signatureStatus === "signed" ||
+    /signatur|redline|contract/.test(text)
+  ) {
+    return (
+      <span className="w-3.5 h-3.5 shrink-0 mt-0.5 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+        <Check className="w-2.5 h-2.5" strokeWidth={3} />
+      </span>
+    );
   }
-  if (diffDays === 0) return `${typeLabel} today`;
-  if (diffDays === 1) return `${typeLabel} 1d ago`;
-  return `${typeLabel} ${diffDays}d ago`;
+  if (/review|finalize|sow|terms|walkthrough/.test(text)) {
+    return <Square className="w-3.5 h-3.5 text-neutral-400 shrink-0 mt-0.5" />;
+  }
+  return <Circle className="w-3.5 h-3.5 text-neutral-400 shrink-0 mt-0.5" />;
 }
 
 export function DealCard({ deal, organization }: DealCardProps) {
   const router = useRouter();
-
-  const contacts: Person[] = useMemo(() => {
-    if (!deal.contactIds || deal.contactIds.length === 0) return [];
-    const people = getPeople();
-    return deal.contactIds
-      .map((cid) => people.find((p) => p.id === cid))
-      .filter((p): p is Person => p !== undefined);
-  }, [deal.contactIds]);
-
-  const tags = deal.tags || [];
-  const visibleTags = tags.slice(0, 2);
-  const hiddenTagCount = tags.length - 2;
-
-  const visibleContacts = contacts.slice(0, 3);
-  const activityText = getRelativeActivityText(
-    deal.lastActivityDate,
-    deal.lastActivityType
-  );
-
+  const stalled = isDealStalled(deal);
+  const daysSince = getDaysSinceActivity(deal);
+  const tag = dealTag(deal);
+  const orgName = organization?.name || "Unknown";
   const closeDate = deal.expectedCloseDate
     ? new Date(deal.expectedCloseDate).toLocaleDateString("en-US", {
         month: "short",
@@ -105,83 +63,94 @@ export function DealCard({ deal, organization }: DealCardProps) {
       })
     : null;
 
+  const nextStepText = stalled
+    ? `No activity in ${daysSince} days`
+    : deal.nextStep || "No next step";
+
+  const nextStepClass = stalled
+    ? "text-orange-600"
+    : /signatur|redline|contract/i.test(deal.nextStep || "") ||
+      deal.signatureStatus === "sent" ||
+      deal.signatureStatus === "signed"
+    ? "text-emerald-700"
+    : "text-neutral-500";
+
   return (
-    <Card
-      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-gray-200 dark:border-gray-800 shadow-sm"
+    <div
+      className={cn(
+        "cursor-pointer rounded-xl border bg-white p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-md",
+        stalled ? "border-orange-400" : "border-neutral-200/80"
+      )}
       onClick={() => router.push(`/deals/${deal.id}`)}
     >
-      <CardContent className="p-3">
-        <div className="flex flex-col gap-1.5">
-          {/* Row 1: Title */}
-          <h3 className="font-semibold text-sm truncate text-gray-900 dark:text-white">
-            {deal.title}
-          </h3>
+      <div className="flex items-center gap-2 mb-2 min-w-0">
+        <div
+          className={cn(
+            "w-5 h-5 rounded-[5px] text-[9px] font-semibold flex items-center justify-center shrink-0",
+            getAvatarColor(orgName)
+          )}
+        >
+          {getInitials(orgName)}
+        </div>
+        <span className="text-xs text-neutral-500 truncate">{orgName}</span>
+      </div>
 
-          {/* Row 2: Amount + Close date */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-900 dark:text-white">
-              {formatDealValue(deal.value)}
-            </span>
-            {closeDate && (
-              <span className="text-xs text-muted-foreground">
-                {closeDate}
-              </span>
+      <h3 className="text-[13px] font-semibold text-neutral-900 leading-snug mb-2 line-clamp-2">
+        {deal.title}
+      </h3>
+
+      <div className="flex items-baseline justify-between mb-1.5">
+        <span className="text-[15px] font-semibold tabular-nums text-neutral-900">
+          {formatCurrency(deal.value)}
+        </span>
+        <span className="text-xs text-neutral-400 tabular-nums">
+          {deal.probability}%
+        </span>
+      </div>
+
+      <div className="h-[3px] bg-neutral-100 rounded-full mb-3 overflow-hidden">
+        <div
+          className="h-full bg-neutral-800 rounded-full"
+          style={{ width: `${Math.min(deal.probability, 100)}%` }}
+        />
+      </div>
+
+      <div className="flex items-start gap-1.5 mb-3 min-w-0">
+        <NextStepIcon
+          stalled={stalled}
+          nextStep={deal.nextStep}
+          signatureStatus={deal.signatureStatus}
+        />
+        <span className={cn("text-xs truncate", nextStepClass)}>
+          {nextStepText}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div
+            className={cn(
+              "w-5 h-5 rounded-md text-[9px] font-semibold flex items-center justify-center shrink-0",
+              getAvatarColor(deal.owner)
             )}
+          >
+            {getInitials(deal.owner)}
           </div>
-
-          {/* Row 3: Next step */}
-          {deal.nextStep && (
-            <p className="text-xs text-muted-foreground truncate">
-              {deal.nextStep}
-            </p>
-          )}
-
-          {/* Row 4: Tags */}
-          {tags.length > 0 && (
-            <div className="flex items-center gap-1 flex-wrap">
-              {visibleTags.map((tag) => (
-                <span
-                  key={tag}
-                  className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium leading-tight ${
-                    TAG_COLORS[tag] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                  }`}
-                >
-                  {tag}
-                </span>
-              ))}
-              {hiddenTagCount > 0 && (
-                <span className="text-[10px] text-muted-foreground font-medium">
-                  +{hiddenTagCount}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Row 5: Contact avatars + last activity */}
-          {(visibleContacts.length > 0 || activityText) && (
-            <div className="flex items-center justify-between mt-0.5">
-              <div className="flex items-center -space-x-1">
-                {visibleContacts.map((person) => (
-                  <div
-                    key={person.id}
-                    title={person.name}
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white dark:ring-gray-900 ${getAvatarColor(
-                      person.id
-                    )}`}
-                  >
-                    {getInitials(person.name)}
-                  </div>
-                ))}
-              </div>
-              {activityText && (
-                <span className="text-[10px] text-muted-foreground">
-                  {activityText}
-                </span>
-              )}
-            </div>
+          {closeDate && (
+            <span className="text-xs text-neutral-400 truncate">{closeDate}</span>
           )}
         </div>
-      </CardContent>
-    </Card>
+        {tag && (
+          <span
+            className={cn(
+              "inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-medium leading-tight shrink-0",
+              TAG_COLORS[tag] || "bg-neutral-100 text-neutral-600"
+            )}
+          >
+            {tag}
+          </span>
+        )}
+      </div>
+    </div>
   );
 }

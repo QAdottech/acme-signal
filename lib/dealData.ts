@@ -254,7 +254,7 @@ const defaultDeals: Deal[] = [
     nextStep: "Present revised pricing to procurement",
     tags: ["Enterprise", "POC Complete"],
     contactIds: ["11", "1"],
-    lastActivityDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    lastActivityDate: new Date(Date.now() - 23 * 24 * 60 * 60 * 1000).toISOString(),
     lastActivityType: "email",
   },
   {
@@ -359,6 +359,26 @@ export function formatDealValue(value: number, currency: string = "USD"): string
   return `$${value}`;
 }
 
+export function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+export function formatCompactValue(value: number): string {
+  const sign = value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) {
+    return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
+  }
+  if (abs >= 1000) {
+    return `${sign}$${Math.round(abs / 1000)}K`;
+  }
+  return `${sign}$${Math.round(abs)}`;
+}
+
 export function getTotalPipelineValue(): number {
   const pipelineStages: DealStage[] = ["New", "Lead", "Qualified", "Proposal", "Negotiation"];
   return getDeals()
@@ -379,6 +399,7 @@ export const STAGE_PROBABILITIES: Record<string, number> = {
   Qualified: 30,
   Proposal: 50,
   Negotiation: 75,
+  Closing: 75,
   Customer: 100,
   "Closed Lost": 0,
 };

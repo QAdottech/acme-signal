@@ -69,7 +69,7 @@ export function FilterPopover({ children, filters, setFilters }: FilterPopoverPr
                       htmlFor={`${key}-${option}`}
                       className="text-xs font-light leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                      {option}
+                    {option === "Negotiation" ? "Closing" : option}
                     </Label>
                   </div>
                 ))}

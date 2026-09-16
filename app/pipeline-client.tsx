@@ -1,15 +1,31 @@
 "use client";
 
-import type React from "react";
-
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { DealCard } from "@/components/deal-card";
 import { PipelineHeader } from "@/components/pipeline-header";
+import { PipelineTable } from "@/components/pipeline-table";
+import { PipelineForecast } from "@/components/pipeline-forecast";
 import { AddDealModal } from "@/components/add-deal-modal";
-import type { Organization, DealStage } from "@/types/organization";
+import type { Organization } from "@/types/organization";
 import type { Deal } from "@/types/deal";
-import { getOrganizations } from "@/lib/organizationData";
-import { getDeals, saveDeals, addDeal, formatDealValue, STAGE_PROBABILITIES } from "@/lib/dealData";
+import { getCollections, getOrganizations } from "@/lib/organizationData";
+import {
+  getDeals,
+  saveDeals,
+  addDeal,
+  formatCompactValue,
+  STAGE_PROBABILITIES,
+} from "@/lib/dealData";
+import {
+  applyPipelineView,
+  buildWeightedSparkline,
+  columnIdForStage,
+  isOpenDeal,
+  PIPELINE_COLUMNS,
+  QUARTERLY_QUOTA,
+} from "@/lib/pipeline";
+import { useAuth } from "@/lib/auth-context";
 import {
   DndContext,
   DragEndEvent,
@@ -23,15 +39,7 @@ import {
 } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
 
-const pipelineStages: { id: string; name: DealStage }[] = [
-  { id: "new", name: "New" },
-  { id: "lead", name: "Lead" },
-  { id: "qualified", name: "Qualified" },
-  { id: "proposal", name: "Proposal" },
-  { id: "negotiation", name: "Negotiation" },
-  { id: "customer", name: "Customer" },
-  { id: "closed-lost", name: "Closed Lost" },
-];
+type PipelineTab = "board" | "table" | "forecast";
 
 function DraggableCard({
   deal,
@@ -49,11 +57,17 @@ function DraggableCard({
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.4 : 1,
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className="cursor-grab active:cursor-grabbing"
+    >
       <DealCard deal={deal} organization={organization} />
     </div>
   );
@@ -65,6 +79,7 @@ function DroppableColumn({
   deals,
   organizations,
   isActiveColumn,
+  activeDeal,
   probability,
 }: {
   id: string;
@@ -72,6 +87,7 @@ function DroppableColumn({
   deals: Deal[];
   organizations: Organization[];
   isActiveColumn: boolean;
+  activeDeal: Deal | null;
   probability: number;
 }) {
   const { setNodeRef, isOver } = useDroppable({
@@ -79,78 +95,72 @@ function DroppableColumn({
   });
 
   const columnTotal = deals.reduce((sum, d) => sum + d.value, 0);
-  const columnWeighted = deals.reduce(
-    (sum, d) => sum + d.value * (probability / 100),
-    0
-  );
+  const weightedDelta = activeDeal
+    ? activeDeal.value * (probability / 100) -
+      activeDeal.value * ((activeDeal.probability || 0) / 100)
+    : 0;
+  const showDropHint =
+    isOver && activeDeal && columnIdForStage(activeDeal.stage) !== id;
 
   return (
-    <div className="flex flex-col min-w-[280px] max-w-[320px]">
-      {/* Column header */}
-      <div className="bg-gray-100 dark:bg-gray-800/50 px-4 py-3 rounded-md mb-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium text-sm">
-            <span className="text-muted-foreground">({probability}%)</span>{" "}
-            {title}
-          </h3>
-          <span className="text-xs text-muted-foreground bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
-            {deals.length}
-          </span>
+    <div className="flex flex-col min-w-[220px] w-[240px] flex-1 max-w-[280px] min-h-0 h-full">
+      <div className="flex items-baseline justify-between mb-3 px-0.5 shrink-0">
+        <div className="flex items-baseline gap-1.5">
+          <h3 className="text-sm font-medium text-neutral-900">{title}</h3>
+          <span className="text-sm text-neutral-400">{deals.length}</span>
         </div>
+        <span className="text-sm text-neutral-400 tabular-nums">
+          {formatCompactValue(columnTotal)}
+        </span>
       </div>
 
-      {/* Card list */}
       <div
         ref={setNodeRef}
-        className={`flex-1 space-y-3 px-1 min-h-[200px] rounded-lg transition-colors ${
-          isOver
-            ? "bg-orange-50 dark:bg-orange-900/10 ring-2 ring-orange-500"
-            : ""
-        } ${
-          isActiveColumn
-            ? "ring-1 ring-dashed ring-gray-300 dark:ring-gray-700"
-            : ""
-        }`}
+        className={`flex-1 space-y-2.5 min-h-0 overflow-y-auto rounded-xl pb-4 transition-colors ${
+          isOver ? "bg-blue-50/60" : ""
+        } ${isActiveColumn && !isOver ? "bg-neutral-50/80" : ""}`}
       >
         {deals.map((deal) => (
           <DraggableCard
             key={deal.id}
             deal={deal}
-            organization={organizations.find(
-              (o) => o.id === deal.organizationId
-            )}
+            organization={organizations.find((o) => o.id === deal.organizationId)}
           />
         ))}
-      </div>
-
-      {/* Column footer - sticky at bottom */}
-      <div className="border-t border-gray-200 dark:border-gray-700 mt-4 pt-3 px-2">
-        <div className="text-xs text-muted-foreground space-y-1">
-          <div className="flex justify-between">
-            <span>Total</span>
-            <span className="font-medium">{formatDealValue(columnTotal)}</span>
+        {showDropHint && (
+          <div className="rounded-xl border border-dashed border-blue-400 bg-blue-50/40 px-3 py-4 text-center text-xs font-medium text-blue-600">
+            Move to {title}
+            {weightedDelta !== 0 && (
+              <>
+                {" · "}
+                {weightedDelta > 0 ? "+" : ""}
+                {formatCompactValue(weightedDelta)} weighted
+              </>
+            )}
           </div>
-          <div className="flex justify-between">
-            <span>Weighted</span>
-            <span className="font-medium">{formatDealValue(columnWeighted)}</span>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-export function PipelineClient() {
+function PipelineBoard() {
+  const searchParams = useSearchParams();
+  const { user } = useAuth();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [tab, setTab] = useState<PipelineTab>("board");
   const [filters, setFilters] = useState({
     location: [] as string[],
     dealStage: [] as string[],
     industry: [] as string[],
   });
+  const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
+  const [ownerMe, setOwnerMe] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  const view = searchParams?.get("view");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -173,14 +183,19 @@ export function PipelineClient() {
     return map;
   }, [organizations]);
 
+  const owners = useMemo(() => {
+    return Array.from(new Set(deals.map((d) => d.owner).filter(Boolean))).sort();
+  }, [deals]);
+
   const filteredDeals = useMemo(() => {
-    return deals.filter((deal) => {
+    const collections = getCollections();
+    const viewed = applyPipelineView(deals, view, orgMap, collections);
+
+    return viewed.filter((deal) => {
+      if (!isOpenDeal(deal)) return false;
       const org = orgMap[deal.organizationId];
       if (!org) return false;
 
-      const matchesSearch =
-        deal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        org.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesLocation =
         filters.location.length === 0 ||
         filters.location.includes(org.location);
@@ -190,13 +205,25 @@ export function PipelineClient() {
       const matchesIndustry =
         filters.industry.length === 0 ||
         filters.industry.includes(org.industry);
-      return matchesSearch && matchesLocation && matchesStage && matchesIndustry;
-    });
-  }, [deals, searchTerm, filters, orgMap]);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
+      const ownerNames = [
+        ...selectedOwners,
+        ...(ownerMe && user?.fullName ? [user.fullName] : []),
+      ];
+      const matchesOwner =
+        ownerNames.length === 0 || ownerNames.includes(deal.owner);
+
+      return matchesLocation && matchesStage && matchesIndustry && matchesOwner;
+    });
+  }, [
+    deals,
+    filters,
+    orgMap,
+    view,
+    selectedOwners,
+    ownerMe,
+    user?.fullName,
+  ]);
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -211,13 +238,13 @@ export function PipelineClient() {
     const dealId = active.id as string;
     const newStageId = over.id as string;
 
-    const stageObj = pipelineStages.find((s) => s.id === newStageId);
+    const stageObj = PIPELINE_COLUMNS.find((s) => s.id === newStageId);
     if (!stageObj) return;
 
     const updatedDeals = deals.map((d) => {
       if (d.id === dealId) {
-        const probability = STAGE_PROBABILITIES[stageObj.name] ?? d.probability;
-        return { ...d, stage: stageObj.name, probability };
+        const probability = STAGE_PROBABILITIES[stageObj.stage] ?? d.probability;
+        return { ...d, stage: stageObj.stage, probability };
       }
       return d;
     });
@@ -236,14 +263,15 @@ export function PipelineClient() {
     setIsModalOpen(false);
   };
 
-  const activeDeal = activeId
-    ? deals.find((d) => d.id === activeId)
-    : null;
+  const activeDeal = activeId ? deals.find((d) => d.id === activeId) : null;
 
-  const totalPipelineValue = filteredDeals.reduce(
-    (sum, d) => sum + d.value,
+  const totalPipelineValue = filteredDeals.reduce((sum, d) => sum + d.value, 0);
+  const weightedValue = filteredDeals.reduce(
+    (sum, d) => sum + d.value * ((d.probability || 0) / 100),
     0
   );
+  const coverage = totalPipelineValue / QUARTERLY_QUOTA;
+  const sparkline = buildWeightedSparkline(weightedValue);
 
   return (
     <DndContext
@@ -253,43 +281,68 @@ export function PipelineClient() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <main className="container py-8 max-w-[1400px] mx-auto px-6">
-        <PipelineHeader
-          openModal={() => setIsModalOpen(true)}
-          searchTerm={searchTerm}
-          onSearchChange={handleSearchChange}
-          filters={filters}
-          setFilters={setFilters}
-          totalValue={totalPipelineValue}
-          dealCount={filteredDeals.length}
-        />
-        <div className="mt-10">
-          <div className="overflow-x-auto pb-4">
-            <div className="flex gap-6 min-w-max">
-              {pipelineStages.map((stage) => {
-                const stageDeals = filteredDeals.filter(
-                  (d) =>
-                    d.stage.toLowerCase().replace(/ /g, "-") === stage.id
-                );
-                return (
-                  <DroppableColumn
-                    key={stage.id}
-                    id={stage.id}
-                    title={stage.name}
-                    deals={stageDeals}
-                    organizations={organizations}
-                    isActiveColumn={activeId !== null}
-                    probability={STAGE_PROBABILITIES[stage.name] ?? 0}
-                  />
-                );
-              })}
-            </div>
-          </div>
+      <div className="h-full min-h-0 flex flex-col">
+        <div className="px-8 pt-6 pb-4 shrink-0">
+          <PipelineHeader
+            openModal={() => setIsModalOpen(true)}
+            filters={filters}
+            setFilters={setFilters}
+            owners={owners}
+            selectedOwners={selectedOwners}
+            setSelectedOwners={setSelectedOwners}
+            ownerMe={ownerMe}
+            setOwnerMe={setOwnerMe}
+            currentUserName={user?.fullName}
+            totalValue={totalPipelineValue}
+            weightedValue={weightedValue}
+            dealCount={filteredDeals.length}
+            coverage={coverage}
+            sparkline={sparkline.values}
+            sparklineChange={sparkline.changePct}
+            tab={tab}
+            onTabChange={setTab}
+          />
         </div>
-      </main>
+
+        <div className="flex-1 min-h-0 px-8 pb-6">
+          {tab === "board" && (
+            <div className="h-full overflow-x-auto overflow-y-hidden">
+              <div className="flex gap-5 min-w-max h-full">
+                {PIPELINE_COLUMNS.map((stage) => {
+                  const stageDeals = filteredDeals.filter(
+                    (d) => columnIdForStage(d.stage) === stage.id
+                  );
+                  return (
+                    <DroppableColumn
+                      key={stage.id}
+                      id={stage.id}
+                      title={stage.title}
+                      deals={stageDeals}
+                      organizations={organizations}
+                      isActiveColumn={activeId !== null}
+                      activeDeal={activeDeal ?? null}
+                      probability={STAGE_PROBABILITIES[stage.stage] ?? 0}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {tab === "table" && (
+            <div className="overflow-auto h-full pr-1">
+              <PipelineTable deals={filteredDeals} organizations={orgMap} />
+            </div>
+          )}
+          {tab === "forecast" && (
+            <div className="overflow-auto h-full max-w-3xl pr-1">
+              <PipelineForecast deals={filteredDeals} />
+            </div>
+          )}
+        </div>
+      </div>
       <DragOverlay>
         {activeDeal ? (
-          <div className="opacity-80 rotate-3 scale-105">
+          <div className="opacity-90 rotate-2 scale-[1.02] w-[240px]">
             <DealCard
               deal={activeDeal}
               organization={orgMap[activeDeal.organizationId]}
@@ -303,5 +356,21 @@ export function PipelineClient() {
         onAdd={handleAddDeal}
       />
     </DndContext>
+  );
+}
+
+export function PipelineClient() {
+  return (
+    <div className="h-full">
+      <Suspense
+        fallback={
+          <div className="px-8 pt-6 text-sm text-neutral-400">
+            Loading pipeline...
+          </div>
+        }
+      >
+        <PipelineBoard />
+      </Suspense>
+    </div>
   );
 }
