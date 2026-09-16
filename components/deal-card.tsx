@@ -7,7 +7,7 @@ import type { Person } from "@/types/person";
 import { useRouter } from "next/navigation";
 import { formatDealValue } from "@/lib/dealData";
 import { getPeople } from "@/lib/personData";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface DealCardProps {
   deal: Deal;
@@ -80,13 +80,19 @@ function getRelativeActivityText(
 export function DealCard({ deal, organization }: DealCardProps) {
   const router = useRouter();
 
+  const [people, setPeople] = useState<Person[]>([]);
+
+  useEffect(() => {
+    if (!deal.contactIds || deal.contactIds.length === 0) return;
+    getPeople().then(setPeople);
+  }, [deal.contactIds]);
+
   const contacts: Person[] = useMemo(() => {
     if (!deal.contactIds || deal.contactIds.length === 0) return [];
-    const people = getPeople();
     return deal.contactIds
       .map((cid) => people.find((p) => p.id === cid))
       .filter((p): p is Person => p !== undefined);
-  }, [deal.contactIds]);
+  }, [deal.contactIds, people]);
 
   const tags = deal.tags || [];
   const visibleTags = tags.slice(0, 2);

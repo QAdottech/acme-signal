@@ -1,352 +1,137 @@
 import type { Deal } from "@/types/deal";
 import type { DealStage } from "@/types/organization";
+import { getSupabase, newId, throwIfError } from "@/lib/supabase";
 
-const defaultDeals: Deal[] = [
-  {
-    id: "d1",
-    title: "Enterprise License",
-    organizationId: "3",
-    value: 24000,
-    currency: "USD",
-    stage: "Lead",
-    expectedCloseDate: "2026-04-15",
-    owner: "Emma Wilson",
-    probability: 20,
-    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Scoping call with CTO next Tuesday",
-    tags: ["Pre POC", "Enterprise"],
-    contactIds: ["3", "7"],
-    lastActivityDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "email",
-  },
-  {
-    id: "d2",
-    title: "Platform Integration",
-    organizationId: "4",
-    value: 120000,
-    currency: "USD",
-    stage: "Qualified",
-    expectedCloseDate: "2026-05-01",
-    owner: "David Martinez",
-    probability: 40,
-    createdAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Technical architecture review with engineering team",
-    tags: ["Technical Eval", "Enterprise"],
-    contactIds: ["5", "9"],
-    lastActivityDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "meeting",
-  },
-  {
-    id: "d3",
-    title: "Team Plan Upgrade",
-    organizationId: "5",
-    value: 36000,
-    currency: "USD",
-    stage: "Lead",
-    expectedCloseDate: "2026-04-30",
-    owner: "Sarah Johnson",
-    probability: 15,
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Send pricing comparison document",
-    tags: ["Expansion"],
-    contactIds: ["6"],
-    lastActivityDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "email",
-  },
-  {
-    id: "d4",
-    title: "Contract Automation Suite",
-    organizationId: "9",
-    value: 85000,
-    currency: "USD",
-    stage: "Qualified",
-    expectedCloseDate: "2026-05-15",
-    owner: "Sarah Johnson",
-    probability: 45,
-    createdAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Demo for legal operations team on Thursday",
-    tags: ["POC", "Champion Identified"],
-    contactIds: ["14"],
-    lastActivityDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "call",
-  },
-  {
-    id: "d5",
-    title: "Startup Plan",
-    organizationId: "10",
-    value: 18000,
-    currency: "USD",
-    stage: "Lead",
-    expectedCloseDate: "2026-06-01",
-    owner: "Emma Wilson",
-    probability: 25,
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Follow up on trial activation",
-    tags: ["Startup", "Pre POC"],
-    contactIds: ["10"],
-    lastActivityDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "email",
-  },
-  {
-    id: "d6",
-    title: "Analytics Platform License",
-    organizationId: "11",
-    value: 42000,
-    currency: "USD",
-    stage: "Lead",
-    expectedCloseDate: "2026-05-20",
-    owner: "Michael Chen",
-    probability: 20,
-    createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Schedule product walkthrough with VP Eng",
-    tags: ["Pre POC", "Technical Eval"],
-    contactIds: ["11"],
-    lastActivityDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "note",
-  },
-  {
-    id: "d7",
-    title: "AI Research Partnership",
-    organizationId: "12",
-    value: 500000,
-    currency: "USD",
-    stage: "Proposal",
-    expectedCloseDate: "2026-04-01",
-    owner: "David Martinez",
-    probability: 60,
-    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Finalize SOW and send for legal review",
-    tags: ["Enterprise", "Champion Identified", "POC Complete"],
-    contactIds: ["8", "12"],
-    lastActivityDate: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "meeting",
-  },
-  {
-    id: "d8",
-    title: "E-commerce Integration",
-    organizationId: "13",
-    value: 55000,
-    currency: "USD",
-    stage: "Lead",
-    expectedCloseDate: "2026-06-15",
-    owner: "Sarah Johnson",
-    probability: 15,
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Intro call with head of engineering",
-    tags: ["Pre POC"],
-    contactIds: ["13"],
-    lastActivityDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "email",
-  },
-  {
-    id: "d9",
-    title: "ML Platform License",
-    organizationId: "16",
-    value: 200000,
-    currency: "USD",
-    stage: "Qualified",
-    expectedCloseDate: "2026-05-10",
-    owner: "David Martinez",
-    probability: 35,
-    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "POC environment setup and data migration plan",
-    tags: ["POC", "Enterprise", "Technical Eval"],
-    contactIds: ["16"],
-    lastActivityDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "meeting",
-  },
-  {
-    id: "d10",
-    title: "Satellite Monitoring Add-on",
-    organizationId: "18",
-    value: 30000,
-    currency: "USD",
-    stage: "Lead",
-    expectedCloseDate: "2026-07-01",
-    owner: "Emma Wilson",
-    probability: 10,
-    createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Send case study from similar deployment",
-    tags: ["Startup"],
-    contactIds: ["18"],
-    lastActivityDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "email",
-  },
-  {
-    id: "d11",
-    title: "Biotech Research License",
-    organizationId: "19",
-    value: 45000,
-    currency: "USD",
-    stage: "Lead",
-    expectedCloseDate: "2026-06-20",
-    owner: "Michael Chen",
-    probability: 15,
-    createdAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Prepare compliance documentation for review",
-    tags: ["Pre POC", "Technical Eval"],
-    contactIds: ["15"],
-    lastActivityDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "note",
-  },
-  {
-    id: "d12",
-    title: "Payment Platform Pilot",
-    organizationId: "20",
-    value: 15000,
-    currency: "USD",
-    stage: "New",
-    expectedCloseDate: "2026-07-15",
-    owner: "David Martinez",
-    probability: 5,
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Initial discovery call scheduled for next Monday",
-    tags: ["Startup", "Pre POC"],
-    contactIds: ["4"],
-    lastActivityDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "task",
-  },
-  {
-    id: "d13",
-    title: "Legal AI Integration",
-    organizationId: "21",
-    value: 60000,
-    currency: "USD",
-    stage: "Qualified",
-    expectedCloseDate: "2026-05-25",
-    owner: "Sarah Johnson",
-    probability: 40,
-    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Security questionnaire and SOC 2 review",
-    tags: ["POC", "Champion Identified"],
-    contactIds: ["14", "2"],
-    lastActivityDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "call",
-  },
-  {
-    id: "d14",
-    title: "Developer Tools Bundle",
-    organizationId: "23",
-    value: 150000,
-    currency: "USD",
-    stage: "Negotiation",
-    expectedCloseDate: "2026-03-15",
-    owner: "Emma Wilson",
-    probability: 75,
-    createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Final contract redlines from their legal team",
-    tags: ["Enterprise", "POC Complete", "Champion Identified"],
-    contactIds: ["12", "8"],
-    lastActivityDate: new Date(Date.now() - 0.25 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "meeting",
-  },
-  {
-    id: "d15",
-    title: "Search Infrastructure Deal",
-    organizationId: "24",
-    value: 250000,
-    currency: "USD",
-    stage: "Proposal",
-    expectedCloseDate: "2026-04-20",
-    owner: "David Martinez",
-    probability: 55,
-    createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Present revised pricing to procurement",
-    tags: ["Enterprise", "POC Complete"],
-    contactIds: ["11", "1"],
-    lastActivityDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "email",
-  },
-  {
-    id: "d16",
-    title: "Research Platform License",
-    organizationId: "25",
-    value: 35000,
-    currency: "USD",
-    stage: "Lead",
-    expectedCloseDate: "2026-06-10",
-    owner: "Sarah Johnson",
-    probability: 20,
-    createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Share API documentation and sandbox access",
-    tags: ["Pre POC", "Startup"],
-    contactIds: ["13", "18"],
-    lastActivityDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "email",
-  },
-  {
-    id: "d17",
-    title: "Vercel Edge Network Expansion",
-    organizationId: "4",
-    value: 75000,
-    currency: "USD",
-    stage: "Lead",
-    expectedCloseDate: "2026-07-01",
-    owner: "Emma Wilson",
-    probability: 15,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    nextStep: "Benchmark current vs proposed infrastructure costs",
-    tags: ["Expansion", "Renewal"],
-    contactIds: ["5", "9"],
-    lastActivityDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    lastActivityType: "call",
-  },
-];
-
-export function getDeals(): Deal[] {
-  const stored = localStorage.getItem("deals");
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return defaultDeals;
-    }
-  }
-  localStorage.setItem("deals", JSON.stringify(defaultDeals));
-  return defaultDeals;
+interface DealRow {
+  id: string;
+  title: string;
+  organization_id: string | null;
+  value: number | string;
+  currency: string;
+  stage: Deal["stage"];
+  expected_close_date: string | null;
+  owner: string;
+  probability: number;
+  next_step: string | null;
+  tags: string[] | null;
+  contact_ids: string[] | null;
+  last_activity_date: string | null;
+  last_activity_type: Deal["lastActivityType"] | null;
+  signature_status: Deal["signatureStatus"] | null;
+  signature_sent_at: string | null;
+  signature_recipient_email: string | null;
+  created_at: string;
 }
 
-export function getDeal(id: string): Deal | undefined {
-  return getDeals().find((d) => d.id === id);
+function mapDeal(row: DealRow): Deal {
+  return {
+    id: row.id,
+    title: row.title,
+    organizationId: row.organization_id ?? "",
+    value: Number(row.value),
+    currency: row.currency,
+    stage: row.stage,
+    expectedCloseDate: row.expected_close_date ?? "",
+    owner: row.owner,
+    probability: row.probability,
+    createdAt: row.created_at,
+    nextStep: row.next_step ?? undefined,
+    tags: row.tags ?? undefined,
+    contactIds: row.contact_ids ?? undefined,
+    lastActivityDate: row.last_activity_date ?? undefined,
+    lastActivityType: row.last_activity_type ?? undefined,
+    signatureStatus: row.signature_status ?? undefined,
+    signatureSentAt: row.signature_sent_at ?? undefined,
+    signatureRecipientEmail: row.signature_recipient_email ?? undefined,
+  };
 }
 
-export function getDealsForOrganization(organizationId: string): Deal[] {
-  return getDeals().filter((d) => d.organizationId === organizationId);
+function toRow(deal: Deal): DealRow {
+  return {
+    id: deal.id,
+    title: deal.title,
+    organization_id: deal.organizationId || null,
+    value: deal.value,
+    currency: deal.currency,
+    stage: deal.stage,
+    expected_close_date: deal.expectedCloseDate || null,
+    owner: deal.owner,
+    probability: deal.probability,
+    next_step: deal.nextStep ?? null,
+    tags: deal.tags ?? [],
+    contact_ids: deal.contactIds ?? [],
+    last_activity_date: deal.lastActivityDate ?? null,
+    last_activity_type: deal.lastActivityType ?? null,
+    signature_status: deal.signatureStatus ?? null,
+    signature_sent_at: deal.signatureSentAt ?? null,
+    signature_recipient_email: deal.signatureRecipientEmail ?? null,
+    created_at: deal.createdAt,
+  };
 }
 
-export function saveDeal(deal: Deal): Deal {
-  const deals = getDeals();
-  const index = deals.findIndex((d) => d.id === deal.id);
-  if (index >= 0) {
-    deals[index] = deal;
-  } else {
-    deals.push(deal);
-  }
-  localStorage.setItem("deals", JSON.stringify(deals));
+export async function getDeals(): Promise<Deal[]> {
+  const { data, error } = await getSupabase().from("deals").select("*");
+  throwIfError(error, "getDeals");
+  return ((data ?? []) as DealRow[]).map(mapDeal);
+}
+
+export async function getDeal(id: string): Promise<Deal | undefined> {
+  const { data, error } = await getSupabase()
+    .from("deals")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  throwIfError(error, "getDeal");
+  return data ? mapDeal(data as DealRow) : undefined;
+}
+
+export async function getDealsForOrganization(
+  organizationId: string
+): Promise<Deal[]> {
+  const { data, error } = await getSupabase()
+    .from("deals")
+    .select("*")
+    .eq("organization_id", organizationId);
+  throwIfError(error, "getDealsForOrganization");
+  return ((data ?? []) as DealRow[]).map(mapDeal);
+}
+
+export async function saveDeal(deal: Deal): Promise<Deal> {
+  const { error } = await getSupabase().from("deals").upsert(toRow(deal));
+  throwIfError(error, "saveDeal");
   return deal;
 }
 
-export function addDeal(
+export async function addDeal(
   deal: Omit<Deal, "id" | "createdAt">
-): Deal {
+): Promise<Deal> {
   const newDeal: Deal = {
     ...deal,
-    id: "d" + Math.random().toString(36).substr(2, 9),
+    id: "d" + newId(),
     createdAt: new Date().toISOString(),
   };
-  const deals = getDeals();
-  deals.push(newDeal);
-  localStorage.setItem("deals", JSON.stringify(deals));
+  await saveDeal(newDeal);
   return newDeal;
 }
 
-export function deleteDeal(dealId: string): void {
-  const deals = getDeals().filter((d) => d.id !== dealId);
-  localStorage.setItem("deals", JSON.stringify(deals));
+export async function deleteDeal(dealId: string): Promise<void> {
+  const { error } = await getSupabase().from("deals").delete().eq("id", dealId);
+  throwIfError(error, "deleteDeal");
 }
 
-export function saveDeals(deals: Deal[]): void {
-  localStorage.setItem("deals", JSON.stringify(deals));
+export async function saveDeals(deals: Deal[]): Promise<void> {
+  const existing = await getDeals();
+  const nextIds = new Set(deals.map((deal) => deal.id));
+  const toDelete = existing
+    .filter((deal) => !nextIds.has(deal.id))
+    .map((deal) => deal.id);
+  if (toDelete.length > 0) {
+    const { error } = await getSupabase().from("deals").delete().in("id", toDelete);
+    throwIfError(error, "saveDeals.delete");
+  }
+  if (deals.length === 0) return;
+  const { error } = await getSupabase().from("deals").upsert(deals.map(toRow));
+  throwIfError(error, "saveDeals");
 }
 
 export function formatDealValue(value: number, currency: string = "USD"): string {
@@ -359,18 +144,32 @@ export function formatDealValue(value: number, currency: string = "USD"): string
   return `$${value}`;
 }
 
-export function getTotalPipelineValue(): number {
-  const pipelineStages: DealStage[] = ["New", "Lead", "Qualified", "Proposal", "Negotiation"];
-  return getDeals()
-    .filter((d) => pipelineStages.includes(d.stage))
-    .reduce((sum, d) => sum + d.value, 0);
+export async function getTotalPipelineValue(): Promise<number> {
+  const pipelineStages: DealStage[] = [
+    "New",
+    "Lead",
+    "Qualified",
+    "Proposal",
+    "Negotiation",
+  ];
+  const deals = await getDeals();
+  return deals
+    .filter((deal) => pipelineStages.includes(deal.stage))
+    .reduce((sum, deal) => sum + deal.value, 0);
 }
 
-export function getWeightedPipelineValue(): number {
-  const pipelineStages: DealStage[] = ["New", "Lead", "Qualified", "Proposal", "Negotiation"];
-  return getDeals()
-    .filter((d) => pipelineStages.includes(d.stage))
-    .reduce((sum, d) => sum + d.value * (d.probability / 100), 0);
+export async function getWeightedPipelineValue(): Promise<number> {
+  const pipelineStages: DealStage[] = [
+    "New",
+    "Lead",
+    "Qualified",
+    "Proposal",
+    "Negotiation",
+  ];
+  const deals = await getDeals();
+  return deals
+    .filter((deal) => pipelineStages.includes(deal.stage))
+    .reduce((sum, deal) => sum + deal.value * (deal.probability / 100), 0);
 }
 
 export const STAGE_PROBABILITIES: Record<string, number> = {

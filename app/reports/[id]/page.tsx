@@ -210,7 +210,31 @@ function DataTableWidget({ data }: { data: TableData }) {
 // ── Widget renderer dispatcher ─────────────────────────────────────────
 
 function WidgetRenderer({ widget }: { widget: WidgetConfig }) {
-  const data = queryDataSource(widget.dataSource);
+  const [data, setData] = useState<
+    ChartDataPoint[] | KpiData | TableData | null
+  >(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoaded(false);
+    queryDataSource(widget.dataSource).then((result) => {
+      if (cancelled) return;
+      setData(result);
+      setLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [widget.dataSource]);
+
+  if (!loaded) {
+    return (
+      <div className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
+        Loading...
+      </div>
+    );
+  }
 
   if (!data) {
     return (
@@ -246,18 +270,29 @@ export default function ReportDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [report, setReport] = useState<ReportDefinition | null>(null);
+  const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const loadReport = useCallback(() => {
+  const loadReport = useCallback(async () => {
     const id = params.id as string;
-    const found = getReportById(id);
+    setLoading(true);
+    const found = await getReportById(id);
     setReport(found ?? null);
+    setLoading(false);
   }, [params.id]);
 
   useEffect(() => {
-    loadReport();
+    void loadReport();
   }, [loadReport, refreshKey]);
+
+  if (loading) {
+    return (
+      <main className="container py-8 max-w-[1400px] mx-auto px-6">
+        <p className="text-muted-foreground">Loading...</p>
+      </main>
+    );
+  }
 
   if (!report) {
     return (

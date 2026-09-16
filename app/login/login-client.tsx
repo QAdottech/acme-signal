@@ -19,7 +19,7 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const { login } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -29,7 +29,7 @@ export function LoginForm() {
       return;
     }
 
-    const success = login(email, password);
+    const success = await login(email, password);
     if (success) {
       // Redirect to the page they were trying to access, or home
       const from = searchParams.get("from") || "/";

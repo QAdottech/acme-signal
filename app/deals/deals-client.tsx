@@ -68,8 +68,15 @@ export function DealsClient() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   useEffect(() => {
-    setDeals(getDeals());
-    setOrganizations(getOrganizations());
+    let cancelled = false;
+    Promise.all([getDeals(), getOrganizations()]).then(([nextDeals, orgs]) => {
+      if (cancelled) return;
+      setDeals(nextDeals);
+      setOrganizations(orgs);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const orgMap = useMemo(() => {
@@ -177,23 +184,23 @@ export function DealsClient() {
     }
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (confirm(`Are you sure you want to delete ${selectedIds.size} deals?`)) {
       const updated = deals.filter((d) => !selectedIds.has(d.id));
       setDeals(updated);
-      saveDeals(updated);
+      await saveDeals(updated);
       setSelectedIds(new Set());
     }
   };
 
-  const handleBulkStageChange = (stage: string) => {
+  const handleBulkStageChange = async (stage: string) => {
     const updated = deals.map((d) =>
       selectedIds.has(d.id)
         ? { ...d, stage: stage as Deal["stage"] }
         : d
     );
     setDeals(updated);
-    saveDeals(updated);
+    await saveDeals(updated);
     setSelectedIds(new Set());
   };
 
@@ -248,8 +255,8 @@ export function DealsClient() {
     URL.revokeObjectURL(url);
   };
 
-  const handleAddDeal = (dealData: Omit<Deal, "id" | "createdAt">) => {
-    const newDeal = addDeal(dealData);
+  const handleAddDeal = async (dealData: Omit<Deal, "id" | "createdAt">) => {
+    const newDeal = await addDeal(dealData);
     setDeals([...deals, newDeal]);
     setIsModalOpen(false);
   };

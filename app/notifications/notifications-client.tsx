@@ -123,7 +123,13 @@ export function NotificationsClient() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 
   useEffect(() => {
-    setActivities(getActivities());
+    let cancelled = false;
+    getActivities().then((next) => {
+      if (!cancelled) setActivities(next);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filteredActivities = useMemo(() => {
@@ -156,17 +162,14 @@ export function NotificationsClient() {
     [activities]
   );
 
-  const handleMarkAsRead = useCallback(
-    (id: string) => {
-      markAsRead(id);
-      setActivities(getActivities());
-    },
-    []
-  );
+  const handleMarkAsRead = useCallback(async (id: string) => {
+    await markAsRead(id);
+    setActivities(await getActivities());
+  }, []);
 
-  const handleMarkAllAsRead = useCallback(() => {
-    markAllAsRead();
-    setActivities(getActivities());
+  const handleMarkAllAsRead = useCallback(async () => {
+    await markAllAsRead();
+    setActivities(await getActivities());
   }, []);
 
   const handleNotificationClick = useCallback(

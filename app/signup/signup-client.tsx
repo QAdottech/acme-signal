@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import Link from "next/link";
+import { saveVerificationToken } from "@/lib/users";
 import { SignupStep2 } from "@/components/signup-step2";
 import { Mail, Loader2 } from "lucide-react";
 
@@ -41,11 +42,7 @@ export function SignupClient() {
     const token = Math.random().toString(36).substr(2, 9) +
       Math.random().toString(36).substr(2, 9);
 
-    // Store token in localStorage for verification
-    const storedTokens = localStorage.getItem("verification-tokens");
-    const tokens = storedTokens ? JSON.parse(storedTokens) : {};
-    tokens[userEmail] = token;
-    localStorage.setItem("verification-tokens", JSON.stringify(tokens));
+    await saveVerificationToken(userEmail, token);
 
     // Send the email via API
     try {
@@ -66,7 +63,7 @@ export function SignupClient() {
 
   const handleSignup = async (fullName: string, avatar: string) => {
     setIsSending(true);
-    const success = signup(email, password, fullName, avatar);
+    const success = await signup(email, password, fullName, avatar);
     if (success) {
       await sendVerificationEmail(email, fullName);
       setStep(3);
@@ -78,7 +75,7 @@ export function SignupClient() {
 
   const handleSkip = async () => {
     setIsSending(true);
-    const success = signup(email, password);
+    const success = await signup(email, password);
     if (success) {
       await sendVerificationEmail(email);
       setStep(3);

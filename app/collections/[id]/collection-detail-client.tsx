@@ -20,39 +20,50 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
-    const collections = getCollections() || [];
-    const found = collections.find((c) => c.id === params.id);
-    setCollection(found || null);
-
-    const allOrgs = getOrganizations() || [];
-    setOrganizations(allOrgs);
-
-    if (found) {
-      const orgsInCollection = allOrgs.filter((org) =>
-        found.organizationIds?.includes(org.id)
-      );
-      setCollectionOrgs(orgsInCollection);
+    let cancelled = false;
+    async function load() {
+      const [collections, allOrgs] = await Promise.all([
+        getCollections(),
+        getOrganizations(),
+      ]);
+      if (cancelled) return;
+      const found = (collections || []).find((c) => c.id === params.id) || null;
+      setCollection(found);
+      setOrganizations(allOrgs || []);
+      if (found) {
+        setCollectionOrgs(
+          (allOrgs || []).filter((org) =>
+            found.organizationIds?.includes(org.id)
+          )
+        );
+      }
     }
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, [params.id]);
 
-  const handleEditCollection = (editedCollection: Collection) => {
-    const collections = getCollections() || [];
+  const handleEditCollection = async (editedCollection: Collection) => {
+    const collections = (await getCollections()) || [];
     const updatedCollections = collections.map((c) =>
       c.id === editedCollection.id ? editedCollection : c
     );
-    saveCollections(updatedCollections);
+    await saveCollections(updatedCollections);
     setCollection(editedCollection);
     setCollectionOrgs(
-      organizations.filter((org) => editedCollection.organizationIds?.includes(org.id))
+      organizations.filter((org) =>
+        editedCollection.organizationIds?.includes(org.id)
+      )
     );
     setIsEditModalOpen(false);
     window.dispatchEvent(new Event("collections-updated"));
   };
 
-  const handleDeleteCollection = (collectionId: string) => {
-    const collections = getCollections() || [];
+  const handleDeleteCollection = async (collectionId: string) => {
+    const collections = (await getCollections()) || [];
     const updatedCollections = collections.filter((c) => c.id !== collectionId);
-    saveCollections(updatedCollections);
+    await saveCollections(updatedCollections);
     setIsEditModalOpen(false);
     window.dispatchEvent(new Event("collections-updated"));
     router.push("/collections");

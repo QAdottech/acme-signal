@@ -27,8 +27,8 @@ export function DeleteReportDialog({
 }: DeleteReportDialogProps) {
   const router = useRouter();
 
-  const handleDelete = () => {
-    deleteCustomReport(reportId);
+  const handleDelete = async () => {
+    await deleteCustomReport(reportId);
     onOpenChange(false);
     router.push("/reports");
   };

@@ -90,7 +90,7 @@ export function AddDealModal({
 
   useEffect(() => {
     if (isOpen) {
-      setOrganizations(getOrganizations());
+      getOrganizations().then(setOrganizations);
       setStage(defaultStage);
     }
   }, [isOpen, defaultStage]);

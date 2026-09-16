@@ -27,7 +27,11 @@ import type { Organization } from "@/types/organization";
 import { FilterPopover } from "@/components/filter-popover";
 import { cn } from "@/lib/utils";
 import { OrganizationImage } from "@/components/organization-image";
-import { getOrganizations } from "@/lib/organizationData";
+import {
+  getOrganizations,
+  saveOrganizations as persistOrganizations,
+  addOrganization,
+} from "@/lib/organizationData";
 import { Checkbox } from "@/components/ui/checkbox";
 import { exportOrganizationsToCSV } from "@/lib/exportUtils";
 
@@ -65,18 +69,23 @@ export function OrganizationsClient() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   useEffect(() => {
-    setOrganizations(getOrganizations());
+    let cancelled = false;
+    getOrganizations().then((orgs) => {
+      if (!cancelled) setOrganizations(orgs);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const saveOrganizations = (newOrganizations: Organization[]) => {
+  const persist = async (newOrganizations: Organization[]) => {
     setOrganizations(newOrganizations);
-    localStorage.setItem("organizations", JSON.stringify(newOrganizations));
+    await persistOrganizations(newOrganizations);
   };
 
-  const addOrganization = (newOrganization: Omit<Organization, "id">) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    const updatedOrganizations = [...organizations, { ...newOrganization, id }];
-    saveOrganizations(updatedOrganizations);
+  const addOrganizationHandler = async (newOrganization: Omit<Organization, "id">) => {
+    const created = await addOrganization(newOrganization);
+    setOrganizations((current) => [...current, created]);
     setIsModalOpen(false);
   };
 
@@ -177,13 +186,13 @@ export function OrganizationsClient() {
     }
   };
 
-  const handleBulkStatusChange = (status: string) => {
+  const handleBulkStatusChange = async (status: string) => {
     const updatedOrganizations = organizations.map((org) =>
       selectedIds.has(org.id)
         ? { ...org, dealStage: status as Organization["dealStage"] }
         : org
     );
-    saveOrganizations(updatedOrganizations);
+    await persist(updatedOrganizations);
     setSelectedIds(new Set());
   };
 
@@ -192,7 +201,7 @@ export function OrganizationsClient() {
     exportOrganizationsToCSV(selectedOrgs);
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (
       confirm(
         `Are you sure you want to delete ${selectedIds.size} organizations?`
@@ -201,7 +210,7 @@ export function OrganizationsClient() {
       const updatedOrganizations = organizations.filter(
         (org) => !selectedIds.has(org.id)
       );
-      saveOrganizations(updatedOrganizations);
+      await persist(updatedOrganizations);
       setSelectedIds(new Set());
     }
   };
@@ -447,7 +456,7 @@ export function OrganizationsClient() {
           <AddOrganizationModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            onAdd={addOrganization}
+            onAdd={addOrganizationHandler}
           />
           <BulkActionsBar
             selectedCount={selectedIds.size}

@@ -57,11 +57,11 @@ export function AddNoteModal({
 
   const selectedOrg = organizations.find((o) => o.id === selectedOrgId);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedOrgId || !content.trim()) return;
 
-    addNote({
+    await addNote({
       organizationId: selectedOrgId,
       content: content.trim(),
       authorName: authorName.trim() || "Unknown",

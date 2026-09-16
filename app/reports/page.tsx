@@ -20,13 +20,13 @@ export default function ReportsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    setReports(getAllReports());
+    getAllReports().then(setReports);
   }, []);
 
   // Refresh list when dialog closes (new report may have been added)
   useEffect(() => {
     if (!createOpen) {
-      setReports(getAllReports());
+      getAllReports().then(setReports);
     }
   }, [createOpen]);
 

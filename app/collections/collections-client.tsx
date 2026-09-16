@@ -7,7 +7,6 @@ import {
   getCollections,
   getOrganizations,
   saveCollections,
-  deduplicateCollectionOrganizationIds,
 } from "@/lib/organizationData";
 import Link from "next/link";
 import Image from "next/image";
@@ -26,41 +25,48 @@ export function CollectionsClient() {
   );
 
   useEffect(() => {
-    // Clean up any existing duplicates
-    deduplicateCollectionOrganizationIds();
-    setCollections(getCollections() || []);
-    setOrganizations(getOrganizations() || []);
+    let cancelled = false;
+    Promise.all([getCollections(), getOrganizations()]).then(
+      ([nextCollections, orgs]) => {
+        if (cancelled) return;
+        setCollections(nextCollections || []);
+        setOrganizations(orgs || []);
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const handleAddCollection = (
+  const handleAddCollection = async (
     newCollection: Omit<Collection, "id" | "organizationIds">
   ) => {
     const id = Math.random().toString(36).substr(2, 9);
     const collectionWithId = { ...newCollection, id, organizationIds: [] };
     const updatedCollections = [...collections, collectionWithId];
     setCollections(updatedCollections);
-    saveCollections(updatedCollections);
+    await saveCollections(updatedCollections);
     setIsAddModalOpen(false);
     window.dispatchEvent(new Event("collections-updated"));
   };
 
-  const handleEditCollection = (editedCollection: Collection) => {
+  const handleEditCollection = async (editedCollection: Collection) => {
     const updatedCollections = collections.map((collection) =>
       collection.id === editedCollection.id ? editedCollection : collection
     );
     setCollections(updatedCollections);
-    saveCollections(updatedCollections);
+    await saveCollections(updatedCollections);
     setIsEditModalOpen(false);
     setEditingCollection(null);
     window.dispatchEvent(new Event("collections-updated"));
   };
 
-  const handleDeleteCollection = (collectionId: string) => {
+  const handleDeleteCollection = async (collectionId: string) => {
     const updatedCollections = collections.filter(
       (collection) => collection.id !== collectionId
     );
     setCollections(updatedCollections);
-    saveCollections(updatedCollections);
+    await saveCollections(updatedCollections);
     setIsEditModalOpen(false);
     setEditingCollection(null);
     window.dispatchEvent(new Event("collections-updated"));

@@ -1,6 +1,7 @@
 import { getOrganizations } from "@/lib/organizationData";
 import { getDeals } from "@/lib/dealData";
 import { getPeople } from "@/lib/personData";
+import { getCustomReports as getStoredCustomReports } from "@/lib/custom-reports";
 import type { DealStage } from "@/types/organization";
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -191,25 +192,27 @@ export function getBuiltInReports(): ReportDefinition[] {
   return builtInReports;
 }
 
-export function getCustomReports(): ReportDefinition[] {
-  if (typeof window === "undefined") return [];
-  const stored = localStorage.getItem("custom-reports");
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return [];
-    }
-  }
-  return [];
+export async function getCustomReports(): Promise<ReportDefinition[]> {
+  const stored = await getStoredCustomReports();
+  return stored.map((report) => ({
+    id: report.id,
+    title: report.title,
+    description: report.description,
+    type: report.templateId,
+    isBuiltIn: false,
+    widgets: report.widgets,
+    createdAt: report.createdAt,
+  }));
 }
 
-export function getAllReports(): ReportDefinition[] {
-  return [...getBuiltInReports(), ...getCustomReports()];
+export async function getAllReports(): Promise<ReportDefinition[]> {
+  return [...getBuiltInReports(), ...(await getCustomReports())];
 }
 
-export function getReportById(id: string): ReportDefinition | undefined {
-  return getAllReports().find((r) => r.id === id);
+export async function getReportById(
+  id: string
+): Promise<ReportDefinition | undefined> {
+  return (await getAllReports()).find((report) => report.id === id);
 }
 
 // ── Currency formatter ─────────────────────────────────────────────────
@@ -253,8 +256,8 @@ const PIPELINE_STAGES: DealStage[] = [
 
 // Pipeline Overview data sources ────────────────────────────────────────
 
-function getPipelineValueKpi(): KpiData {
-  const deals = getDeals();
+async function getPipelineValueKpi(): Promise<KpiData> {
+  const deals = await getDeals();
   const pipelineDeals = deals.filter((d) => PIPELINE_STAGES.includes(d.stage));
   const total = pipelineDeals.reduce((sum, d) => sum + d.value, 0);
   return {
@@ -264,13 +267,13 @@ function getPipelineValueKpi(): KpiData {
   };
 }
 
-function getWinRateKpi(): KpiData {
-  const deals = getDeals();
+async function getWinRateKpi(): Promise<KpiData> {
+  const deals = await getDeals();
   const closedDeals = deals.filter(
     (d) => d.stage === "Customer" || d.stage === "Closed Lost"
   );
   const wonDeals = deals.filter((d) => d.stage === "Customer");
-  const organizations = getOrganizations();
+  const organizations = await getOrganizations();
   const customerOrgs = organizations.filter(
     (o) => o.dealStage === "Customer"
   ).length;
@@ -286,8 +289,8 @@ function getWinRateKpi(): KpiData {
   };
 }
 
-function getDealsByStage(): ChartDataPoint[] {
-  const deals = getDeals();
+async function getDealsByStage(): Promise<ChartDataPoint[]> {
+  const deals = await getDeals();
   const stages: DealStage[] = [
     "New",
     "Lead",
@@ -303,9 +306,9 @@ function getDealsByStage(): ChartDataPoint[] {
   }));
 }
 
-function getTopDeals(): TableData {
-  const deals = getDeals();
-  const organizations = getOrganizations();
+async function getTopDeals(): Promise<TableData> {
+  const deals = await getDeals();
+  const organizations = await getOrganizations();
   const sorted = [...deals].sort((a, b) => b.value - a.value).slice(0, 8);
   return {
     headers: ["Deal", "Company", "Value", "Stage", "Owner"],
@@ -324,8 +327,8 @@ function getTopDeals(): TableData {
 
 // Revenue & Deals data sources ──────────────────────────────────────────
 
-function getAvgDealSizeKpi(): KpiData {
-  const deals = getDeals();
+async function getAvgDealSizeKpi(): Promise<KpiData> {
+  const deals = await getDeals();
   const avg = deals.length > 0
     ? deals.reduce((sum, d) => sum + d.value, 0) / deals.length
     : 0;
@@ -336,8 +339,8 @@ function getAvgDealSizeKpi(): KpiData {
   };
 }
 
-function getTotalDealsKpi(): KpiData {
-  const deals = getDeals();
+async function getTotalDealsKpi(): Promise<KpiData> {
+  const deals = await getDeals();
   const pipelineDeals = deals.filter((d) => PIPELINE_STAGES.includes(d.stage));
   return {
     value: String(deals.length),
@@ -345,8 +348,8 @@ function getTotalDealsKpi(): KpiData {
   };
 }
 
-function getDealValuesTrend(): ChartDataPoint[] {
-  const deals = getDeals();
+async function getDealValuesTrend(): Promise<ChartDataPoint[]> {
+  const deals = await getDeals();
   // Group deals by creation month
   const monthMap: Record<string, number> = {};
   const months = [
@@ -371,8 +374,8 @@ function getDealValuesTrend(): ChartDataPoint[] {
   return result;
 }
 
-function getDealsByOwner(): ChartDataPoint[] {
-  const deals = getDeals();
+async function getDealsByOwner(): Promise<ChartDataPoint[]> {
+  const deals = await getDeals();
   const ownerMap: Record<string, number> = {};
   deals.forEach((d) => {
     ownerMap[d.owner] = (ownerMap[d.owner] || 0) + 1;
@@ -380,8 +383,8 @@ function getDealsByOwner(): ChartDataPoint[] {
   return Object.entries(ownerMap).map(([name, value]) => ({ name, value }));
 }
 
-function getDealValueByStage(): ChartDataPoint[] {
-  const deals = getDeals();
+async function getDealValueByStage(): Promise<ChartDataPoint[]> {
+  const deals = await getDeals();
   const stages: DealStage[] = [
     "New",
     "Lead",
@@ -399,8 +402,8 @@ function getDealValueByStage(): ChartDataPoint[] {
 
 // Contacts & Companies data sources ─────────────────────────────────────
 
-function getTotalContactsKpi(): KpiData {
-  const people = getPeople();
+async function getTotalContactsKpi(): Promise<KpiData> {
+  const people = await getPeople();
   const active = people.filter((p) => p.status === "Active").length;
   return {
     value: String(people.length),
@@ -409,8 +412,8 @@ function getTotalContactsKpi(): KpiData {
   };
 }
 
-function getTotalCompaniesKpi(): KpiData {
-  const organizations = getOrganizations();
+async function getTotalCompaniesKpi(): Promise<KpiData> {
+  const organizations = await getOrganizations();
   const customers = organizations.filter(
     (o) => o.dealStage === "Customer"
   ).length;
@@ -421,8 +424,8 @@ function getTotalCompaniesKpi(): KpiData {
   };
 }
 
-function getIndustryDistribution(): ChartDataPoint[] {
-  const organizations = getOrganizations();
+async function getIndustryDistribution(): Promise<ChartDataPoint[]> {
+  const organizations = await getOrganizations();
   const industryMap: Record<string, number> = {};
   organizations.forEach((org) => {
     industryMap[org.industry] = (industryMap[org.industry] || 0) + 1;
@@ -432,8 +435,8 @@ function getIndustryDistribution(): ChartDataPoint[] {
     .sort((a, b) => b.value - a.value);
 }
 
-function getGeographicDistribution(): ChartDataPoint[] {
-  const organizations = getOrganizations();
+async function getGeographicDistribution(): Promise<ChartDataPoint[]> {
+  const organizations = await getOrganizations();
   const locationMap: Record<string, number> = {};
   organizations.forEach((org) => {
     // Normalize location (take city part)
@@ -445,9 +448,9 @@ function getGeographicDistribution(): ChartDataPoint[] {
     .sort((a, b) => b.value - a.value);
 }
 
-function getGrowthOverTime(): ChartDataPoint[] {
-  const organizations = getOrganizations();
-  const people = getPeople();
+async function getGrowthOverTime(): Promise<ChartDataPoint[]> {
+  const organizations = await getOrganizations();
+  const people = await getPeople();
   // Simulated growth data showing progression to current totals
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
   const orgCount = organizations.length;
@@ -468,7 +471,7 @@ function getGrowthOverTime(): ChartDataPoint[] {
 
 type DataQueryResult = ChartDataPoint[] | KpiData | TableData;
 
-const dataSourceRegistry: Record<string, () => DataQueryResult> = {
+const dataSourceRegistry: Record<string, () => Promise<DataQueryResult>> = {
   // Pipeline Overview
   pipelineValueKpi: getPipelineValueKpi,
   winRateKpi: getWinRateKpi,
@@ -490,7 +493,9 @@ const dataSourceRegistry: Record<string, () => DataQueryResult> = {
   growthOverTime: getGrowthOverTime,
 };
 
-export function queryDataSource(key: string): DataQueryResult | null {
+export async function queryDataSource(
+  key: string
+): Promise<DataQueryResult | null> {
   const fn = dataSourceRegistry[key];
   if (!fn) return null;
   return fn();

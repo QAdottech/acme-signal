@@ -79,11 +79,17 @@ export function EmailsClient() {
   const [isComposeOpen, setIsComposeOpen] = useState(false);
 
   useEffect(() => {
-    setEmails(getEmails());
+    let cancelled = false;
+    getEmails().then((nextEmails) => {
+      if (!cancelled) setEmails(nextEmails);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const refreshEmails = () => {
-    setEmails(getEmails());
+  const refreshEmails = async () => {
+    setEmails(await getEmails());
   };
 
   const filteredEmails = emails.filter((email) => {

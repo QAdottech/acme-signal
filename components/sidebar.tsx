@@ -43,14 +43,32 @@ export function Sidebar() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    setCollections(getCollections());
-    setUnreadCount(getUnreadCount());
+    let cancelled = false;
+    const load = () => {
+      Promise.all([getCollections(), getUnreadCount()]).then(
+        ([nextCollections, count]) => {
+          if (cancelled) return;
+          setCollections(nextCollections);
+          setUnreadCount(count);
+        }
+      );
+    };
+    load();
 
-    const handleNotificationsUpdate = () => setUnreadCount(getUnreadCount());
-    const handleCollectionsUpdate = () => setCollections(getCollections());
+    const handleNotificationsUpdate = () => {
+      getUnreadCount().then((count) => {
+        if (!cancelled) setUnreadCount(count);
+      });
+    };
+    const handleCollectionsUpdate = () => {
+      getCollections().then((nextCollections) => {
+        if (!cancelled) setCollections(nextCollections);
+      });
+    };
     window.addEventListener("notifications-updated", handleNotificationsUpdate);
     window.addEventListener("collections-updated", handleCollectionsUpdate);
     return () => {
+      cancelled = true;
       window.removeEventListener("notifications-updated", handleNotificationsUpdate);
       window.removeEventListener("collections-updated", handleCollectionsUpdate);
     };
