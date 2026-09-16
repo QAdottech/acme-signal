@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { DealCard } from "@/components/deal-card";
 import { PipelineHeader } from "@/components/pipeline-header";
@@ -52,12 +52,18 @@ function DraggableCard({
     useDraggable({
       id: deal.id,
     });
+  const ignoreClick = useRef(false);
+
+  if (isDragging) {
+    ignoreClick.current = true;
+  }
 
   const style = {
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isDragging ? 0.35 : 1,
+    touchAction: "none" as const,
   };
 
   return (
@@ -67,6 +73,13 @@ function DraggableCard({
       {...listeners}
       {...attributes}
       className="cursor-grab active:cursor-grabbing"
+      onClickCapture={(event) => {
+        if (ignoreClick.current || isDragging) {
+          event.preventDefault();
+          event.stopPropagation();
+          ignoreClick.current = false;
+        }
+      }}
     >
       <DealCard deal={deal} organization={organization} />
     </div>
@@ -165,7 +178,7 @@ function PipelineBoard() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 6,
       },
     })
   );

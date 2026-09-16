@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/dealData";
 import {
   dealTag,
-  getAvatarColor,
+  getAvatarStyle,
   getDaysSinceActivity,
   getInitials,
   isDealStalled,
@@ -85,10 +85,8 @@ export function DealCard({ deal, organization }: DealCardProps) {
     >
       <div className="flex items-center gap-2 mb-2 min-w-0">
         <div
-          className={cn(
-            "w-5 h-5 rounded-[5px] text-[9px] font-semibold flex items-center justify-center shrink-0",
-            getAvatarColor(orgName)
-          )}
+          className="w-5 h-5 rounded-[5px] text-[9px] font-semibold flex items-center justify-center shrink-0"
+          style={getAvatarStyle(orgName)}
         >
           {getInitials(orgName)}
         </div>
@@ -129,10 +127,8 @@ export function DealCard({ deal, organization }: DealCardProps) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <div
-            className={cn(
-              "w-5 h-5 rounded-md text-[9px] font-semibold flex items-center justify-center shrink-0",
-              getAvatarColor(deal.owner)
-            )}
+            className="w-5 h-5 rounded-md text-[9px] font-semibold flex items-center justify-center shrink-0"
+            style={getAvatarStyle(deal.owner)}
           >
             {getInitials(deal.owner)}
           </div>

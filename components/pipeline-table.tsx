@@ -4,8 +4,7 @@ import Link from "next/link";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
 import { formatCurrency } from "@/lib/dealData";
-import { displayStageName, getAvatarColor, getInitials } from "@/lib/pipeline";
-import { cn } from "@/lib/utils";
+import { displayStageName, getAvatarStyle, getInitials } from "@/lib/pipeline";
 
 interface PipelineTableProps {
   deals: Deal[];
@@ -54,10 +53,8 @@ export function PipelineTable({ deals, organizations }: PipelineTableProps) {
                     className="flex items-center gap-2 text-neutral-600 hover:text-neutral-900"
                   >
                     <span
-                      className={cn(
-                        "w-5 h-5 rounded-[5px] text-[9px] font-semibold flex items-center justify-center shrink-0",
-                        getAvatarColor(org?.name || deal.organizationId)
-                      )}
+                      className="w-5 h-5 rounded-[5px] text-[9px] font-semibold flex items-center justify-center shrink-0"
+                      style={getAvatarStyle(org?.name || deal.organizationId)}
                     >
                       {getInitials(org?.name || "?")}
                     </span>

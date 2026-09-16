@@ -56,21 +56,21 @@ export const PIPELINE_VIEWS: {
   },
 ];
 
-const AVATAR_COLORS = [
-  "bg-slate-800 text-white",
-  "bg-zinc-800 text-white",
-  "bg-emerald-800 text-white",
-  "bg-indigo-800 text-white",
-  "bg-stone-300 text-stone-800",
-  "bg-teal-700 text-white",
-  "bg-amber-800 text-white",
-  "bg-green-700 text-white",
-  "bg-orange-600 text-white",
-  "bg-rose-700 text-white",
-  "bg-blue-800 text-white",
-  "bg-violet-800 text-white",
-  "bg-cyan-800 text-white",
-  "bg-neutral-700 text-white",
+const AVATAR_STYLES = [
+  { backgroundColor: "#1e293b", color: "#fff" },
+  { backgroundColor: "#27272a", color: "#fff" },
+  { backgroundColor: "#065f46", color: "#fff" },
+  { backgroundColor: "#3730a3", color: "#fff" },
+  { backgroundColor: "#d6d3d1", color: "#1c1917" },
+  { backgroundColor: "#0f766e", color: "#fff" },
+  { backgroundColor: "#92400e", color: "#fff" },
+  { backgroundColor: "#15803d", color: "#fff" },
+  { backgroundColor: "#ea580c", color: "#fff" },
+  { backgroundColor: "#be123c", color: "#fff" },
+  { backgroundColor: "#1e40af", color: "#fff" },
+  { backgroundColor: "#6d28d9", color: "#fff" },
+  { backgroundColor: "#155e75", color: "#fff" },
+  { backgroundColor: "#404040", color: "#fff" },
 ];
 
 export const TAG_COLORS: Record<string, string> = {
@@ -106,8 +106,11 @@ export function getInitials(name: string): string {
   return name.substring(0, 2).toUpperCase();
 }
 
-export function getAvatarColor(seed: string): string {
-  return AVATAR_COLORS[hashString(seed) % AVATAR_COLORS.length];
+export function getAvatarStyle(seed: string): {
+  backgroundColor: string;
+  color: string;
+} {
+  return AVATAR_STYLES[hashString(seed) % AVATAR_STYLES.length];
 }
 
 export function isOpenDeal(deal: Deal): boolean {

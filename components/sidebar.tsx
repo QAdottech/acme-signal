@@ -29,7 +29,7 @@ import { useEffect, useState } from "react";
 import type { Collection } from "@/types/organization";
 import { cn } from "@/lib/utils";
 import { SignalLogo } from "@/components/signal-logo";
-import { getInitials, getAvatarColor, PIPELINE_VIEWS } from "@/lib/pipeline";
+import { getInitials, getAvatarStyle, PIPELINE_VIEWS } from "@/lib/pipeline";
 import { AddCollectionModal } from "@/components/add-collection-modal";
 import {
   DropdownMenu,
@@ -223,10 +223,8 @@ export function Sidebar({ onSearch }: SidebarProps) {
             <DropdownMenuTrigger asChild>
               <button className="w-full flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-black/5 transition-colors text-left">
                 <div
-                  className={cn(
-                    "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0",
-                    user.avatar ? "" : getAvatarColor(user.fullName || user.email)
-                  )}
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0 overflow-hidden"
+                  style={user.avatar ? undefined : getAvatarStyle(user.fullName || user.email)}
                 >
                   {user.avatar ? (
                     <img
