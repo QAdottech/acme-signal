@@ -1,6 +1,5 @@
 import type { ReportTemplate, CustomReport, WidgetConfig } from "@/types/report";
-
-const STORAGE_KEY = "custom-reports";
+import { getSupabase, newId, throwIfError } from "@/lib/supabase";
 
 export function getReportTemplates(): ReportTemplate[] {
   return [
@@ -105,8 +104,7 @@ export function getReportTemplates(): ReportTemplate[] {
     {
       id: "activity-timeline",
       name: "Activity Timeline",
-      description:
-        "Overview of deal stages and top deals in your pipeline.",
+      description: "Overview of deal stages and top deals in your pipeline.",
       icon: "Activity",
       widgets: [
         {
@@ -128,51 +126,82 @@ export function getReportTemplates(): ReportTemplate[] {
   ];
 }
 
-export function getCustomReports(): CustomReport[] {
-  if (typeof window === "undefined") return [];
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return [];
-    }
-  }
-  return [];
+interface CustomReportRow {
+  id: string;
+  title: string;
+  description: string;
+  template_id: string | null;
+  type: string | null;
+  widgets: WidgetConfig[];
+  is_built_in: boolean;
+  created_at: string;
 }
 
-export function saveCustomReport(report: CustomReport): void {
-  const reports = getCustomReports();
-  reports.push(report);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+function mapReport(row: CustomReportRow): CustomReport {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    templateId: row.template_id ?? "",
+    widgets: row.widgets ?? [],
+    isBuiltIn: false,
+    createdAt: row.created_at,
+  };
 }
 
-export function deleteCustomReport(id: string): void {
-  const reports = getCustomReports().filter((r) => r.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+export async function getCustomReports(): Promise<CustomReport[]> {
+  const { data, error } = await getSupabase()
+    .from("custom_reports")
+    .select("*")
+    .eq("is_built_in", false)
+    .order("created_at", { ascending: false });
+  throwIfError(error, "getCustomReports");
+  return ((data ?? []) as CustomReportRow[]).map(mapReport);
 }
 
-export function createReportFromTemplate(
+export async function saveCustomReport(report: CustomReport): Promise<void> {
+  const { error } = await getSupabase().from("custom_reports").insert({
+    id: report.id,
+    title: report.title,
+    description: report.description,
+    template_id: report.templateId,
+    type: report.templateId,
+    widgets: report.widgets,
+    is_built_in: false,
+    created_at: report.createdAt,
+  });
+  throwIfError(error, "saveCustomReport");
+}
+
+export async function deleteCustomReport(id: string): Promise<void> {
+  const { error } = await getSupabase()
+    .from("custom_reports")
+    .delete()
+    .eq("id", id);
+  throwIfError(error, "deleteCustomReport");
+}
+
+export async function createReportFromTemplate(
   templateId: string,
   title: string,
   description: string
-): CustomReport {
+): Promise<CustomReport> {
   const templates = getReportTemplates();
-  const template = templates.find((t) => t.id === templateId);
+  const template = templates.find((item) => item.id === templateId);
   if (!template) {
     throw new Error(`Template not found: ${templateId}`);
   }
 
   const report: CustomReport = {
-    id: "report-" + Math.random().toString(36).substr(2, 9),
+    id: "report-" + newId(),
     title,
     description,
     templateId,
-    widgets: template.widgets.map((w: WidgetConfig) => ({ ...w })),
+    widgets: template.widgets.map((widget: WidgetConfig) => ({ ...widget })),
     isBuiltIn: false,
     createdAt: new Date().toISOString(),
   };
 
-  saveCustomReport(report);
+  await saveCustomReport(report);
   return report;
 }

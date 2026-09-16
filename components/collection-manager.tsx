@@ -1,12 +1,12 @@
-import { useState } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Organization, Collection } from "@/types/organization";
 import {
   getCollections,
-  saveCollections,
-  getOrganizations,
-  saveOrganizations,
+  setOrganizationCollections,
 } from "@/lib/organizationData";
 import { X, ChevronsUpDown } from "lucide-react";
 import {
@@ -32,9 +32,12 @@ export function CollectionManager({
   onCollectionsChange,
 }: CollectionManagerProps) {
   const [open, setOpen] = useState(false);
+  const [allCollections, setAllCollections] = useState<Collection[]>([]);
 
-  // Always get fresh data from localStorage
-  const allCollections = getCollections();
+  useEffect(() => {
+    getCollections().then(setAllCollections);
+  }, [organization.collections]);
+
   const memberCollections = allCollections.filter((collection) =>
     organization.collections?.includes(collection.id)
   );
@@ -42,70 +45,22 @@ export function CollectionManager({
     (collection) => !organization.collections?.includes(collection.id)
   );
 
-  const handleRemoveFromCollection = (collectionId: string) => {
-    // Get fresh data
-    const organizations = getOrganizations();
-    const collections = getCollections();
-
-    // Calculate new collection list for this organization
+  const handleRemoveFromCollection = async (collectionId: string) => {
     const newCollectionIds = (organization.collections ?? []).filter(
       (id) => id !== collectionId
     );
-
-    // Update organization
-    const updatedOrganizations = organizations.map((org) =>
-      org.id === organization.id
-        ? { ...org, collections: newCollectionIds }
-        : org
-    );
-
-    // Update all collections - remove this org from the collection we're leaving
-    const updatedCollections = collections.map((collection) => ({
-      ...collection,
-      organizationIds: newCollectionIds.includes(collection.id)
-        ? [...new Set([...collection.organizationIds, organization.id])]
-        : collection.organizationIds.filter((id) => id !== organization.id),
-    }));
-
-    // Save to localStorage
-    saveOrganizations(updatedOrganizations);
-    saveCollections(updatedCollections);
-
-    // Notify parent
+    await setOrganizationCollections(organization.id, newCollectionIds);
+    window.dispatchEvent(new Event("collections-updated"));
     onCollectionsChange(newCollectionIds);
   };
 
-  const handleAddToCollection = (collectionId: string) => {
-    // Get fresh data
-    const organizations = getOrganizations();
-    const collections = getCollections();
-
-    // Calculate new collection list for this organization
+  const handleAddToCollection = async (collectionId: string) => {
     const newCollectionIds = [
       ...(organization.collections ?? []),
       collectionId,
     ];
-
-    // Update organization
-    const updatedOrganizations = organizations.map((org) =>
-      org.id === organization.id
-        ? { ...org, collections: newCollectionIds }
-        : org
-    );
-
-    // Update all collections - add this org to collections it's a member of
-    const updatedCollections = collections.map((collection) => ({
-      ...collection,
-      organizationIds: newCollectionIds.includes(collection.id)
-        ? [...new Set([...collection.organizationIds, organization.id])]
-        : collection.organizationIds.filter((id) => id !== organization.id),
-    }));
-
-    // Save to localStorage
-    saveOrganizations(updatedOrganizations);
-    saveCollections(updatedCollections);
-
-    // Notify parent and close popover
+    await setOrganizationCollections(organization.id, newCollectionIds);
+    window.dispatchEvent(new Event("collections-updated"));
     onCollectionsChange(newCollectionIds);
     setOpen(false);
   };

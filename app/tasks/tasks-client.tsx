@@ -94,10 +94,22 @@ export function TasksClient() {
   const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
-    setTasks(getTasks());
-    setDeals(getDeals());
-    setOrganizations(getOrganizations());
-    setPeople(getPeople());
+    let cancelled = false;
+    Promise.all([
+      getTasks(),
+      getDeals(),
+      getOrganizations(),
+      getPeople(),
+    ]).then(([nextTasks, nextDeals, orgs, nextPeople]) => {
+      if (cancelled) return;
+      setTasks(nextTasks);
+      setDeals(nextDeals);
+      setOrganizations(orgs);
+      setPeople(nextPeople);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const orgMap = useMemo(() => {
@@ -124,7 +136,7 @@ export function TasksClient() {
     return map;
   }, [people]);
 
-  const toggleTaskStatus = (taskId: string) => {
+  const toggleTaskStatus = async (taskId: string) => {
     const updated = tasks.map((t) => {
       if (t.id !== taskId) return t;
       const newStatus: TaskStatus = t.status === "done" ? "todo" : "done";
@@ -135,23 +147,23 @@ export function TasksClient() {
       };
     });
     setTasks(updated);
-    saveTasks(updated);
+    await saveTasks(updated);
   };
 
   const toggleExpanded = (taskId: string) => {
     setExpandedTaskId(expandedTaskId === taskId ? null : taskId);
   };
 
-  const handleAddTask = (
+  const handleAddTask = async (
     taskData: Omit<Task, "id" | "createdAt">
   ) => {
-    const newTask = addTaskToStore(taskData);
+    const newTask = await addTaskToStore(taskData);
     setTasks([...tasks, newTask]);
     setIsModalOpen(false);
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    deleteTaskFromStore(taskId);
+  const handleDeleteTask = async (taskId: string) => {
+    await deleteTaskFromStore(taskId);
     setTasks(tasks.filter((t) => t.id !== taskId));
   };
 

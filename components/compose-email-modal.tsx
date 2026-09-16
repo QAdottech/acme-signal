@@ -43,7 +43,7 @@ export function ComposeEmailModal({
 
   useEffect(() => {
     if (isOpen) {
-      setPeople(getPeople());
+      getPeople().then(setPeople);
     }
   }, [isOpen]);
 
@@ -91,7 +91,7 @@ export function ComposeEmailModal({
         throw new Error(data.error || "Failed to send email");
       }
 
-      addEmail({
+      await addEmail({
         to,
         toName: selectedPersonName || undefined,
         subject,

@@ -1,199 +1,148 @@
 import type { Task } from "@/types/task";
+import { getSupabase, newId, throwIfError } from "@/lib/supabase";
 
-const DAY = 24 * 60 * 60 * 1000;
-
-function daysFromNow(days: number): string {
-  return new Date(Date.now() + days * DAY).toISOString().split("T")[0];
+interface TaskRow {
+  id: string;
+  title: string;
+  description: string | null;
+  status: Task["status"];
+  priority: Task["priority"];
+  due_date: string | null;
+  assignee: string | null;
+  related_deal_id: string | null;
+  related_organization_id: string | null;
+  related_person_id: string | null;
+  created_at: string;
+  completed_at: string | null;
 }
 
-const defaultTasks: Task[] = [
-  {
-    id: "t1",
-    title: "Send proposal to Anthropic",
-    description:
-      "Prepare and send the enterprise partnership proposal to the Anthropic team. Include pricing tiers and integration timeline.",
-    status: "todo",
-    priority: "high",
-    dueDate: daysFromNow(1),
-    assignee: "David Martinez",
-    relatedDealId: "d7",
-    relatedOrganizationId: "12",
-    createdAt: new Date(Date.now() - 3 * DAY).toISOString(),
-  },
-  {
-    id: "t2",
-    title: "Schedule technical demo for Cursor",
-    description:
-      "Coordinate with engineering to set up a live technical demo of the developer tools bundle for the Cursor team.",
-    status: "todo",
-    priority: "medium",
-    dueDate: daysFromNow(3),
-    assignee: "Emma Wilson",
-    relatedOrganizationId: "23",
-    createdAt: new Date(Date.now() - 2 * DAY).toISOString(),
-  },
-  {
-    id: "t3",
-    title: "Follow up on Klarna contract review",
-    description:
-      "Legal has had the contract for a week. Escalate to get the review completed and address any concerns.",
-    status: "todo",
-    priority: "urgent",
-    dueDate: daysFromNow(-2),
-    assignee: "Michael Chen",
-    relatedOrganizationId: "8",
-    createdAt: new Date(Date.now() - 7 * DAY).toISOString(),
-  },
-  {
-    id: "t4",
-    title: "Prepare Perplexity onboarding docs",
-    description:
-      "Create onboarding documentation for the Perplexity search infrastructure deal. Include API guides and support contacts.",
-    status: "todo",
-    priority: "low",
-    dueDate: daysFromNow(7),
-    assignee: "Sarah Johnson",
-    relatedOrganizationId: "24",
-    createdAt: new Date(Date.now() - 1 * DAY).toISOString(),
-  },
-  {
-    id: "t5",
-    title: "Review Spotify quarterly metrics",
-    description:
-      "Compile and review Q1 metrics for the Spotify account. Prepare summary for the account review meeting.",
-    status: "todo",
-    priority: "medium",
-    dueDate: daysFromNow(5),
-    assignee: "Sarah Johnson",
-    relatedOrganizationId: "1",
-    createdAt: new Date(Date.now() - 2 * DAY).toISOString(),
-  },
-  {
-    id: "t6",
-    title: "Draft Vercel partnership agreement",
-    description:
-      "Work with legal to draft the partnership agreement for the Vercel edge network expansion deal.",
-    status: "todo",
-    priority: "high",
-    dueDate: daysFromNow(2),
-    assignee: "Emma Wilson",
-    relatedOrganizationId: "4",
-    createdAt: new Date(Date.now() - 4 * DAY).toISOString(),
-  },
-  {
-    id: "t7",
-    title: "Call Sana Labs for requirements",
-    description:
-      "Discovery call to understand Sana Labs' specific requirements for the e-commerce integration project.",
-    status: "in_progress",
-    priority: "medium",
-    dueDate: daysFromNow(1),
-    assignee: "David Martinez",
-    relatedOrganizationId: "14",
-    createdAt: new Date(Date.now() - 5 * DAY).toISOString(),
-  },
-  {
-    id: "t8",
-    title: "Update Figma deal pricing",
-    description:
-      "Revise the pricing model for the Figma contract automation suite based on their feedback from last meeting.",
-    status: "todo",
-    priority: "low",
-    dueDate: daysFromNow(10),
-    assignee: "Michael Chen",
-    relatedOrganizationId: "15",
-    createdAt: new Date(Date.now() - 1 * DAY).toISOString(),
-  },
-  {
-    id: "t9",
-    title: "Send Wolt integration timeline",
-    description:
-      "Deliver the integration timeline document to the Wolt team. They've been waiting for this since last week.",
-    status: "todo",
-    priority: "medium",
-    dueDate: daysFromNow(-1),
-    assignee: "Emma Wilson",
-    relatedOrganizationId: "2",
-    createdAt: new Date(Date.now() - 6 * DAY).toISOString(),
-  },
-  {
-    id: "t10",
-    title: "Finalize Hugging Face SOW",
-    description:
-      "Complete the Statement of Work for the ML Platform License deal. Needs sign-off from both sides.",
-    status: "in_progress",
-    priority: "high",
-    dueDate: daysFromNow(4),
-    assignee: "David Martinez",
-    relatedOrganizationId: "16",
-    createdAt: new Date(Date.now() - 8 * DAY).toISOString(),
-  },
-];
+function mapTask(row: TaskRow): Task {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description ?? undefined,
+    status: row.status,
+    priority: row.priority,
+    dueDate: row.due_date ?? undefined,
+    assignee: row.assignee ?? undefined,
+    relatedDealId: row.related_deal_id ?? undefined,
+    relatedOrganizationId: row.related_organization_id ?? undefined,
+    relatedPersonId: row.related_person_id ?? undefined,
+    createdAt: row.created_at,
+    completedAt: row.completed_at ?? undefined,
+  };
+}
 
-export function getTasks(): Task[] {
-  if (typeof window === "undefined") return defaultTasks;
-  const stored = localStorage.getItem("tasks");
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return defaultTasks;
-    }
+function toRow(task: Task): TaskRow {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description ?? null,
+    status: task.status,
+    priority: task.priority,
+    due_date: task.dueDate ?? null,
+    assignee: task.assignee ?? null,
+    related_deal_id: task.relatedDealId ?? null,
+    related_organization_id: task.relatedOrganizationId ?? null,
+    related_person_id: task.relatedPersonId ?? null,
+    created_at: task.createdAt,
+    completed_at: task.completedAt ?? null,
+  };
+}
+
+export async function getTasks(): Promise<Task[]> {
+  const { data, error } = await getSupabase().from("tasks").select("*");
+  throwIfError(error, "getTasks");
+  return ((data ?? []) as TaskRow[]).map(mapTask);
+}
+
+export async function getTask(id: string): Promise<Task | undefined> {
+  const tasks = await getTasks();
+  return tasks.find((task) => task.id === id);
+}
+
+export async function saveTasks(tasks: Task[]): Promise<void> {
+  const existing = await getTasks();
+  const nextIds = new Set(tasks.map((task) => task.id));
+  const toDelete = existing
+    .filter((task) => !nextIds.has(task.id))
+    .map((task) => task.id);
+  if (toDelete.length > 0) {
+    const { error } = await getSupabase().from("tasks").delete().in("id", toDelete);
+    throwIfError(error, "saveTasks.delete");
   }
-  localStorage.setItem("tasks", JSON.stringify(defaultTasks));
-  return defaultTasks;
+  if (tasks.length === 0) return;
+  const { error } = await getSupabase().from("tasks").upsert(tasks.map(toRow));
+  throwIfError(error, "saveTasks");
 }
 
-export function getTask(id: string): Task | undefined {
-  return getTasks().find((t) => t.id === id);
-}
-
-export function saveTasks(tasks: Task[]): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem("tasks", JSON.stringify(tasks));
-}
-
-export function addTask(task: Omit<Task, "id" | "createdAt">): Task {
+export async function addTask(
+  task: Omit<Task, "id" | "createdAt">
+): Promise<Task> {
   const newTask: Task = {
     ...task,
-    id: "t" + Math.random().toString(36).substr(2, 9),
+    id: "t" + newId(),
     createdAt: new Date().toISOString(),
   };
-  const tasks = getTasks();
-  tasks.push(newTask);
-  saveTasks(tasks);
+  const { error } = await getSupabase().from("tasks").insert(toRow(newTask));
+  throwIfError(error, "addTask");
   return newTask;
 }
 
-export function updateTask(id: string, updates: Partial<Task>): Task | undefined {
-  const tasks = getTasks();
-  const index = tasks.findIndex((t) => t.id === id);
-  if (index === -1) return undefined;
-  tasks[index] = { ...tasks[index], ...updates };
-  saveTasks(tasks);
-  return tasks[index];
+export async function updateTask(
+  id: string,
+  updates: Partial<Task>
+): Promise<Task | undefined> {
+  const tasks = await getTasks();
+  const current = tasks.find((task) => task.id === id);
+  if (!current) return undefined;
+  const next = { ...current, ...updates };
+  const { error } = await getSupabase()
+    .from("tasks")
+    .update(toRow(next))
+    .eq("id", id);
+  throwIfError(error, "updateTask");
+  return next;
 }
 
-export function deleteTask(id: string): void {
-  const tasks = getTasks().filter((t) => t.id !== id);
-  saveTasks(tasks);
+export async function deleteTask(id: string): Promise<void> {
+  const { error } = await getSupabase().from("tasks").delete().eq("id", id);
+  throwIfError(error, "deleteTask");
 }
 
-export function getTasksForDeal(dealId: string): Task[] {
-  return getTasks().filter((t) => t.relatedDealId === dealId);
+export async function getTasksForDeal(dealId: string): Promise<Task[]> {
+  const { data, error } = await getSupabase()
+    .from("tasks")
+    .select("*")
+    .eq("related_deal_id", dealId);
+  throwIfError(error, "getTasksForDeal");
+  return ((data ?? []) as TaskRow[]).map(mapTask);
 }
 
-export function getTasksForOrganization(organizationId: string): Task[] {
-  return getTasks().filter((t) => t.relatedOrganizationId === organizationId);
+export async function getTasksForOrganization(
+  organizationId: string
+): Promise<Task[]> {
+  const { data, error } = await getSupabase()
+    .from("tasks")
+    .select("*")
+    .eq("related_organization_id", organizationId);
+  throwIfError(error, "getTasksForOrganization");
+  return ((data ?? []) as TaskRow[]).map(mapTask);
 }
 
-export function getTasksForPerson(personId: string): Task[] {
-  return getTasks().filter((t) => t.relatedPersonId === personId);
+export async function getTasksForPerson(personId: string): Promise<Task[]> {
+  const { data, error } = await getSupabase()
+    .from("tasks")
+    .select("*")
+    .eq("related_person_id", personId);
+  throwIfError(error, "getTasksForPerson");
+  return ((data ?? []) as TaskRow[]).map(mapTask);
 }
 
-export function getOverdueTasks(): Task[] {
+export async function getOverdueTasks(): Promise<Task[]> {
   const today = new Date().toISOString().split("T")[0];
-  return getTasks().filter(
-    (t) => t.status !== "done" && t.dueDate && t.dueDate < today
+  const tasks = await getTasks();
+  return tasks.filter(
+    (task) => task.status !== "done" && task.dueDate && task.dueDate < today
   );
 }

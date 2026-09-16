@@ -19,7 +19,7 @@ export function GlobalSearch() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setOrganizations(getOrganizations());
+    getOrganizations().then(setOrganizations);
   }, []);
 
   useEffect(() => {

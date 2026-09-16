@@ -9,7 +9,7 @@ import { AddDealModal } from "@/components/add-deal-modal";
 import type { Organization, DealStage } from "@/types/organization";
 import type { Deal } from "@/types/deal";
 import { getOrganizations } from "@/lib/organizationData";
-import { getDeals, saveDeals, addDeal, formatDealValue, STAGE_PROBABILITIES } from "@/lib/dealData";
+import { getDeals, saveDeal, addDeal, formatDealValue, STAGE_PROBABILITIES } from "@/lib/dealData";
 import {
   DndContext,
   DragEndEvent,
@@ -161,8 +161,15 @@ export function PipelineClient() {
   );
 
   useEffect(() => {
-    setOrganizations(getOrganizations());
-    setDeals(getDeals());
+    let cancelled = false;
+    Promise.all([getOrganizations(), getDeals()]).then(([orgs, nextDeals]) => {
+      if (cancelled) return;
+      setOrganizations(orgs);
+      setDeals(nextDeals);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const orgMap = useMemo(() => {
@@ -223,15 +230,18 @@ export function PipelineClient() {
     });
 
     setDeals(updatedDeals);
-    saveDeals(updatedDeals);
+    const moved = updatedDeals.find((d) => d.id === dealId);
+    if (moved) {
+      void saveDeal(moved);
+    }
   };
 
   const handleDragCancel = () => {
     setActiveId(null);
   };
 
-  const handleAddDeal = (dealData: Omit<Deal, "id" | "createdAt">) => {
-    const newDeal = addDeal(dealData);
+  const handleAddDeal = async (dealData: Omit<Deal, "id" | "createdAt">) => {
+    const newDeal = await addDeal(dealData);
     setDeals((prev) => [...prev, newDeal]);
     setIsModalOpen(false);
   };

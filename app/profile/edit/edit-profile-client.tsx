@@ -26,9 +26,9 @@ export function EditProfileClient() {
     }
   }, [user, isLoading, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateUser({ fullName, avatar });
+    await updateUser({ fullName, avatar });
     router.push("/");
   };
 

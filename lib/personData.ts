@@ -1,242 +1,90 @@
 import { Person } from "@/types/person";
+import { getSupabase, newId, throwIfError } from "@/lib/supabase";
 
-// Sample people data
-const defaultPeople: Person[] = [
-  {
-    id: "1",
-    name: "Daniel Ek",
-    email: "daniel@spotify.com",
-    role: "CEO",
-    organization: "Spotify",
-    phone: "+46 70 123 4567",
-    linkedIn: "https://linkedin.com/in/danielek",
-    notes: "Founder and CEO of Spotify. Very interested in AI and podcasting.",
-    status: "Active",
-    lastContact: "2026-02-20",
-  },
-  {
-    id: "2",
-    name: "Sarah Chen",
-    email: "sarah.chen@figma.com",
-    role: "VP of Product",
-    organization: "Figma",
-    phone: "+1 415 555 0123",
-    linkedIn: "https://linkedin.com/in/sarahchen",
-    notes: "Leading product development for enterprise features.",
-    status: "Active",
-    lastContact: "2026-02-18",
-  },
-  {
-    id: "3",
-    name: "Marcus Johansson",
-    email: "marcus@klarna.com",
-    role: "CTO",
-    organization: "Klarna",
-    phone: "+46 70 987 6543",
-    linkedIn: "https://linkedin.com/in/marcusj",
-    notes: "Technical lead, focused on payment infrastructure.",
-    status: "Active",
-    lastContact: "2026-02-22",
-  },
-  {
-    id: "4",
-    name: "Emily Rodriguez",
-    email: "emily@anyfin.com",
-    role: "CFO",
-    organization: "Anyfin",
-    phone: "+46 73 456 7890",
-    linkedIn: "https://linkedin.com/in/emilyrodriguez",
-    notes: "Financial strategy and fundraising lead.",
-    status: "Active",
-    lastContact: "2026-02-15",
-  },
-  {
-    id: "5",
-    name: "James Wilson",
-    email: "james@vercel.com",
-    role: "Head of Sales",
-    organization: "Vercel",
-    phone: "+1 555 234 5678",
-    linkedIn: "https://linkedin.com/in/jameswilson",
-    notes: "Managing enterprise sales and partnerships.",
-    status: "Active",
-    lastContact: "2026-02-24",
-  },
-  {
-    id: "6",
-    name: "Miki Kuusi",
-    email: "miki@wolt.com",
-    role: "CEO",
-    organization: "Wolt",
-    phone: "+358 40 123 4567",
-    linkedIn: "https://linkedin.com/in/mikiikuusi",
-    notes: "Co-founder of Wolt. Focused on expanding delivery logistics.",
-    status: "Active",
-    lastContact: "2026-02-12",
-  },
-  {
-    id: "7",
-    name: "Sebastian Siemiatkowski",
-    email: "sebastian@klarna.com",
-    role: "CEO",
-    organization: "Klarna",
-    phone: "+46 70 111 2233",
-    linkedIn: "https://linkedin.com/in/sebastians",
-    notes: "Co-founder of Klarna. Driving AI-first strategy.",
-    status: "Active",
-    lastContact: "2026-02-25",
-  },
-  {
-    id: "8",
-    name: "Dario Amodei",
-    email: "dario@anthropic.com",
-    role: "CEO",
-    organization: "Anthropic",
-    phone: "+1 415 555 8899",
-    linkedIn: "https://linkedin.com/in/darioamodei",
-    notes: "CEO and co-founder. Key decision maker for enterprise partnerships.",
-    status: "Active",
-    lastContact: "2026-02-23",
-  },
-  {
-    id: "9",
-    name: "Guillermo Rauch",
-    email: "guillermo@vercel.com",
-    role: "CEO",
-    organization: "Vercel",
-    phone: "+1 415 555 3344",
-    linkedIn: "https://linkedin.com/in/guillermorauch",
-    notes: "Founder of Vercel and Next.js. Champions developer experience.",
-    status: "Active",
-    lastContact: "2026-02-19",
-  },
-  {
-    id: "10",
-    name: "Anton Osika",
-    email: "anton@lovable.dev",
-    role: "CEO",
-    organization: "lovable.dev",
-    phone: "+46 70 555 1234",
-    linkedIn: "https://linkedin.com/in/antonosika",
-    notes: "Building AI-powered full-stack development tools.",
-    status: "Active",
-    lastContact: "2026-02-21",
-  },
-  {
-    id: "11",
-    name: "Aravind Srinivas",
-    email: "aravind@perplexity.ai",
-    role: "CEO",
-    organization: "Perplexity",
-    phone: "+1 415 555 7766",
-    linkedIn: "https://linkedin.com/in/aravindsrinivas",
-    notes: "Leading AI search innovation. Interested in enterprise search solutions.",
-    status: "Active",
-    lastContact: "2026-02-22",
-  },
-  {
-    id: "12",
-    name: "Michael Truell",
-    email: "michael@cursor.sh",
-    role: "CEO",
-    organization: "Cursor",
-    phone: "+1 415 555 4455",
-    linkedIn: "https://linkedin.com/in/michaeltruell",
-    notes: "Building AI-native code editor. Very technical buyer.",
-    status: "Active",
-    lastContact: "2026-02-24",
-  },
-  {
-    id: "13",
-    name: "Joel Hellermark",
-    email: "joel@sanalabs.com",
-    role: "CEO",
-    organization: "Sana Labs",
-    phone: "+46 70 333 4455",
-    linkedIn: "https://linkedin.com/in/joelhellermark",
-    notes: "Passionate about AI in education. Enterprise learning platform.",
-    status: "Active",
-    lastContact: "2026-02-14",
-  },
-  {
-    id: "14",
-    name: "Anders Johansson",
-    email: "anders@oneflow.com",
-    role: "Head of Partnerships",
-    organization: "Oneflow",
-    phone: "+46 70 222 3344",
-    linkedIn: "https://linkedin.com/in/andersjohansson",
-    notes: "Exploring integration opportunities. Reports to CEO.",
-    status: "Active",
-    lastContact: "2026-02-17",
-  },
-  {
-    id: "15",
-    name: "Lisa Berglund",
-    email: "lisa@peakon.com",
-    role: "VP of Customer Success",
-    organization: "Peakon",
-    phone: "+45 33 555 6677",
-    linkedIn: "https://linkedin.com/in/lisaberglund",
-    notes: "Manages key enterprise accounts. Renewal champion.",
-    status: "Active",
-    lastContact: "2026-01-28",
-  },
-  {
-    id: "16",
-    name: "Thomas Mueller",
-    email: "thomas@huggingface.co",
-    role: "Head of Enterprise",
-    organization: "Hugging Face",
-    phone: "+1 212 555 8899",
-    linkedIn: "https://linkedin.com/in/thomasmueller",
-    notes: "Driving enterprise ML platform adoption. Technical evaluator.",
-    status: "Active",
-    lastContact: "2026-02-16",
-  },
-  {
-    id: "17",
-    name: "Jasper AI Team",
-    email: "partnerships@jasper.ai",
-    role: "Partnerships",
-    organization: "Jasper",
-    notes: "Account went cold after they chose a competitor. May revisit in Q3.",
-    status: "Inactive",
-    lastContact: "2026-01-10",
-  },
-  {
-    id: "18",
-    name: "Erik Lund",
-    email: "erik@steep.app",
-    role: "Co-founder",
-    organization: "Steep",
-    phone: "+46 70 444 5566",
-    linkedIn: "https://linkedin.com/in/eriklund",
-    notes: "Data analytics startup. Evaluating our analytics module.",
-    status: "Active",
-    lastContact: "2026-02-11",
-  },
-];
-
-export function getPeople(): Person[] {
-  if (typeof window === "undefined") return defaultPeople;
-
-  const stored = localStorage.getItem("people");
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (e) {
-      console.error("Failed to parse people data:", e);
-      return defaultPeople;
-    }
-  }
-
-  // Initialize with default data
-  localStorage.setItem("people", JSON.stringify(defaultPeople));
-  return defaultPeople;
+interface PersonRow {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  organization: string;
+  phone: string | null;
+  linkedin: string | null;
+  notes: string | null;
+  avatar: string | null;
+  status: Person["status"];
+  last_contact: string | null;
 }
 
-export function savePeople(people: Person[]): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem("people", JSON.stringify(people));
+function mapPerson(row: PersonRow): Person {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    role: row.role,
+    organization: row.organization,
+    phone: row.phone ?? undefined,
+    linkedIn: row.linkedin ?? undefined,
+    notes: row.notes ?? undefined,
+    avatar: row.avatar ?? undefined,
+    status: row.status,
+    lastContact: row.last_contact ?? undefined,
+  };
+}
+
+function toRow(person: Person): PersonRow {
+  return {
+    id: person.id,
+    name: person.name,
+    email: person.email,
+    role: person.role,
+    organization: person.organization,
+    phone: person.phone ?? null,
+    linkedin: person.linkedIn ?? null,
+    notes: person.notes ?? null,
+    avatar: person.avatar ?? null,
+    status: person.status,
+    last_contact: person.lastContact ?? null,
+  };
+}
+
+export async function getPeople(): Promise<Person[]> {
+  const { data, error } = await getSupabase().from("people").select("*");
+  throwIfError(error, "getPeople");
+  return ((data ?? []) as PersonRow[]).map(mapPerson);
+}
+
+export async function addPerson(
+  person: Omit<Person, "id">
+): Promise<Person> {
+  const created: Person = { ...person, id: newId() };
+  const { error } = await getSupabase().from("people").insert(toRow(created));
+  throwIfError(error, "addPerson");
+  return created;
+}
+
+export async function updatePerson(person: Person): Promise<Person> {
+  const { error } = await getSupabase()
+    .from("people")
+    .update(toRow(person))
+    .eq("id", person.id);
+  throwIfError(error, "updatePerson");
+  return person;
+}
+
+export async function deletePeople(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await getSupabase().from("people").delete().in("id", ids);
+  throwIfError(error, "deletePeople");
+}
+
+export async function savePeople(people: Person[]): Promise<void> {
+  const existing = await getPeople();
+  const nextIds = new Set(people.map((person) => person.id));
+  const toDelete = existing
+    .filter((person) => !nextIds.has(person.id))
+    .map((person) => person.id);
+  await deletePeople(toDelete);
+  if (people.length === 0) return;
+  const { error } = await getSupabase().from("people").upsert(people.map(toRow));
+  throwIfError(error, "savePeople");
 }

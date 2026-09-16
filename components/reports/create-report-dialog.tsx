@@ -73,9 +73,9 @@ export function CreateReportDialog({
     setDescription("");
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!selectedTemplate) return;
-    const report = createReportFromTemplate(
+    const report = await createReportFromTemplate(
       selectedTemplate.id,
       title,
       description

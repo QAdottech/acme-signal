@@ -137,23 +137,36 @@ export function DealDetailClient({
   const { user } = useAuth();
 
   useEffect(() => {
-    const d = getDeal(params.id);
-    if (d) {
+    let cancelled = false;
+    async function load() {
+      const d = await getDeal(params.id);
+      if (cancelled) return;
+      if (!d) {
+        router.push("/");
+        return;
+      }
       setDeal(d);
       setEditValue(d.value.toString());
       setEditNextStep(d.nextStep || "");
-      const orgs = getOrganizations();
+      const [orgs, allPeople, dealTasks] = await Promise.all([
+        getOrganizations(),
+        getPeople(),
+        getTasksForDeal(d.id),
+      ]);
+      if (cancelled) return;
       setOrganizationsList(orgs);
+      setPeople(allPeople);
+      setTasks(dealTasks);
       const org = orgs.find((o) => o.id === d.organizationId);
       if (org) {
         setOrganization(org);
-        setNotes(getNotesForOrganization(org.id));
+        setNotes(await getNotesForOrganization(org.id));
       }
-      setTasks(getTasksForDeal(d.id));
-      setPeople(getPeople());
-    } else {
-      router.push("/");
     }
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, [params.id, router]);
 
   const linkedContacts = useMemo(() => {
@@ -163,75 +176,75 @@ export function DealDetailClient({
       .filter((p): p is Person => p !== undefined);
   }, [deal?.contactIds, people]);
 
-  const handleStageChange = (newStage: string) => {
+  const handleStageChange = async (newStage: string) => {
     if (deal) {
       const probability = STAGE_PROBABILITIES[newStage] ?? deal.probability;
       const updated = { ...deal, stage: newStage as DealStage, probability };
-      saveDeal(updated);
+      await saveDeal(updated);
       setDeal(updated);
       setStageOpen(false);
     }
   };
 
-  const handleValueSave = () => {
+  const handleValueSave = async () => {
     if (deal) {
       const updated = { ...deal, value: Number(editValue) };
-      saveDeal(updated);
+      await saveDeal(updated);
       setDeal(updated);
       setIsEditingValue(false);
     }
   };
 
-  const handleNextStepSave = () => {
+  const handleNextStepSave = async () => {
     if (deal) {
       const updated = { ...deal, nextStep: editNextStep || undefined };
-      saveDeal(updated);
+      await saveDeal(updated);
       setDeal(updated);
       setIsEditingNextStep(false);
     }
   };
 
-  const handleAddTag = (tag: string) => {
+  const handleAddTag = async (tag: string) => {
     if (deal) {
       const currentTags = deal.tags || [];
       if (!currentTags.includes(tag)) {
         const updated = { ...deal, tags: [...currentTags, tag] };
-        saveDeal(updated);
+        await saveDeal(updated);
         setDeal(updated);
       }
       setTagsOpen(false);
     }
   };
 
-  const handleRemoveTag = (tag: string) => {
+  const handleRemoveTag = async (tag: string) => {
     if (deal) {
       const currentTags = deal.tags || [];
       const updated = { ...deal, tags: currentTags.filter((t) => t !== tag) };
-      saveDeal(updated);
+      await saveDeal(updated);
       setDeal(updated);
     }
   };
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!organization || !newNoteContent.trim()) return;
-    addNote({
+    await addNote({
       organizationId: organization.id,
       content: newNoteContent.trim(),
       authorName: user?.fullName || "Unknown",
     });
     setNewNoteContent("");
     setIsAddingNote(false);
-    setNotes(getNotesForOrganization(organization.id));
+    setNotes(await getNotesForOrganization(organization.id));
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deal) {
-      deleteDeal(deal.id);
+      await deleteDeal(deal.id);
       router.push("/");
     }
   };
 
-  const handleSignatureSent = (recipientEmail: string) => {
+  const handleSignatureSent = async (recipientEmail: string) => {
     if (deal) {
       const updated = {
         ...deal,
@@ -239,7 +252,7 @@ export function DealDetailClient({
         signatureSentAt: new Date().toISOString(),
         signatureRecipientEmail: recipientEmail,
       };
-      saveDeal(updated);
+      await saveDeal(updated);
       setDeal(updated);
     }
   };

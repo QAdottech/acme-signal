@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { consumeVerificationToken } from "@/lib/users";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 export function VerifyEmailClient() {
@@ -22,51 +23,21 @@ export function VerifyEmailClient() {
       return;
     }
 
-    // Verify the token against localStorage
-    const storedTokens = localStorage.getItem("verification-tokens");
-    if (storedTokens) {
-      try {
-        const tokens: Record<string, string> = JSON.parse(storedTokens);
-        if (tokens[email] === token) {
-          // Token is valid - mark user as verified
-          const storedUsers = localStorage.getItem("users");
-          if (storedUsers) {
-            const users = JSON.parse(storedUsers);
-            const updatedUsers = users.map(
-              (u: { email: string; emailVerified?: boolean }) =>
-                u.email.toLowerCase() === email.toLowerCase()
-                  ? { ...u, emailVerified: true }
-                  : u
-            );
-            localStorage.setItem("users", JSON.stringify(updatedUsers));
-
-            // Also update current user if it matches
-            const storedUser = localStorage.getItem("user");
-            if (storedUser) {
-              const currentUser = JSON.parse(storedUser);
-              if (currentUser.email.toLowerCase() === email.toLowerCase()) {
-                currentUser.emailVerified = true;
-                localStorage.setItem("user", JSON.stringify(currentUser));
-              }
+    consumeVerificationToken(email, token)
+      .then((ok) => {
+        setStatus(ok ? "success" : "error");
+        if (ok) {
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const currentUser = JSON.parse(storedUser);
+            if (currentUser.email.toLowerCase() === email.toLowerCase()) {
+              currentUser.emailVerified = true;
+              localStorage.setItem("user", JSON.stringify(currentUser));
             }
           }
-
-          // Clean up the used token
-          delete tokens[email];
-          localStorage.setItem(
-            "verification-tokens",
-            JSON.stringify(tokens)
-          );
-
-          setStatus("success");
-          return;
         }
-      } catch {
-        // Fall through to error
-      }
-    }
-
-    setStatus("error");
+      })
+      .catch(() => setStatus("error"));
   }, [searchParams]);
 
   return (

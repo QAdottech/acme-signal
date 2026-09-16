@@ -44,8 +44,17 @@ export function NotesClient() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    setNotes(getNotes());
-    setOrganizations(getOrganizations());
+    let cancelled = false;
+    Promise.all([getNotes(), getOrganizations()]).then(
+      ([nextNotes, orgs]) => {
+        if (cancelled) return;
+        setNotes(nextNotes);
+        setOrganizations(orgs);
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const orgMap = useMemo(() => {
@@ -93,13 +102,13 @@ export function NotesClient() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [notes, organizations]);
 
-  const handleDeleteNote = (noteId: string) => {
-    deleteNote(noteId);
-    setNotes(getNotes());
+  const handleDeleteNote = async (noteId: string) => {
+    await deleteNote(noteId);
+    setNotes(await getNotes());
   };
 
-  const handleNoteAdded = () => {
-    setNotes(getNotes());
+  const handleNoteAdded = async () => {
+    setNotes(await getNotes());
     setIsModalOpen(false);
   };
 

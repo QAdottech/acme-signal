@@ -45,10 +45,22 @@ export function DashboardClient() {
   const [showPipelineModal, setShowPipelineModal] = useState(false);
 
   useEffect(() => {
-    setOrganizations(getOrganizations());
-    setPeople(getPeople());
-    setActivities(getActivities());
-    setDeals(getDeals());
+    let cancelled = false;
+    Promise.all([
+      getOrganizations(),
+      getPeople(),
+      getActivities(),
+      getDeals(),
+    ]).then(([orgs, nextPeople, nextActivities, nextDeals]) => {
+      if (cancelled) return;
+      setOrganizations(orgs);
+      setPeople(nextPeople);
+      setActivities(nextActivities);
+      setDeals(nextDeals);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Calculate stats

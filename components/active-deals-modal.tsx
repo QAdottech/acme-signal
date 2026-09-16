@@ -45,12 +45,13 @@ export function ActiveDealsModal({
   const [orgMap, setOrgMap] = useState<Map<string, Organization>>(new Map());
 
   useEffect(() => {
-    const organizations = getOrganizations();
-    const map = new Map<string, Organization>();
-    for (const org of organizations) {
-      map.set(org.id, org);
-    }
-    setOrgMap(map);
+    getOrganizations().then((organizations) => {
+      const map = new Map<string, Organization>();
+      for (const org of organizations) {
+        map.set(org.id, org);
+      }
+      setOrgMap(map);
+    });
   }, []);
 
   return (

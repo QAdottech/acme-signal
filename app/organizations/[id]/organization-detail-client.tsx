@@ -32,7 +32,11 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { CollectionManager } from "@/components/collection-manager";
-import { deduplicateCollectionOrganizationIds } from "@/lib/organizationData";
+import {
+  getOrganization,
+  updateOrganization,
+  deleteOrganization,
+} from "@/lib/organizationData";
 import { OrganizationImage } from "@/components/organization-image";
 import { getPeople } from "@/lib/personData";
 import { getActivities } from "@/lib/activityData";
@@ -126,67 +130,48 @@ export function OrganizationDetailClient({
   const router = useRouter();
 
   useEffect(() => {
-    deduplicateCollectionOrganizationIds();
-    const storedOrganizations = localStorage.getItem("organizations");
-    if (storedOrganizations) {
-      const organizations: Organization[] = JSON.parse(storedOrganizations);
-      const org = organizations.find((o) => o.id === params.id);
-      if (org) {
-        setOrganization(org);
-        // Load related contacts
-        const allPeople = getPeople();
-        setContacts(
-          allPeople.filter((p) => p.organization === org.name)
-        );
-        // Load activities related to this org
-        const allActivities = getActivities();
-        setActivities(
-          allActivities.filter(
-            (a) =>
-              a.relatedEntityId === params.id ||
-              a.description?.toLowerCase().includes(org.name.toLowerCase())
-          )
-        );
-        // Load notes
-        setNotes(getNotesForOrganization(params.id));
-        setDeals(getDealsForOrganization(params.id));
-      } else {
+    let cancelled = false;
+    async function load() {
+      const org = await getOrganization(params.id);
+      if (cancelled) return;
+      if (!org) {
         router.push("/organizations");
+        return;
       }
+      setOrganization(org);
+      const [allPeople, allActivities, orgNotes, orgDeals] = await Promise.all([
+        getPeople(),
+        getActivities(),
+        getNotesForOrganization(params.id),
+        getDealsForOrganization(params.id),
+      ]);
+      if (cancelled) return;
+      setContacts(allPeople.filter((p) => p.organization === org.name));
+      setActivities(
+        allActivities.filter(
+          (a) =>
+            a.relatedEntityId === params.id ||
+            a.description?.toLowerCase().includes(org.name.toLowerCase())
+        )
+      );
+      setNotes(orgNotes);
+      setDeals(orgDeals);
     }
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, [params.id, router]);
 
-  const handleEdit = (updatedOrg: Organization) => {
-    const storedOrganizations = localStorage.getItem("organizations");
-    if (storedOrganizations) {
-      const organizations: Organization[] = JSON.parse(storedOrganizations);
-      const updatedOrganizations = organizations.map((org) =>
-        org.id === updatedOrg.id ? updatedOrg : org
-      );
-      localStorage.setItem(
-        "organizations",
-        JSON.stringify(updatedOrganizations)
-      );
-      setOrganization(updatedOrg);
-    }
+  const handleEdit = async (updatedOrg: Organization) => {
+    await updateOrganization(updatedOrg);
+    setOrganization(updatedOrg);
     setIsEditModalOpen(false);
   };
 
-  const handleDelete = (organizationId: string) => {
-    const storedOrganizationsString = localStorage.getItem("organizations");
-    if (storedOrganizationsString) {
-      const organizations: Organization[] = JSON.parse(
-        storedOrganizationsString
-      );
-      const updatedOrganizations = organizations.filter(
-        (org) => org.id !== organizationId
-      );
-      localStorage.setItem(
-        "organizations",
-        JSON.stringify(updatedOrganizations)
-      );
-      router.push("/organizations");
-    }
+  const handleDelete = async (organizationId: string) => {
+    await deleteOrganization(organizationId);
+    router.push("/organizations");
   };
 
   const handleDealStageChange = (value: string) => {
@@ -213,21 +198,16 @@ export function OrganizationDetailClient({
 
   const handleCollectionsChange = useCallback(
     (updatedCollections: string[]) => {
-      const storedOrganizations = localStorage.getItem("organizations");
-      if (storedOrganizations) {
-        const organizations: Organization[] = JSON.parse(storedOrganizations);
-        const updatedOrg = organizations.find((o) => o.id === params.id);
-        if (updatedOrg) {
-          setOrganization(updatedOrg);
-        }
-      }
+      setOrganization((current) =>
+        current ? { ...current, collections: updatedCollections } : current
+      );
     },
-    [params.id]
+    []
   );
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (!newNote.trim() || !organization) return;
-    const note = addNote({
+    const note = await addNote({
       organizationId: organization.id,
       content: newNote.trim(),
       authorName: "You",
@@ -236,8 +216,8 @@ export function OrganizationDetailClient({
     setNewNote("");
   };
 
-  const handleDeleteNote = (noteId: string) => {
-    deleteNote(noteId);
+  const handleDeleteNote = async (noteId: string) => {
+    await deleteNote(noteId);
     setNotes(notes.filter((n) => n.id !== noteId));
   };
 

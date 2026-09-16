@@ -47,23 +47,30 @@ export function PeopleClient() {
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
 
   useEffect(() => {
-    setPeople(getPeople());
+    let cancelled = false;
+    getPeople().then((nextPeople) => {
+      if (!cancelled) setPeople(nextPeople);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const addPerson = (newPerson: Omit<Person, "id">) => {
+  const addPerson = async (newPerson: Omit<Person, "id">) => {
     const id = Math.random().toString(36).substr(2, 9);
-    const updatedPeople = [...people, { ...newPerson, id }];
+    const created = { ...newPerson, id };
+    const updatedPeople = [...people, created];
     setPeople(updatedPeople);
-    savePeople(updatedPeople);
+    await savePeople(updatedPeople);
     setIsModalOpen(false);
   };
 
-  const updatePerson = (updatedPerson: Person) => {
+  const updatePerson = async (updatedPerson: Person) => {
     const updatedPeople = people.map((p) =>
       p.id === updatedPerson.id ? updatedPerson : p
     );
     setPeople(updatedPeople);
-    savePeople(updatedPeople);
+    await savePeople(updatedPeople);
     setEditingPerson(null);
   };
 
@@ -145,14 +152,14 @@ export function PeopleClient() {
     }
   };
 
-  const handleBulkStatusChange = (status: string) => {
+  const handleBulkStatusChange = async (status: string) => {
     const updatedPeople = people.map((person) =>
       selectedIds.has(person.id)
         ? { ...person, status: status as Person["status"] }
         : person
     );
     setPeople(updatedPeople);
-    savePeople(updatedPeople);
+    await savePeople(updatedPeople);
     setSelectedIds(new Set());
   };
 
@@ -163,7 +170,7 @@ export function PeopleClient() {
     exportPeopleToCSV(selectedPeople);
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (
       confirm(
         `Are you sure you want to delete ${selectedIds.size} contacts?`
@@ -173,7 +180,7 @@ export function PeopleClient() {
         (person) => !selectedIds.has(person.id)
       );
       setPeople(updatedPeople);
-      savePeople(updatedPeople);
+      await savePeople(updatedPeople);
       setSelectedIds(new Set());
     }
   };
