@@ -9,8 +9,6 @@ import { Toaster } from "sonner";
 // Routes that don't require auth loading to complete before rendering
 const publicRoutes = [
   "/login",
-  "/signup",
-  "/verify-email",
   "/customer/sign",
   "/turnstile-test",
   "/basic-auth",
