@@ -1,5 +1,22 @@
-import type { Deal } from "@/types/deal";
+import type { Deal, DealHealth } from "@/types/deal";
 import type { DealStage } from "@/types/organization";
+
+const CLOSED_STAGES: DealStage[] = ["Customer", "Churned", "Closed Lost"];
+const STALE_AFTER_DAYS = 14;
+const CLOSING_SOON_DAYS = 14;
+
+function dateOffset(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function todayIsoDate(): string {
+  return dateOffset(0);
+}
 
 const defaultDeals: Deal[] = [
   {
@@ -9,7 +26,7 @@ const defaultDeals: Deal[] = [
     value: 24000,
     currency: "USD",
     stage: "Lead",
-    expectedCloseDate: "2026-04-15",
+    expectedCloseDate: dateOffset(-12),
     owner: "Emma Wilson",
     probability: 20,
     createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
@@ -26,7 +43,7 @@ const defaultDeals: Deal[] = [
     value: 120000,
     currency: "USD",
     stage: "Qualified",
-    expectedCloseDate: "2026-05-01",
+    expectedCloseDate: dateOffset(45),
     owner: "David Martinez",
     probability: 40,
     createdAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
@@ -43,14 +60,14 @@ const defaultDeals: Deal[] = [
     value: 36000,
     currency: "USD",
     stage: "Lead",
-    expectedCloseDate: "2026-04-30",
+    expectedCloseDate: dateOffset(40),
     owner: "Sarah Johnson",
     probability: 15,
     createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
     nextStep: "Send pricing comparison document",
     tags: ["Expansion"],
     contactIds: ["6"],
-    lastActivityDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    lastActivityDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
     lastActivityType: "email",
   },
   {
@@ -60,7 +77,7 @@ const defaultDeals: Deal[] = [
     value: 85000,
     currency: "USD",
     stage: "Qualified",
-    expectedCloseDate: "2026-05-15",
+    expectedCloseDate: dateOffset(6),
     owner: "Sarah Johnson",
     probability: 45,
     createdAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
@@ -77,7 +94,7 @@ const defaultDeals: Deal[] = [
     value: 18000,
     currency: "USD",
     stage: "Lead",
-    expectedCloseDate: "2026-06-01",
+    expectedCloseDate: dateOffset(55),
     owner: "Emma Wilson",
     probability: 25,
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -94,14 +111,14 @@ const defaultDeals: Deal[] = [
     value: 42000,
     currency: "USD",
     stage: "Lead",
-    expectedCloseDate: "2026-05-20",
+    expectedCloseDate: dateOffset(30),
     owner: "Michael Chen",
     probability: 20,
     createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
     nextStep: "Schedule product walkthrough with VP Eng",
     tags: ["Pre POC", "Technical Eval"],
     contactIds: ["11"],
-    lastActivityDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    lastActivityDate: new Date(Date.now() - 16 * 24 * 60 * 60 * 1000).toISOString(),
     lastActivityType: "note",
   },
   {
@@ -111,7 +128,7 @@ const defaultDeals: Deal[] = [
     value: 500000,
     currency: "USD",
     stage: "Proposal",
-    expectedCloseDate: "2026-04-01",
+    expectedCloseDate: dateOffset(-18),
     owner: "David Martinez",
     probability: 60,
     createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -128,7 +145,7 @@ const defaultDeals: Deal[] = [
     value: 55000,
     currency: "USD",
     stage: "Lead",
-    expectedCloseDate: "2026-06-15",
+    expectedCloseDate: dateOffset(70),
     owner: "Sarah Johnson",
     probability: 15,
     createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
@@ -145,7 +162,7 @@ const defaultDeals: Deal[] = [
     value: 200000,
     currency: "USD",
     stage: "Qualified",
-    expectedCloseDate: "2026-05-10",
+    expectedCloseDate: dateOffset(11),
     owner: "David Martinez",
     probability: 35,
     createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
@@ -162,14 +179,14 @@ const defaultDeals: Deal[] = [
     value: 30000,
     currency: "USD",
     stage: "Lead",
-    expectedCloseDate: "2026-07-01",
+    expectedCloseDate: dateOffset(50),
     owner: "Emma Wilson",
     probability: 10,
     createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
     nextStep: "Send case study from similar deployment",
     tags: ["Startup"],
     contactIds: ["18"],
-    lastActivityDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+    lastActivityDate: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
     lastActivityType: "email",
   },
   {
@@ -179,7 +196,7 @@ const defaultDeals: Deal[] = [
     value: 45000,
     currency: "USD",
     stage: "Lead",
-    expectedCloseDate: "2026-06-20",
+    expectedCloseDate: dateOffset(-8),
     owner: "Michael Chen",
     probability: 15,
     createdAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
@@ -196,7 +213,7 @@ const defaultDeals: Deal[] = [
     value: 15000,
     currency: "USD",
     stage: "New",
-    expectedCloseDate: "2026-07-15",
+    expectedCloseDate: dateOffset(80),
     owner: "David Martinez",
     probability: 5,
     createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
@@ -213,7 +230,7 @@ const defaultDeals: Deal[] = [
     value: 60000,
     currency: "USD",
     stage: "Qualified",
-    expectedCloseDate: "2026-05-25",
+    expectedCloseDate: dateOffset(9),
     owner: "Sarah Johnson",
     probability: 40,
     createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
@@ -230,7 +247,7 @@ const defaultDeals: Deal[] = [
     value: 150000,
     currency: "USD",
     stage: "Negotiation",
-    expectedCloseDate: "2026-03-15",
+    expectedCloseDate: dateOffset(-4),
     owner: "Emma Wilson",
     probability: 75,
     createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
@@ -247,7 +264,7 @@ const defaultDeals: Deal[] = [
     value: 250000,
     currency: "USD",
     stage: "Proposal",
-    expectedCloseDate: "2026-04-20",
+    expectedCloseDate: dateOffset(28),
     owner: "David Martinez",
     probability: 55,
     createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
@@ -264,7 +281,7 @@ const defaultDeals: Deal[] = [
     value: 35000,
     currency: "USD",
     stage: "Lead",
-    expectedCloseDate: "2026-06-10",
+    expectedCloseDate: dateOffset(60),
     owner: "Sarah Johnson",
     probability: 20,
     createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
@@ -281,7 +298,7 @@ const defaultDeals: Deal[] = [
     value: 75000,
     currency: "USD",
     stage: "Lead",
-    expectedCloseDate: "2026-07-01",
+    expectedCloseDate: dateOffset(48),
     owner: "Emma Wilson",
     probability: 15,
     createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
@@ -382,3 +399,60 @@ export const STAGE_PROBABILITIES: Record<string, number> = {
   Customer: 100,
   "Closed Lost": 0,
 };
+
+export const DEAL_HEALTH_LABELS: Record<DealHealth, string> = {
+  overdue: "Overdue",
+  stale: "Stale",
+  closing_soon: "Closing soon",
+  on_track: "On track",
+};
+
+export const DEAL_HEALTH_BAR_COLORS: Record<DealHealth, string> = {
+  overdue: "border-l-red-500",
+  stale: "border-l-amber-500",
+  closing_soon: "border-l-sky-500",
+  on_track: "border-l-emerald-500",
+};
+
+export const DEAL_HEALTH_BADGE_CLASSES: Record<DealHealth, string> = {
+  overdue: "bg-red-100 text-white dark:bg-red-900/30 dark:text-white",
+  stale: "bg-amber-100 text-white dark:bg-amber-900/30 dark:text-white",
+  closing_soon: "bg-sky-100 text-white dark:bg-sky-900/30 dark:text-white",
+  on_track: "bg-emerald-100 text-white dark:bg-emerald-900/30 dark:text-white",
+};
+
+export function getDealHealth(deal: Deal): DealHealth {
+  if (CLOSED_STAGES.includes(deal.stage)) {
+    return "on_track";
+  }
+
+  const close = deal.expectedCloseDate.slice(0, 10);
+  const today = todayIsoDate();
+
+  if (close < today) {
+    return "overdue";
+  }
+
+  if (deal.lastActivityDate) {
+    const daysSinceActivity =
+      (Date.now() - new Date(deal.lastActivityDate).getTime()) /
+      (1000 * 60 * 60 * 24);
+    if (daysSinceActivity >= STALE_AFTER_DAYS) {
+      return "stale";
+    }
+  } else {
+    return "stale";
+  }
+
+  const closeDate = new Date(`${close}T12:00:00`);
+  const todayDate = new Date(`${today}T12:00:00`);
+  const daysUntilClose = Math.round(
+    (closeDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (daysUntilClose <= CLOSING_SOON_DAYS) {
+    return "closing_soon";
+  }
+
+  return "on_track";
+}
