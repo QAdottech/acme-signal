@@ -63,6 +63,8 @@ Vite 7 is an explicit testing dependency because Vite 8 produced TSX coverage pa
 
 Scenario IDs are embedded in test names and reports. Give QA.tech the same objectives and expected outcomes, without requiring the same selectors or exact sequence of clicks.
 
+The repository-local [agent-browser QA skill](../.agents/skills/acme-agent-browser-qa/SKILL.md) executes UI regression and exploratory testing. See [`agent-browser/README.md`](agent-browser/README.md) for setup, reusable prompts, the shared JSON scenario contract, evidence collection and comparison guidance. An optional [Claude/Codex launcher](agent-browser/runner/README.md) supports PR-focused exploratory sessions; it does not validate findings or replace the tests. The Playwright scenarios below remain the deterministic baseline.
+
 Unless marked public, start in a fresh browser, sign up with a synthetic account and full name, then continue to the app. Keep the default demo data.
 
 | ID | Objective and expected outcome |
@@ -80,7 +82,7 @@ Unless marked public, start in a fresh browser, sign up with a synthetic account
 For an apples-to-apples comparison:
 
 1. Use the same commit/build, demo data, Chromium version, desktop viewport (1440×1000), locale (`en-US`), and timezone (`UTC`). Use equivalent clock control for TASKS-01, or yesterday's UTC date if the other runner cannot fix time; record that difference.
-2. Start with a clean browser for each scenario. Disable real email delivery on the QA.tech target too; this harness does not configure an external deployment.
+2. Start with a clean browser for each scenario. Disable real email delivery on the QA.tech target too; this repository does not configure an external deployment.
 3. Keep the same expected outcomes above. Distinguish discovering new bugs from executing these known regression checks.
 4. Record first-run failures, rerun results, scenario runtime, setup/build time separately, authoring/maintenance effort, and evidence quality. Retry count is **zero** here so flakiness is not hidden.
 5. Run repeated trials (`--repeat-each=3`) before drawing conclusions. Do not equate a green run, test count, or unit coverage percentage with defect-detection effectiveness. A stronger later comparison can use an identical, documented set of seeded regressions for both tools.
