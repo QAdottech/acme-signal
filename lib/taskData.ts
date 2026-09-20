@@ -197,3 +197,7 @@ export function getOverdueTasks(): Task[] {
     (t) => t.status !== "done" && t.dueDate && t.dueDate < today
   );
 }
+
+export function getOpenTaskCount(): number {
+  return getTasks().filter((t) => t.status !== "done").length;
+}

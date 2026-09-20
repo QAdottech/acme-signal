@@ -18,6 +18,7 @@ import type { Organization, DealStage } from "@/types/organization";
 import { getOrganizations } from "@/lib/organizationData";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { displayStageName } from "@/lib/pipeline";
 import {
   Popover,
   PopoverContent,
@@ -223,7 +224,7 @@ export function AddDealModal({
                     role="combobox"
                     className="col-span-3 justify-between"
                   >
-                    {stage}
+                    {displayStageName(stage)}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -246,7 +247,7 @@ export function AddDealModal({
                               stage === s ? "opacity-100" : "opacity-0"
                             )}
                           />
-                          {s}
+                          {displayStageName(s)}
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -392,7 +393,7 @@ export function AddDealModal({
           <DialogFooter>
             <Button
               type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              className="bg-neutral-900 hover:bg-neutral-800 text-white"
             >
               Create Deal
             </Button>

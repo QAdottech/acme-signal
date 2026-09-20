@@ -31,6 +31,7 @@ import { OrganizationImage } from "@/components/organization-image";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterPopover } from "@/components/filter-popover";
 import { cn } from "@/lib/utils";
+import { displayStageName } from "@/lib/pipeline";
 
 type SortField =
   | "title"
@@ -48,6 +49,7 @@ const stageColors: Record<string, string> = {
   Qualified: "bg-orange-100 text-orange-700",
   Proposal: "bg-purple-100 text-purple-700",
   Negotiation: "bg-amber-100 text-amber-700",
+  Closing: "bg-amber-100 text-amber-700",
   Customer: "bg-green-100 text-green-700",
   Churned: "bg-red-100 text-red-700",
   "Closed Lost": "bg-red-100 text-red-700",
@@ -458,7 +460,7 @@ export function DealsClient() {
                         stageColors[deal.stage] || "bg-gray-100 text-gray-700"
                       )}
                     >
-                      {deal.stage}
+                      {displayStageName(deal.stage)}
                     </span>
                   </Link>
                 </TableCell>
