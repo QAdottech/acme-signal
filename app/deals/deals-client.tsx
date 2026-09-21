@@ -30,6 +30,7 @@ import { AddDealModal } from "@/components/add-deal-modal";
 import { OrganizationImage } from "@/components/organization-image";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterPopover } from "@/components/filter-popover";
+import { STAGE_COLORS } from "@/lib/pipelineConfig";
 import { cn } from "@/lib/utils";
 
 type SortField =
@@ -42,16 +43,6 @@ type SortField =
   | "probability";
 type SortDirection = "asc" | "desc";
 
-const stageColors: Record<string, string> = {
-  New: "bg-gray-100 text-gray-700",
-  Lead: "bg-blue-100 text-blue-700",
-  Qualified: "bg-orange-100 text-orange-700",
-  Proposal: "bg-purple-100 text-purple-700",
-  Negotiation: "bg-amber-100 text-amber-700",
-  Customer: "bg-green-100 text-green-700",
-  Churned: "bg-red-100 text-red-700",
-  "Closed Lost": "bg-red-100 text-red-700",
-};
 
 export function DealsClient() {
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -455,7 +446,7 @@ export function DealsClient() {
                     <span
                       className={cn(
                         "px-2 py-0.5 rounded-full text-xs font-medium",
-                        stageColors[deal.stage] || "bg-gray-100 text-gray-700"
+                        STAGE_COLORS[deal.stage] || "bg-gray-100 text-gray-700"
                       )}
                     >
                       {deal.stage}
