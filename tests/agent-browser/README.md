@@ -2,7 +2,7 @@
 
 Use the [QA skill](../../.agents/skills/acme-agent-browser-qa/SKILL.md) to test the running application through its UI. The skill covers regression, exploration, bug reproduction, evidence collection and cleanup. Existing Vitest and Playwright tests remain the deterministic baseline.
 
-Use the skill directly, or use the optional [Claude/Codex exploration launcher](runner/README.md) for paired PR-focused sessions with a wall-clock timeout, isolated browser sessions and streamed artifacts. The launcher is prepare-only by default; actual model execution is opt-in. It checks runtime completion, not the truth of findings. Server preparation and evidence review remain operator responsibilities.
+Use the skill directly, or use the optional [Claude/Codex exploration launcher](runner/README.md) and its manually approved [PR workflow](../../.github/workflows/qa-pr-explore.yml) for paired PR-focused sessions with a wall-clock timeout, isolated browser sessions, usage/cost-provenance summaries and streamed artifacts. The launcher is prepare-only by default; actual model execution is opt-in. It checks runtime completion, not the truth of findings. Server preparation and evidence review remain operator responsibilities.
 
 ## Setup
 

@@ -63,7 +63,7 @@ Vite 7 is an explicit testing dependency because Vite 8 produced TSX coverage pa
 
 Scenario IDs are embedded in test names and reports. Give QA.tech the same objectives and expected outcomes, without requiring the same selectors or exact sequence of clicks.
 
-The repository-local [agent-browser QA skill](../.agents/skills/acme-agent-browser-qa/SKILL.md) executes UI regression and exploratory testing. See [`agent-browser/README.md`](agent-browser/README.md) for setup, reusable prompts, the shared JSON scenario contract, evidence collection and comparison guidance. An optional [Claude/Codex launcher](agent-browser/runner/README.md) supports PR-focused exploratory sessions; it does not validate findings or replace the tests. The Playwright scenarios below remain the deterministic baseline.
+The repository-local [agent-browser QA skill](../.agents/skills/acme-agent-browser-qa/SKILL.md) executes UI regression and exploratory testing. See [`agent-browser/README.md`](agent-browser/README.md) for setup, reusable prompts, the shared JSON scenario contract, evidence collection and comparison guidance. An optional [Claude/Codex launcher](agent-browser/runner/README.md) and manually approved [PR workflow](../.github/workflows/qa-pr-explore.yml) support change-focused exploration with token and cost-provenance summaries; neither validates findings or replaces the tests. The Playwright scenarios below remain the deterministic baseline.
 
 Unless marked public, start in a fresh browser, sign up with a synthetic account and full name, then continue to the app. Keep the default demo data.
 

@@ -1,6 +1,6 @@
 # PR-focused exploratory QA: Claude Code and Codex
 
-A local, opt-in launcher for **one charter and one agent per invocation**. Both adapters use the existing QA skill and agent-browser. No generated Playwright workflows, model SDK, automatic retries, server manager, deployment tooling or PR-comment bot.
+An opt-in launcher for **one charter and one agent per invocation**. Both adapters use the existing QA skill and agent-browser. No generated Playwright workflows, model SDK, automatic retries, server manager, deployment tooling or PR-comment bot. The manual-dispatch [PR workflow](../../../.github/workflows/qa-pr-explore.yml) runs both adapters against an approved preview; it is not enabled on every PR.
 
 ## Requirements and authentication
 
@@ -92,8 +92,24 @@ The runner checks operational completion only. A human must check finding eviden
 
 No authenticated model session, application exploration, QA.tech service run or CI job has been launched by this implementation. Smallest next step: provide a reviewed PR context, approved target URL/deployed revision, and approve the two unscored `--execute` runs.
 
-## Later PR integration
+## GitHub Actions: approved PR runs and cost over time
 
-No GitHub workflow is added yet: preview URL discovery and the existing QA.tech integration are not configured in this repository's test workflow. Before enabling PR execution, agree how to resolve the exact deployed revision, approve inference spend, configure secrets, protect untrusted PR boundaries, and upload artifacts even on failure. Start with manual dispatch/artifacts only; automatic comments and pass/fail checks need separate approval.
+The `PR exploratory browser QA (approved)` workflow uses `workflow_dispatch` **only** on `main`; it does not launch paid sessions on ordinary PR events. It does not deploy or create a tunnel. Before using it:
+
+1. Configure the `qa-browser-benchmark` GitHub Environment with required reviewers and restricted branch access. Without protection rules, GitHub may create an unprotected environment automatically. Store `ANTHROPIC_API_KEY` and `CODEX_API_KEY` there as environment secrets (not in the PR). Protect keys with spending limits; the runner enforces a wall-clock limit but **not** a token/cost cap.
+2. Obtain an approved HTTPS preview URL, verify it actually serves the PR **head SHA**, uses synthetic/default demo data, and cannot deliver real email during either build or runtime. Verify Turnstile test keys. The workflow checks that the supplied SHA equals the open same-repository PR head targeting `main`; it cannot independently prove which build the preview serves. Merge-commit previews need a separate approval/identity strategy.
+3. From GitHub Actions select **Run workflow** on `main`; supply PR number, preview URL, deployed head SHA, Claude and Codex model IDs, a common duration, current **model-specific** Codex USD per million token rates as JSON (`{"input":2,"cached":1,"output":8}` is a format example, **not current pricing**) and their effective date. Enter `APPROVE_PAID_QA_SAFE_PREVIEW` after checking safety and spend. Model and rate changes are recorded per run. No paid run has been initiated by this implementation.
+
+The workflow fetches PR title/description and capped file patches with read-only GitHub permissions; it rejects forks and stale SHA. It never checks out the PR head or runs PR build code. It freezes a single untrusted PR context artifact for both agents. The matrix jobs install pinned CLI versions, use distinct browser sessions, and upload artifacts even when an agent is blocked. A final job displays the two metrics side by side in its GitHub **Step Summary**. Download `qa-metrics-claude` and `qa-metrics-codex` for `metrics.json` (90-day retention, subject to repo policy); `qa-evidence-claude` and `qa-evidence-codex` contain raw events/HAR/screenshots (7-day retention). Export metrics separately if comparisons must outlive retention. PR text and browser HAR can contain sensitive data—review artifacts before sharing.
+
+`metrics.json` records model, CLI versions, target SHA, GitHub/run IDs, input hash, status, runtime, token breakdown and USD with provenance:
+
+- **Claude:** CLI `total_cost_usd`, labeled *CLI-reported*, not a provider invoice. CLI result token fields separate ordinary input, cache read, cache creation and output; do not equate them with Codex's token accounting.
+- **Codex:** CLI `turn.completed.usage` includes input (of which cached input is a subset) and output. The CLI does not report dollar spend. A dated, exact-model rate card estimates USD: `(input - cachedInput) × inputRate + cachedInput × cachedRate + output × outputRate`, divided by one million. Wrong model or missing usage/rates => unknown, not $0. A blocked run can still have an estimate if the CLI emitted complete usage fields; otherwise it remains unknown. Estimates may exclude other charges; actual billing requires provider billing data.
+- A crash, timeout or missing result is **blocked**, not an application bug. Usage/cost may be unknown even if the agent consumed tokens. A successful CLI event plus a report is `review-required`, not proof of valid QA findings.
+
+To compare with QA.tech, record its deployment/build identity, context provided, runtime, tokens and billed cost **only if QA.tech exposes them**; otherwise unknown. Account for setup/authoring, GitHub runner minutes and review time separately. Compare evidence-adjudicated defects, false positives and blockers rather than ranking agents by raw bug counts. Do not claim a difference proves PR context alone caused it; QA.tech may have crawler/usage history and a different runtime.
+
+Automatic PR-triggered paid execution, comments and check-based pass/fail gates are intentionally absent until deployment identity, secret isolation, cost ownership, and untrusted PR boundaries have been approved.
 
 Compare Claude + agent-browser, Codex + agent-browser, and QA.tech as **three operational workflows** with documented context differences. The local arms receive the same charter and supplied PR brief/diff; QA.tech can use its normal product context, recorded by the operator. This is not an equal-context tool experiment and cannot establish that context alone caused a difference. For causal context questions, later vary context while holding the same local runtime/model fixed.

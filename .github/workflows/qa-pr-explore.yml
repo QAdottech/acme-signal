@@ -1,0 +1,194 @@
+name: PR exploratory browser QA (approved)
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Open same-repository PR number (targeting main)'
+        type: number
+        required: true
+      preview_url:
+        description: 'Approved reachable HTTPS deployment with real email disabled at build and runtime'
+        type: string
+        required: true
+      deployed_sha:
+        description: 'Verified deployed PR head SHA (40 lowercase hex characters)'
+        type: string
+        required: true
+      claude_model:
+        description: 'Claude model identifier'
+        type: string
+        required: true
+        default: 'claude-sonnet-4-6'
+      codex_model:
+        description: 'Codex model identifier'
+        type: string
+        required: true
+        default: 'gpt-5.4'
+      seconds:
+        description: 'Per-agent execution seconds (1–3600)'
+        type: number
+        required: true
+        default: 600
+      codex_rates:
+        description: 'JSON USD / 1M tokens: {"input":2,"cached":1,"output":8}; verify current model-specific prices'
+        type: string
+        required: true
+      rate_effective_date:
+        description: 'Date pricing was checked (YYYY-MM-DD)'
+        type: string
+        required: true
+      approval:
+        description: 'Type APPROVE_PAID_QA_SAFE_PREVIEW after verifying target, email/Turnstile safeguards, billing and PR context'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pr-qa-${{ inputs.pr_number }}-${{ inputs.deployed_sha }}
+  cancel-in-progress: false
+
+jobs:
+  context:
+    if: github.ref == 'refs/heads/main' && inputs.approval == 'APPROVE_PAID_QA_SAFE_PREVIEW'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Freeze approved PR context (never checkout PR code)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          DEPLOYED_SHA: ${{ inputs.deployed_sha }}
+        run: |
+          mkdir -p test-results
+          node tests/agent-browser/runner/pr-context.mjs "$REPOSITORY" "$PR_NUMBER" "$DEPLOYED_SHA" test-results/pr-context.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: approved-pr-context
+          path: test-results/pr-context.md
+          retention-days: 7
+
+  explore:
+    needs: context
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - agent: claude
+          - agent: codex
+    name: Explore PR with ${{ matrix.agent }}
+    runs-on: ubuntu-latest
+    environment: qa-browser-benchmark
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Install verified agent CLIs (no authentication yet)
+        run: npm install --global @anthropic-ai/claude-code@2.1.123 @openai/codex@0.147.0
+      - uses: actions/download-artifact@v4
+        with:
+          name: approved-pr-context
+          path: test-results
+      - name: Record explicitly supplied model-specific price card
+        env:
+          CODEX_MODEL: ${{ inputs.codex_model }}
+          CODEX_RATES: ${{ inputs.codex_rates }}
+          RATE_DATE: ${{ inputs.rate_effective_date }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          const rates = JSON.parse(process.env.CODEX_RATES ?? 'null');
+          if (!rates || typeof rates !== 'object' || Array.isArray(rates) ||
+              !['input', 'cached', 'output'].every(key => typeof rates[key] === 'number' && Number.isFinite(rates[key]) && rates[key] >= 0)) {
+            throw new Error('CODEX_RATES must contain nonnegative numeric input, cached and output USD rates. No model call started.');
+          }
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(process.env.RATE_DATE ?? '')) throw new Error('RATE_DATE must be YYYY-MM-DD. No model call started.');
+          writeFileSync('test-results/codex-rate-card.json', JSON.stringify({
+            model: process.env.CODEX_MODEL, effectiveDate: process.env.RATE_DATE,
+            inputUsdPerMillion: rates.input, cachedInputUsdPerMillion: rates.cached, outputUsdPerMillion: rates.output,
+          }, null, 2));
+          NODE
+      - name: Run one isolated agent (paid; first failure preserved)
+        id: explore
+        continue-on-error: true
+        env:
+          QA_AGENT: ${{ matrix.agent }}
+          CLAUDE_MODEL: ${{ inputs.claude_model }}
+          CODEX_MODEL: ${{ inputs.codex_model }}
+          TARGET_URL: ${{ inputs.preview_url }}
+          DEPLOYED_SHA: ${{ inputs.deployed_sha }}
+          SECONDS: ${{ inputs.seconds }}
+          ANTHROPIC_API_KEY: ${{ matrix.agent == 'claude' && secrets.ANTHROPIC_API_KEY || '' }}
+          CODEX_API_KEY: ${{ matrix.agent == 'codex' && secrets.CODEX_API_KEY || '' }}
+        run: |
+          set -euo pipefail
+          if [[ "$QA_AGENT" == "claude" ]]; then MODEL="$CLAUDE_MODEL"; else MODEL="$CODEX_MODEL"; fi
+          pnpm qa:explore --agent "$QA_AGENT" --model "$MODEL" \
+            --url "$TARGET_URL" --revision "$DEPLOYED_SHA" \
+            --charter tests/agent-browser/charters/pr-change.md \
+            --context test-results/pr-context.md --seconds "$SECONDS" \
+            --execute --confirm-safe-target
+      - name: Emit token usage and spend provenance (including blocked runs)
+        id: metrics
+        if: always()
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: node tests/agent-browser/runner/metrics.mjs run test-results/agent-browser "$PR_NUMBER" test-results/codex-rate-card.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-metrics-${{ matrix.agent }}
+          path: test-results/agent-browser/**/metrics.json
+          if-no-files-found: warn
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-evidence-${{ matrix.agent }}
+          path: test-results/agent-browser/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Preserve failure signal after uploading evidence
+        if: steps.explore.outcome != 'success' || steps.metrics.outcome != 'success'
+        run: exit 1
+
+  compare:
+    if: always() && needs.context.result == 'success'
+    needs: [context, explore]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.0'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: qa-metrics-*
+          path: qa-artifacts
+      - name: Show side-by-side metrics (not a verdict)
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: node tests/agent-browser/runner/metrics.mjs compare qa-artifacts "$PR_NUMBER"

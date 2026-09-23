@@ -7,6 +7,7 @@ import { adapter, agentEnvironment, inspectRuntime } from "../agent-browser/runn
 import { parseOptions, composeTask, executionOutcome, browserActionCount } from "../agent-browser/runner/explore.mjs";
 import { artifactPath, checkBrowserArgs } from "../agent-browser/runner/browser-command.mjs";
 import { runProcess } from "../agent-browser/runner/process.mjs";
+import { usageFromEvents, codexEstimate } from "../agent-browser/runner/usage.mjs";
 
 const directories: string[] = [];
 function temporaryDirectory() {
@@ -80,6 +81,25 @@ describe("runtime completion evidence", () => {
     expect(inspectRuntime("not json", "codex").ok).toBe(false);
     expect(inspectRuntime('{"type":"turn.failed"}', "codex").ok).toBe(false);
     expect(inspectRuntime('{"type":"result","subtype":"error_max_turns","is_error":true}', "claude").ok).toBe(false);
+  });
+});
+
+describe("usage and cost provenance", () => {
+  test("Claude separates cached tokens and reports CLI cost, not a billed invoice", () => {
+    const result = usageFromEvents(JSON.stringify({ type: "result", subtype: "success", is_error: false,
+      usage: { input_tokens: 20, cache_read_input_tokens: 50, cache_creation_input_tokens: 5, output_tokens: 10 }, total_cost_usd: 0.01 }), "claude");
+    expect(result).toMatchObject({ completed: true, tokens: { total: 85, cachedInput: 50 }, costUsd: 0.01, source: "claude-cli-reported" });
+  });
+  test("Codex cached tokens are a subset of input, with cost unknown unless priced", () => {
+    const result = usageFromEvents(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 200, cached_input_tokens: 100, output_tokens: 50 } }), "codex");
+    expect(result).toMatchObject({ completed: true, tokens: { total: 250, cachedInput: 100 }, costUsd: null });
+    expect(codexEstimate(result.tokens, { model: "gpt-example", effectiveDate: "2026-09-01", inputUsdPerMillion: 2, cachedInputUsdPerMillion: 1, outputUsdPerMillion: 8 }, "gpt-example")).toBe(0.0007);
+  });
+  test("does not fabricate absent tokens, costs or partial-run totals", () => {
+    expect(usageFromEvents("", "claude").tokens).toBeNull();
+    expect(usageFromEvents("broken JSON", "codex").costUsd).toBeNull();
+    expect(usageFromEvents(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 20, output_tokens: 3 } }), "codex").tokens).toMatchObject({ cachedInput: null, total: 23 });
+    expect(codexEstimate({ input: 10, cachedInput: null, output: 2 }, { model: "test", effectiveDate: "2026-09-01", inputUsdPerMillion: 1, cachedInputUsdPerMillion: 1, outputUsdPerMillion: 1 }, "test")).toBeNull();
   });
 });
 

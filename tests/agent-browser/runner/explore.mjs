@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { chromium } from "@playwright/test";
 import { z } from "zod";
 import { adapter, agentEnvironment, inspectRuntime } from "./adapters.mjs";
+import { usageFromEvents } from "./usage.mjs";
 import { runProcess } from "./process.mjs";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
@@ -175,8 +176,10 @@ export async function main(argv = process.argv.slice(2)) {
       Object.assign(manifest, executionOutcome(exit, hasReport, existsSync(actionsPath)));
       manifest.metrics.browserActionCount = existsSync(actionsPath) ? browserActionCount(readFileSync(actionsPath, "utf8")) : "unknown";
       const runtime = inspectRuntime(readFileSync(resolve(runDir, "agent.jsonl"), "utf8"), options.agent);
-      manifest.metrics.tokenUsage = runtime.tokenUsage;
-      manifest.metrics.cost = runtime.cost;
+      const usage = usageFromEvents(readFileSync(resolve(runDir, "agent.jsonl"), "utf8"), options.agent);
+      manifest.metrics.tokenUsage = usage.tokens ?? "unknown";
+      manifest.metrics.cost = usage.costUsd ?? "unknown";
+      manifest.metrics.costSource = usage.source;
       if (manifest.status === "review-required" && !runtime.ok) Object.assign(manifest, { status: "blocked", failureCategory: "agent/tool", terminationReason: "invalid-runtime-completion" });
     }
   } catch (error) {
