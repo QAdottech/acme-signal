@@ -72,7 +72,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.workflow_sha }}
           persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -173,7 +173,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.workflow_sha }}
           persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -263,7 +263,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.workflow_sha }}
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
