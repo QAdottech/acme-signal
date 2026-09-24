@@ -27,12 +27,12 @@ The context file is the **same frozen input** for both agents. The launcher does
 From the repository root, substituting your values:
 
 ```sh
-pnpm qa:explore --agent claude --model claude-sonnet-4-6 \
+pnpm qa:explore --agent claude --model claude-opus-5-5 \
   --url http://localhost:3100 --revision DEPLOYED_SHA \
   --charter tests/agent-browser/charters/pr-change.md \
   --context test-results/pr-context.md --seconds 600
 
-pnpm qa:explore --agent codex --model gpt-5.4 \
+pnpm qa:explore --agent codex --model gpt-6-sol \
   --url http://localhost:3100 --revision DEPLOYED_SHA \
   --charter tests/agent-browser/charters/pr-change.md \
   --context test-results/pr-context.md --seconds 600

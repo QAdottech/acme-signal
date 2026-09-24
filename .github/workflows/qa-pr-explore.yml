@@ -19,12 +19,12 @@ on:
         description: 'Claude model identifier'
         type: string
         required: true
-        default: 'claude-sonnet-4-6'
+        default: 'claude-opus-5-5'
       codex_model:
         description: 'Codex model identifier'
         type: string
         required: true
-        default: 'gpt-5.4'
+        default: 'gpt-6-sol'
       seconds:
         description: 'Per-agent execution seconds (1–3600)'
         type: number
