@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "application": "ACME Signal",
+  "common": {
+    "target": "Supplied target URL. Use localhost for local testing.",
+    "environment": {
+      "viewport": "1440x1000",
+      "locale": "en-US",
+      "timezone": "UTC",
+      "dataState": "Default demo data in a fresh browser session/context"
+    },
+    "authPrecondition": "Unless scenario.public is true, start from a fresh browser session and log in through the UI using the existing browser-local demo account. Self-service signup is unavailable.",
+    "demoAccount": {
+      "email": "james.morrison@example.com",
+      "password": "testingpassword"
+    },
+    "knownProductLimitations": [
+      "The public signing page simulates completion in React state. It confirms validation and a success message only; it does not prove persisted signatures, countersigning, audit trails, or email delivery."
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "AUTH-01",
+      "title": "Anonymous access protection and invalid login",
+      "public": true,
+      "goal": "Verify protected pages redirect anonymous users and invalid credentials are rejected without creating a session.",
+      "preconditions": ["Fresh browser session", "No existing authenticated state"],
+      "testData": {
+        "protectedPath": "/people",
+        "email": "unknown-{run_id}@example.test",
+        "password": "incorrect-password"
+      },
+      "expectedOutcomes": [
+        { "id": "auth01-redirect", "description": "Opening People anonymously lands on the login page and preserves `/people` as the return path." },
+        { "id": "auth01-invalid-feedback", "description": "Submitting the unknown account shows invalid-credentials feedback." },
+        { "id": "auth01-stays-login", "description": "After the failed login, the user remains unauthenticated on the login page with the same return path." }
+      ]
+    },
+    {
+      "id": "AUTH-02",
+      "title": "Demo login, logout, return-path login, session persistence",
+      "public": false,
+      "goal": "Verify UI login with an existing demo account creates a session, logout protects routes, login follows return paths, and reload keeps the session.",
+      "preconditions": ["Fresh browser session", "Existing browser-local demo account"],
+      "testData": {
+        "account": "Use common.demoAccount"
+      },
+      "expectedOutcomes": [
+        { "id": "auth02-login-session", "description": "Logging in through the UI reaches the authenticated Sales Pipeline app." },
+        { "id": "auth02-logout-protects", "description": "After logout, opening People redirects to login with `/people` preserved." },
+        { "id": "auth02-return-login", "description": "Logging in with the same demo account returns to People." },
+        { "id": "auth02-reload-session", "description": "Reloading People remains authenticated and still shows the People page." },
+        { "id": "auth02-final-logout", "description": "Logging out again restores People route protection." }
+      ]
+    },
+    {
+      "id": "PEOPLE-01",
+      "title": "Contact create/edit/delete and reload persistence",
+      "public": false,
+      "goal": "Verify a contact can be created, found, edited, persisted across reload, deleted with confirmation, and absent after reload without harming seeded contacts.",
+      "preconditions": ["Authenticated demo account", "Default demo contacts visible"],
+      "testData": {
+        "name": "QA Contact {run_id}",
+        "email": "contact-{run_id}@example.test",
+        "initialRole": "Engineer",
+        "editedRole": "Engineering Manager",
+        "company": "Test Company",
+        "seededContactToKeep": "Daniel Ek"
+      },
+      "expectedOutcomes": [
+        { "id": "people01-created", "description": "After creating and reloading, searching by the unique email shows exactly one contact with the created name, role, and company." },
+        { "id": "people01-edited", "description": "After editing the role and reloading, the same unique contact shows the edited role." },
+        { "id": "people01-delete-confirmed", "description": "Deleting the contact requires confirmation or an equivalent destructive-action acknowledgement." },
+        { "id": "people01-deleted", "description": "After deletion and reload, searching by the unique email shows the contact is absent." },
+        { "id": "people01-seeded-remains", "description": "A seeded contact such as Daniel Ek remains present after deleting the synthetic contact." }
+      ]
+    },
+    {
+      "id": "PEOPLE-02",
+      "title": "Filtered CSV export and downloaded content",
+      "public": false,
+      "goal": "Verify filtered People CSV export contains the expected filtered contact and excludes unrelated contacts.",
+      "preconditions": ["Authenticated demo account", "Default demo contacts visible", "Browser downloads enabled"],
+      "testData": {
+        "searchTerm": "Daniel Ek",
+        "expectedCsvRow": "Daniel Ek,daniel@spotify.com,CEO,Spotify",
+        "excludedContact": "Sarah Chen",
+        "expectedHeaders": ["name", "email", "role", "organization"]
+      },
+      "expectedOutcomes": [
+        { "id": "people02-filtered", "description": "The People table filter shows Daniel Ek as the matching contact before export." },
+        { "id": "people02-download", "description": "Export produces a CSV download artifact." },
+        { "id": "people02-csv-headers", "description": "The CSV has the expected People headers." },
+        { "id": "people02-csv-filtered-content", "description": "The CSV contains Daniel Ek's row and does not contain unrelated contacts such as Sarah Chen." }
+      ]
+    },
+    {
+      "id": "DEALS-01",
+      "title": "Deal creation, drag to Qualified, persistence and table values",
+      "public": false,
+      "goal": "Verify a new deal can be created in Lead, moved to Qualified using browser input, persists after reload, and appears correctly in the Deals table.",
+      "preconditions": ["Authenticated demo account", "Default demo organizations and owners visible"],
+      "testData": {
+        "title": "QA Pipeline Deal {run_id}",
+        "company": "Spotify",
+        "value": 12000,
+        "closeDate": "2027-06-01",
+        "owner": "Emma Wilson",
+        "fromStage": "Lead",
+        "toStage": "Qualified",
+        "expectedDisplayValue": "$12K",
+        "expectedProbability": "30%"
+      },
+      "expectedOutcomes": [
+        { "id": "deals01-created-lead", "description": "After creation and filtering by the unique title, the deal appears in Lead with the supplied company, value, close date, and owner represented in the UI where applicable." },
+        { "id": "deals01-dragged-qualified", "description": "Using genuine browser drag or pointer input moves the deal from Lead to Qualified." },
+        { "id": "deals01-persisted-qualified", "description": "After reload and filtering, the deal remains in Qualified and no duplicate remains in Lead." },
+        { "id": "deals01-table-values", "description": "In the Deals table, the unique deal shows Spotify, Qualified, $12K, and 30% probability." }
+      ]
+    },
+    {
+      "id": "REPORTS-01",
+      "title": "Custom report creation, rendered output, deletion",
+      "public": false,
+      "goal": "Verify a Pipeline by Stage custom report can be created, reloads with meaningful rendered widgets, and can be deleted without deleting built-in reports.",
+      "preconditions": ["Authenticated demo account", "Default demo deals available"],
+      "testData": {
+        "title": "QA Sales Review {run_id}",
+        "description": "Test pipeline report",
+        "template": "Pipeline by Stage",
+        "builtInReportToKeep": "Pipeline Overview"
+      },
+      "expectedOutcomes": [
+        { "id": "reports01-created", "description": "Creating the custom Pipeline by Stage report navigates to a report page with the unique title." },
+        { "id": "reports01-reload-title", "description": "After reload, the unique report title remains visible." },
+        { "id": "reports01-meaningful-widgets", "description": "The report renders three meaningful widgets: Deals by Stage, Total Pipeline Value, and Total Deal Count. Each widget must show non-empty numeric/chart data, not just its title." },
+        { "id": "reports01-active-summary", "description": "The report shows an active-deal summary with a numeric active-deal count." },
+        { "id": "reports01-deleted", "description": "After deleting and reloading Reports, the unique custom report is absent while Pipeline Overview remains present." }
+      ]
+    },
+    {
+      "id": "TASKS-01",
+      "title": "Overdue task, completion and persistence",
+      "public": false,
+      "goal": "Verify an overdue task appears in Overdue, leaves that filter when completed, and remains completed after reload.",
+      "preconditions": ["Authenticated demo account", "Clock fixed to 2026-06-01 UTC when supported, otherwise record the actual UTC date and use yesterday"],
+      "testData": {
+        "title": "QA Follow Up {run_id}",
+        "fixedNowUtc": "2026-06-01T12:00:00Z",
+        "dueDateWhenClockFixed": "2026-05-31",
+        "fallbackDueDate": "Yesterday in UTC if clock control is unavailable"
+      },
+      "expectedOutcomes": [
+        { "id": "tasks01-create-disabled-until-title", "description": "The create action is disabled until the required task title is provided." },
+        { "id": "tasks01-overdue", "description": "The created task appears under Overdue with To Do status and overdue indication." },
+        { "id": "tasks01-completed-leaves-overdue", "description": "Completing the task removes it from the Overdue filter." },
+        { "id": "tasks01-persisted-done", "description": "After reload, the task remains checked/Done and is not shown as overdue." }
+      ]
+    },
+    {
+      "id": "SIGN-01",
+      "title": "Public signing validation and confirmation",
+      "public": true,
+      "goal": "Verify the public proposal signing form validates required fields and shows simulated confirmation only after both consents are provided.",
+      "preconditions": ["Fresh browser session", "No authentication required"],
+      "testData": {
+        "publicPath": "/customer/sign?customer_name=QA%20Customer&deal_name=QA%20Proposal&amount=12000",
+        "signerName": "QA Signer {run_id}"
+      },
+      "expectedOutcomes": [
+        { "id": "sign01-empty-errors", "description": "Submitting empty form shows errors for full name, terms consent, and authorization consent." },
+        { "id": "sign01-one-consent-still-blocked", "description": "Providing name and terms consent alone still shows authorization-consent validation and no success confirmation." },
+        { "id": "sign01-confirmation", "description": "Providing name plus both consents shows the simulated Signed confirmation." }
+      ]
+    },
+    {
+      "id": "NETWORK-01",
+      "title": "Actual request headers/body, response and UI feedback",
+      "public": true,
+      "goal": "Verify the public network test page sends the expected POST request and renders echoed success feedback.",
+      "preconditions": ["Fresh browser session", "Network capture enabled before triggering the request"],
+      "testData": {
+        "publicPath": "/network-test",
+        "requestPath": "/api/network-test",
+        "expectedRequestId": "qa-tech-network-test-request-id",
+        "expectedCustomHeader": "custom-header-ok",
+        "expectedBody": { "source": "network-test-page" }
+      },
+      "expectedOutcomes": [
+        { "id": "network01-actual-post", "description": "Browser-captured network evidence shows an actual POST to `/api/network-test`." },
+        { "id": "network01-request-headers-body", "description": "Captured request evidence includes the expected request ID header, custom test header, and JSON body." },
+        { "id": "network01-response", "description": "The response is HTTP 200 and echoes the expected header/body values." },
+        { "id": "network01-ui-feedback", "description": "The UI shows success feedback and the echoed request ID." }
+      ]
+    }
+  ]
+}

@@ -25,6 +25,7 @@ export function TopBar() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
+                aria-label="Account menu"
                 className="relative h-8 w-8 rounded-full overflow-hidden p-0"
               >
                 {user.avatar ? (

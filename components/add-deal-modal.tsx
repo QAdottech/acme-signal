@@ -159,10 +159,13 @@ export function AddDealModal({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Company</Label>
+              <Label htmlFor="deal-company" className="text-right">
+                Company
+              </Label>
               <Popover open={orgOpen} onOpenChange={setOrgOpen}>
                 <PopoverTrigger asChild>
                   <Button
+                    id="deal-company"
                     variant="outline"
                     role="combobox"
                     className="col-span-3 justify-between"
@@ -268,10 +271,13 @@ export function AddDealModal({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Owner</Label>
+              <Label htmlFor="deal-owner" className="text-right">
+                Owner
+              </Label>
               <Popover open={ownerOpen} onOpenChange={setOwnerOpen}>
                 <PopoverTrigger asChild>
                   <Button
+                    id="deal-owner"
                     variant="outline"
                     role="combobox"
                     className="col-span-3 justify-between"
