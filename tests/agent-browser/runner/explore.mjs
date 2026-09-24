@@ -151,7 +151,7 @@ export async function main(argv = process.argv.slice(2)) {
       const chrome = chromium.executablePath();
       if (!existsSync(chrome)) throw new Error("Baseline Chromium is missing. Run pnpm exec playwright install chromium, then start a new run.");
       manifest.versions.chromium = capture(chrome, ["--version"], browserEnv, workspace);
-      json(path("agent-browser.json"), { executablePath: chrome, headed: false, downloadPath: path("artifacts/downloads"), screenshotDir: path("artifacts"), contentBoundaries: true, allowedDomains: [new URL(options.url).hostname, "challenges.cloudflare.com"] });
+      json(path("agent-browser.json"), { executablePath: chrome, headed: false, args: "--no-sandbox", downloadPath: path("artifacts/downloads"), screenshotDir: path("artifacts"), contentBoundaries: true, allowedDomains: [new URL(options.url).hostname, "challenges.cloudflare.com"] });
       browser = (args, name) => {
         const result = spawnSync(browserBinary, ["--config", path("agent-browser.json"), "--session", session, ...args], { cwd: workspace, env: browserEnv, timeout: 15_000, encoding: "utf8", maxBuffer: 10 * 1024 * 1024 });
         writeFileSync(path(`artifacts/${name}.txt`), `${result.stdout ?? ""}${result.stderr ?? ""}${result.error?.message ?? ""}`);
