@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Flags verified with Claude Code 2.1.123 and Codex CLI 0.147.0.
+// Flags verified with Claude Code 2.1.280 and Codex CLI 0.147.0.
 // No permission bypass, resume, automatic fallback, or scenario retry.
 export function adapter(agent, model) {
   if (agent === "claude") return {

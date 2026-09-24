@@ -168,7 +168,8 @@ jobs:
           - agent: claude
           - agent: codex
     name: Explore PR with ${{ matrix.agent }}
-    runs-on: ubuntu-latest
+    # Codex workspace-write uses bubblewrap user namespaces, blocked on Ubuntu 24.04 runners.
+    runs-on: ${{ matrix.agent == 'codex' && 'ubuntu-22.04' || 'ubuntu-latest' }}
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
@@ -180,10 +181,13 @@ jobs:
         with:
           node-version: '22.22.0'
           cache: pnpm
+      - name: Verify Codex sandbox can create a user namespace (before model calls)
+        if: matrix.agent == 'codex'
+        run: unshare --user --map-root-user --mount true
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - name: Install verified agent CLIs (no authentication yet)
-        run: npm install --global @anthropic-ai/claude-code@2.1.123 @openai/codex@0.147.0
+        run: npm install --global @anthropic-ai/claude-code@2.1.280 @openai/codex@0.147.0
       - uses: actions/download-artifact@v4
         with:
           name: approved-pr-context

@@ -11,7 +11,7 @@ import { usageFromEvents } from "./usage.mjs";
 import { runProcess } from "./process.mjs";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
-const tested = { claude: "2.1.123", codex: "0.147.0", browser: "0.26.0" };
+const tested = { claude: "2.1.280", codex: "0.147.0", browser: "0.26.0" };
 const optionsSchema = z.object({
   agent: z.enum(["claude", "codex"]), model: z.string().min(1),
   url: z.string().url().refine(value => {
