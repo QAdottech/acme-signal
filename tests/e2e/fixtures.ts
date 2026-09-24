@@ -1,22 +1,16 @@
 import { test as base, expect, type Page } from "@playwright/test";
 
-// Synthetic account created through the UI in each fresh browser context.
+// Existing demo user is seeded in each fresh browser context; no real account is created.
 export const account = {
-  email: "playwright@example.test",
-  password: "test-only-password-123",
-  name: "Playwright Tester",
+  email: "james.morrison@example.com",
+  password: "testingpassword",
 };
 
-export async function signUp(page: Page) {
-  await page.goto("/signup");
+export async function signIn(page: Page) {
+  await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill(account.email);
   await page.getByLabel("Password", { exact: true }).fill(account.password);
-  await page.getByLabel("Confirm Password", { exact: true }).fill(account.password);
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByLabel("Full Name").fill(account.name);
-  await page.getByRole("button", { name: "Complete Signup" }).click();
-  await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
-  await page.getByRole("link", { name: "Continue to ACME Signal" }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Sales Pipeline" })).toBeVisible();
 }
 
@@ -28,7 +22,7 @@ export async function logOut(page: Page) {
 
 export const test = base.extend<{ signedInPage: Page }>({
   signedInPage: async ({ page }, use) => {
-    await signUp(page);
+    await signIn(page);
     await use(page);
   },
 });

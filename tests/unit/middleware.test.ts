@@ -12,7 +12,7 @@ describe("page authentication middleware", () => {
     expect(response.headers.get("location")).toBe(`${origin}/login?from=%2Fdeals%2Fdeal-a`);
   });
 
-  it.each(["/login", "/signup", "/verify-email", "/customer/sign", "/network-test", "/turnstile-test", "/bot-test/docs", "/robots.txt"])(
+  it.each(["/login", "/customer/sign", "/network-test", "/turnstile-test", "/bot-test/docs", "/robots.txt"])(
     "allows anonymous access to %s", (path) => {
       const response = middleware(new NextRequest(`${origin}${path}`));
       expect(response.headers.get("x-middleware-next")).toBe("1");
@@ -27,8 +27,14 @@ describe("page authentication middleware", () => {
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 
-  it.each(["/login", "/signup"])("redirects signed-in visitors away from %s", (path) => {
-    const response = middleware(new NextRequest(`${origin}${path}`, {
+  it.each(["/signup", "/verify-email"])("does not expose removed self-service route %s to anonymous visitors", (path) => {
+    const response = middleware(new NextRequest(`${origin}${path}`));
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(`${origin}/login?from=${encodeURIComponent(path)}`);
+  });
+
+  it("redirects signed-in visitors away from login", () => {
+    const response = middleware(new NextRequest(`${origin}/login`, {
       headers: { cookie: "auth-token=test-user" },
     }));
     expect(response.status).toBe(307);

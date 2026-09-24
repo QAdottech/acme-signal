@@ -62,7 +62,7 @@ For structured results, use [prompts/regression.md](prompts/regression.md) or [p
 
 ## Optional comparison guidance
 
-For PR-focused exploration with supplied change context, see the [launcher guide](runner/README.md#later-pr-integration). That operational comparison intentionally permits the supplied PR brief/diff and records context differences. The black-box regression comparison below is a separate experiment.
+For PR-focused exploration with supplied change context, see the [launcher guide](runner/README.md#github-actions-approved-pr-runs-and-cost-over-time). That operational comparison intentionally permits the supplied PR brief/diff and records context differences. The black-box regression comparison below is a separate experiment.
 
 The [shared contract](scenarios.json) can also be supplied to QA.tech. Keep the skill itself focused on QA, not on favoring either approach.
 

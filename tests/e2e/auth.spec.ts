@@ -1,4 +1,4 @@
-import { test, expect, account, logOut, signUp } from "./fixtures";
+import { test, expect, account, logOut, signIn } from "./fixtures";
 
 test("AUTH-01: protected routes redirect to login; invalid credentials stay rejected", async ({ page }) => {
   await page.goto("/people");
@@ -10,8 +10,8 @@ test("AUTH-01: protected routes redirect to login; invalid credentials stay reje
   await expect(page).toHaveURL(/\/login\?from=%2Fpeople$/);
 });
 
-test("AUTH-02: signup, logout, login redirect, and session persistence", async ({ page }) => {
-  await signUp(page);
+test("AUTH-02: demo login, logout, return-path login, and session persistence", async ({ page }) => {
+  await signIn(page);
   await logOut(page);
 
   await page.goto("/people");

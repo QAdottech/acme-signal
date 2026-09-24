@@ -39,8 +39,8 @@ pnpm exec playwright show-trace path/to/trace.zip
 
 - Playwright reserves **http://localhost:3100**, never reuses an existing server, and builds automatically. Leave that port free. Do not run another Next build/dev server in the same checkout simultaneously: both write `.next`.
 - Use `localhost` consistently. Next.js normalizes loopback IP URLs in redirects; mixing `127.0.0.1` with `localhost` splits cookies and `localStorage` across origins.
-- Each test/repetition gets a new browser context. Authenticated scenarios create `playwright@example.test` through the signup UI. Reusing that synthetic name is safe because accounts are browser-local; no shared auth files or database cleanup are needed.
-- No `.env.local` or real credentials are required. The managed server explicitly clears `RESEND_API_KEY` and supplies Turnstile test keys during both build and runtime. Signup hits the real email API's documented skipped-delivery path. **No email is delivered.**
+- Each test/repetition gets a new browser context. Authenticated scenarios log in through the UI using the seeded `james.morrison@example.com` demo user; accounts and sessions are browser-local. No shared auth files or database cleanup are needed.
+- No `.env.local` or real credentials are required. The managed server explicitly clears `RESEND_API_KEY` and supplies Turnstile test keys during both build and runtime. **No email is delivered.**
 - The existing signing page simulates completion in React state. Its test checks validation and confirmation, not signature persistence, countersigning, or email delivery.
 - The build currently fetches a Google font (`next/font/google`); a cold build needs internet access. Dependency/browser installation also requires internet.
 
@@ -65,12 +65,12 @@ Scenario IDs are embedded in test names and reports. Give QA.tech the same objec
 
 The repository-local [agent-browser QA skill](../.agents/skills/acme-agent-browser-qa/SKILL.md) executes UI regression and exploratory testing. See [`agent-browser/README.md`](agent-browser/README.md) for setup, reusable prompts, the shared JSON scenario contract, evidence collection and comparison guidance. An optional [Claude/Codex launcher](agent-browser/runner/README.md) and manually approved [PR workflow](../.github/workflows/qa-pr-explore.yml) support change-focused exploration with token and cost-provenance summaries; neither validates findings or replaces the tests. The Playwright scenarios below remain the deterministic baseline.
 
-Unless marked public, start in a fresh browser, sign up with a synthetic account and full name, then continue to the app. Keep the default demo data.
+Unless marked public, start in a fresh browser and log in with the seeded demo account. Self-service signup is unavailable. Keep the default demo data.
 
 | ID | Objective and expected outcome |
 | --- | --- |
 | AUTH-01 | **Anonymous:** open People; get redirected to login with `/people` preserved. Submit an unknown account; see invalid-credentials feedback and remain on login. |
-| AUTH-02 | Sign up, log out, open People, log in again; return to People. Reload retains the session. Log out again; People is protected. |
+| AUTH-02 | Log in with a demo user, log out, open People, log in again; return to People. Reload retains the session. Log out again; People is protected. |
 | PEOPLE-01 | Create a contact with name, email, role, company. Reload, find by email, edit role, reload and verify. Delete with confirmation, reload and verify absence; existing contacts remain. |
 | PEOPLE-02 | Search for Daniel Ek and export CSV. The downloaded file has the expected headers and only that contact, not other contacts. |
 | DEALS-01 | Create a $12,000 Lead deal for Spotify owned by Emma Wilson. Filter to it, drag to Qualified, reload. It remains Qualified; the Deals table shows Spotify, $12K, and 30% probability. |
@@ -95,7 +95,7 @@ For an apples-to-apples comparison:
 - `test-results/unit.xml`: JUnit results when `CI=1`.
 - `.github/workflows/tests.yml`: independent unit/typecheck and Chromium jobs on PRs, pushes to `main`, and manual runs. Artifacts are retained for seven days, including on failure.
 
-All generated output is gitignored. Traces can contain form values and browser state; keep using synthetic accounts and review artifacts before sharing.
+All generated output is gitignored. Traces can contain form values and browser state; use demo accounts and synthetic scenario data, and review artifacts before sharing.
 
 ## Extending the baseline
 

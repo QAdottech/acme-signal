@@ -9,15 +9,13 @@
       "timezone": "UTC",
       "dataState": "Default demo data in a fresh browser session/context"
     },
-    "authPrecondition": "Unless scenario.public is true, start from a fresh browser session, sign up through the UI with a synthetic account, complete onboarding, and continue to the app.",
-    "syntheticAccountTemplate": {
-      "email": "agent-{run_id}-{scenario_id}@example.test",
-      "password": "test-only-password-123",
-      "fullName": "Agent Browser Tester {run_id}"
+    "authPrecondition": "Unless scenario.public is true, start from a fresh browser session and log in through the UI using the existing browser-local demo account. Self-service signup is unavailable.",
+    "demoAccount": {
+      "email": "james.morrison@example.com",
+      "password": "testingpassword"
     },
     "knownProductLimitations": [
-      "The public signing page simulates completion in React state. It confirms validation and a success message only; it does not prove persisted signatures, countersigning, audit trails, or email delivery.",
-      "Signup uses a skipped-delivery path when real email delivery is disabled. Do not report lack of delivered email as a defect in these scenarios."
+      "The public signing page simulates completion in React state. It confirms validation and a success message only; it does not prove persisted signatures, countersigning, audit trails, or email delivery."
     ]
   },
   "scenarios": [
@@ -40,17 +38,17 @@
     },
     {
       "id": "AUTH-02",
-      "title": "Signup, logout, return-path login, session persistence",
+      "title": "Demo login, logout, return-path login, session persistence",
       "public": false,
-      "goal": "Verify UI signup creates a session, logout protects routes, login follows return paths, and reload keeps the session.",
-      "preconditions": ["Fresh browser session", "Real email delivery disabled"],
+      "goal": "Verify UI login with an existing demo account creates a session, logout protects routes, login follows return paths, and reload keeps the session.",
+      "preconditions": ["Fresh browser session", "Existing browser-local demo account"],
       "testData": {
-        "account": "Use common.syntheticAccountTemplate"
+        "account": "Use common.demoAccount"
       },
       "expectedOutcomes": [
-        { "id": "auth02-signup-session", "description": "Signup through the UI reaches the authenticated Sales Pipeline app." },
+        { "id": "auth02-login-session", "description": "Logging in through the UI reaches the authenticated Sales Pipeline app." },
         { "id": "auth02-logout-protects", "description": "After logout, opening People redirects to login with `/people` preserved." },
-        { "id": "auth02-return-login", "description": "Logging in with the same synthetic account returns to People." },
+        { "id": "auth02-return-login", "description": "Logging in with the same demo account returns to People." },
         { "id": "auth02-reload-session", "description": "Reloading People remains authenticated and still shows the People page." },
         { "id": "auth02-final-logout", "description": "Logging out again restores People route protection." }
       ]
@@ -60,7 +58,7 @@
       "title": "Contact create/edit/delete and reload persistence",
       "public": false,
       "goal": "Verify a contact can be created, found, edited, persisted across reload, deleted with confirmation, and absent after reload without harming seeded contacts.",
-      "preconditions": ["Authenticated synthetic account", "Default demo contacts visible"],
+      "preconditions": ["Authenticated demo account", "Default demo contacts visible"],
       "testData": {
         "name": "QA Contact {run_id}",
         "email": "contact-{run_id}@example.test",
@@ -82,7 +80,7 @@
       "title": "Filtered CSV export and downloaded content",
       "public": false,
       "goal": "Verify filtered People CSV export contains the expected filtered contact and excludes unrelated contacts.",
-      "preconditions": ["Authenticated synthetic account", "Default demo contacts visible", "Browser downloads enabled"],
+      "preconditions": ["Authenticated demo account", "Default demo contacts visible", "Browser downloads enabled"],
       "testData": {
         "searchTerm": "Daniel Ek",
         "expectedCsvRow": "Daniel Ek,daniel@spotify.com,CEO,Spotify",
@@ -101,7 +99,7 @@
       "title": "Deal creation, drag to Qualified, persistence and table values",
       "public": false,
       "goal": "Verify a new deal can be created in Lead, moved to Qualified using browser input, persists after reload, and appears correctly in the Deals table.",
-      "preconditions": ["Authenticated synthetic account", "Default demo organizations and owners visible"],
+      "preconditions": ["Authenticated demo account", "Default demo organizations and owners visible"],
       "testData": {
         "title": "QA Pipeline Deal {run_id}",
         "company": "Spotify",
@@ -125,7 +123,7 @@
       "title": "Custom report creation, rendered output, deletion",
       "public": false,
       "goal": "Verify a Pipeline by Stage custom report can be created, reloads with meaningful rendered widgets, and can be deleted without deleting built-in reports.",
-      "preconditions": ["Authenticated synthetic account", "Default demo deals available"],
+      "preconditions": ["Authenticated demo account", "Default demo deals available"],
       "testData": {
         "title": "QA Sales Review {run_id}",
         "description": "Test pipeline report",
@@ -145,7 +143,7 @@
       "title": "Overdue task, completion and persistence",
       "public": false,
       "goal": "Verify an overdue task appears in Overdue, leaves that filter when completed, and remains completed after reload.",
-      "preconditions": ["Authenticated synthetic account", "Clock fixed to 2026-06-01 UTC when supported, otherwise record the actual UTC date and use yesterday"],
+      "preconditions": ["Authenticated demo account", "Clock fixed to 2026-06-01 UTC when supported, otherwise record the actual UTC date and use yesterday"],
       "testData": {
         "title": "QA Follow Up {run_id}",
         "fixedNowUtc": "2026-06-01T12:00:00Z",
