@@ -9,7 +9,6 @@ interface User {
   fullName: string;
   avatar: string;
   role: "admin" | "member";
-  emailVerified?: boolean;
   password?: string; // For demo purposes only - never do this in production!
 }
 
@@ -18,12 +17,6 @@ interface AuthContextType {
   users: User[];
   login: (email: string, password: string) => boolean;
   logout: () => void;
-  signup: (
-    email: string,
-    password: string,
-    fullName?: string,
-    avatar?: string
-  ) => boolean;
   updateUser: (userData: Partial<User>) => void;
   isAdmin: boolean;
   getTeamMembers: () => Promise<User[]>;
@@ -140,30 +133,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login");
   };
 
-  const signup = (
-    email: string,
-    password: string,
-    fullName: string = "",
-    avatar: string = ""
-  ) => {
-    const newUser = {
-      id: Math.random().toString(36).substr(2, 9),
-      email,
-      fullName,
-      avatar,
-      role: "member" as const,
-      password,
-    };
-    const updatedUsers = [...users, newUser];
-    setUsers(updatedUsers);
-    setUser(newUser);
-    localStorage.setItem("users", JSON.stringify(updatedUsers));
-    localStorage.setItem("user", JSON.stringify(newUser));
-    // Set auth cookie for middleware
-    setAuthCookie(newUser.id);
-    return true;
-  };
-
   const updateUser = (userData: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...userData };
@@ -223,7 +192,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         users,
         login,
         logout,
-        signup,
         updateUser,
         isAdmin,
         getTeamMembers,
