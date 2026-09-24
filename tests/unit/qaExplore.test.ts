@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { adapter, agentEnvironment, inspectRuntime } from "../agent-browser/runner/adapters.mjs";
-import { parseOptions, composeTask, executionOutcome, browserActionCount } from "../agent-browser/runner/explore.mjs";
+import { parseOptions, composeTask, executionOutcome, browserActionCount, supportedCliVersion } from "../agent-browser/runner/explore.mjs";
 import { artifactPath, checkBrowserArgs } from "../agent-browser/runner/browser-command.mjs";
 import { runProcess } from "../agent-browser/runner/process.mjs";
 import { usageFromEvents, codexEstimate } from "../agent-browser/runner/usage.mjs";
@@ -38,6 +38,18 @@ describe("exploration task boundary", () => {
 });
 
 describe("runtime adapters", () => {
+  test("allows newer Claude 2.1 patch releases but rejects older, malformed and new minor versions", () => {
+    expect(supportedCliVersion("claude", "2.1.280 (Claude Code)")).toBe(true);
+    expect(supportedCliVersion("claude", "2.1.281 (Claude Code)")).toBe(true);
+    expect(supportedCliVersion("claude", "2.1.279 (Claude Code)")).toBe(false);
+    expect(supportedCliVersion("claude", "2.2.0 (Claude Code)")).toBe(false);
+    expect(supportedCliVersion("claude", "unknown")).toBe(false);
+    expect(supportedCliVersion("claude", "2.1.281 (unrelated CLI)")).toBe(false);
+  });
+  test("keeps Codex pinned exactly", () => {
+    expect(supportedCliVersion("codex", "codex-cli 0.147.0")).toBe(true);
+    expect(supportedCliVersion("codex", "codex-cli 0.147.1")).toBe(false);
+  });
   test("Claude uses print/stream mode with constrained tools, not permission bypass", () => {
     const invocation = adapter("claude", "test-model");
     expect(invocation.command).toBe("claude");
