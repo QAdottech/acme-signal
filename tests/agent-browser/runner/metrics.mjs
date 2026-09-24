@@ -76,7 +76,7 @@ export function main(argv = process.argv.slice(2)) {
       }
       metrics.push(runMetrics({ agent, status: "blocked", terminationReason: "missing-metrics" }, pr));
     }
-    saveSummary(`### PR #${pr}: Claude / Codex operational comparison\n${comparisonTable(metrics)}`);
+    saveSummary(`### PR #${pr}: Claude / Codex run metrics\n${comparisonTable(metrics)}`);
     return;
   }
   throw new Error("Usage: node metrics.mjs run RUN_PARENT PR_NUMBER [RATE_CARD_JSON] | compare DOWNLOADED_ARTIFACTS PR_NUMBER");

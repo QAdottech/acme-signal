@@ -73,7 +73,7 @@ Write report.md before stopping, updating it during the run so partial findings 
 - Suspected/intermittent issues (also record frequency and reproduction attempts)
 - Questions and usability suggestions (separate from defects)
 - Obstacles, time breakdown, human intervention, and next checks
-Do not assert a bug was introduced by this PR without a base-revision comparison. Do not claim comprehensive coverage, no bugs, or an automatic pass. Findings need human review.
+Do not assert a bug was introduced by this PR without checking the base revision. Do not claim comprehensive coverage, no bugs, or an automatic pass. Findings need human review.
 
 ## QA skill\n${skill}
 

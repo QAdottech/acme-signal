@@ -7,11 +7,21 @@ const repoName = z.string().regex(/^[\w.-]+\/[\w.-]+$/);
 const prNumber = z.coerce.number().int().positive();
 const fileSchema = z.object({ filename: z.string(), status: z.string(), patch: z.string().optional() });
 
+const pullSchema = z.object({ number: z.number(), title: z.string().optional(), body: z.string().nullable().optional(), state: z.string(),
+  head: z.object({ sha, repo: z.object({ full_name: z.string() }) }),
+  base: z.object({ sha, ref: z.string(), repo: z.object({ full_name: z.string(), default_branch: z.string() }) }),
+});
+
+export function selectPullForRevision(pulls, { repo, revision }) {
+  const candidates = z.array(pullSchema).parse(pulls).filter(pull =>
+    pull.state === "open" && pull.head.sha === revision && pull.head.repo.full_name === repo &&
+    pull.base.repo.full_name === repo && pull.base.ref === pull.base.repo.default_branch);
+  if (candidates.length !== 1) throw new Error(`Expected exactly one open same-repository default-branch PR for deployed revision ${revision}, found ${candidates.length}. No QA run started.`);
+  return candidates[0].number;
+}
+
 export function formatPRContext(pr, files, { repo, number, revision, truncatedFiles = false }) {
-  const parsed = z.object({ number: z.number(), title: z.string(), body: z.string().nullable(), state: z.literal("open"),
-    head: z.object({ sha, repo: z.object({ full_name: z.string() }) }),
-    base: z.object({ sha, ref: z.string(), repo: z.object({ full_name: z.string(), default_branch: z.string() }) }),
-  }).parse(pr);
+  const parsed = pullSchema.extend({ title: z.string(), body: z.string().nullable(), state: z.literal("open") }).parse(pr);
   if (parsed.number !== number || parsed.base.repo.full_name !== repo || parsed.head.repo.full_name !== repo || parsed.base.ref !== parsed.base.repo.default_branch) {
     throw new Error("The PR must be open, originate from this repository, and target its default branch. No QA run started.");
   }
@@ -44,10 +54,14 @@ async function github(path, token) {
 }
 
 export async function main(argv = process.argv.slice(2), env = process.env) {
-  if (argv.length !== 4) throw new Error("Usage: node pr-context.mjs OWNER/REPO PR_NUMBER HEAD_SHA OUTPUT_PATH");
-  const [repo, number, revision, output] = argv;
-  repoName.parse(repo); prNumber.parse(number); sha.parse(revision);
+  if (argv.length < 4 || argv.length > 5) throw new Error("Usage: node pr-context.mjs OWNER/REPO PR_NUMBER|auto HEAD_SHA OUTPUT_PATH [METADATA_JSON]");
+  const [repo, rawNumber, revision, output, metadataOutput] = argv;
+  repoName.parse(repo); sha.parse(revision);
+  if (rawNumber !== "auto") prNumber.parse(rawNumber);
   if (!env.GITHUB_TOKEN) throw new Error("GITHUB_TOKEN is required for read-only PR context retrieval.");
+  const number = rawNumber === "auto"
+    ? selectPullForRevision(await github(`/repos/${repo}/commits/${revision}/pulls`, env.GITHUB_TOKEN), { repo, revision })
+    : Number(rawNumber);
   const base = `/repos/${repo}/pulls/${number}`;
   const pr = await github(base, env.GITHUB_TOKEN);
   const files = [];
@@ -59,8 +73,9 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     if (batch.length < 100) break;
     if (page === 2) truncatedFiles = true;
   }
-  const context = formatPRContext(pr, files, { repo, number: Number(number), revision, truncatedFiles });
+  const context = formatPRContext(pr, files, { repo, number, revision, truncatedFiles });
   writeFileSync(output, context, { flag: "wx", mode: 0o600 });
+  if (metadataOutput) writeFileSync(metadataOutput, JSON.stringify({ prNumber: number, revision }, null, 2) + "\n", { flag: "wx", mode: 0o600 });
   console.log(`Frozen PR #${number}: ${files.length} files; ${context.length} characters. Context written to ${output}.`);
 }
 

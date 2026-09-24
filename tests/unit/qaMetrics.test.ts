@@ -41,7 +41,7 @@ describe("PR QA usage summary", () => {
       expect(output).toContain("blocked");
     } finally { rmSync(dir, { recursive: true, force: true }); }
   });
-  test("comparison shows unknown values and escapes untrusted cell text", () => {
+  test("metrics table shows unknown values and escapes untrusted cell text", () => {
     const summary = comparisonTable([runMetrics({ ...manifest, agent: "fake|bad\nrow", metrics: {} }, 42)]);
     expect(summary).toContain("unknown");
     expect(summary).not.toContain("fake|bad");
