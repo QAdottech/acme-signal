@@ -55,6 +55,10 @@ describe("runtime adapters", () => {
     expect(invocation.command).toBe("claude");
     expect(invocation.args).toContain("--print");
     expect(invocation.args).toContain("dontAsk");
+    // Claude checks Write tool requests against Edit(path) permissions, not Write(path).
+    expect(invocation.args).toContain("Edit(./report.md)");
+    expect(invocation.args).toContain("Edit(./artifacts/**)");
+    expect(invocation.args).not.toContain("Write(./report.md)");
     expect(invocation.args.join(" ")).not.toMatch(/bypass|--resume|--continue/);
   });
   test("Codex uses ephemeral workspace-write and never asks for escalation", () => {
