@@ -13,7 +13,7 @@ What it does:
 3. Freezes PR title/body/diff excerpts into one shared context file.
 4. Runs two isolated jobs: Claude and Codex.
 5. Uploads metrics and browser evidence artifacts.
-6. Shows side-by-side operational metrics in the step summary.
+6. Shows side-by-side metrics plus each agent's reported tested/untested scope, confirmed defects, and suspected issues in the Actions run summary. These are unverified report excerpts, not PR verdicts.
 
 It rejects forks, stale SHAs, production deployments, missing HTTPS preview URLs, and ambiguous SHA→PR matches.
 
@@ -66,7 +66,7 @@ Each run writes `test-results/agent-browser/explore-<agent>-<uuid>/`:
 - `report.md` — agent-authored findings.
 - `agent.jsonl`, `agent.stderr.log`, `agent-exit.json` — runtime logs.
 - `artifacts/` — screenshots, snapshots, HAR, action logs, downloads.
-- `metrics.json` in CI — normalized run metrics.
+- `metrics.json` and `report-summary.json` in CI — run metrics and bounded excerpts for the Actions summary.
 
 Statuses:
 

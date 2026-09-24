@@ -10,6 +10,30 @@ const readJson = file => JSON.parse(readFileSync(file, "utf8"));
 const safe = value => String(value ?? "unknown").replace(/[\n\r|<>]/g, " ").slice(0, 160);
 const display = value => value === null || value === undefined || value === "unknown" ? "unknown" : String(value);
 
+export function reportSections(report) {
+  const sections = { scope: null, confirmed: null, suspected: null };
+  let current = null;
+  for (const line of report.split(/\r?\n/)) {
+    if (/^##\s+/.test(line)) {
+      const heading = line.replace(/^##\s+/, "").toLowerCase();
+      current = heading.startsWith("environment and scope") ? "scope" :
+        heading.startsWith("confirmed defects") ? "confirmed" :
+        heading.startsWith("suspected/intermittent issues") ? "suspected" : null;
+      if (current !== null) sections[current] = "";
+    } else if (current !== null && sections[current].length < 3500) {
+      sections[current] += `${line}\n`;
+    }
+  }
+  return Object.fromEntries(Object.entries(sections).map(([key, value]) => [key, value?.trim().slice(0, 3500) || null]));
+}
+
+const escapeHtml = text => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+function reviewSummary(agent, sections, status) {
+  const field = (heading, text) => `**${heading}**\n\n<pre>${escapeHtml(text ?? "Not recorded in the report.")}</pre>`;
+  if (!sections) return `### ${agent}: no report available\n\nStatus: ${escapeHtml(safe(status))}. Coverage and findings unknown.\n`;
+  return `### ${agent}: agent-reported exploration\n\nStatus: ${escapeHtml(safe(status))}. Findings are unverified; this is not a PR pass/fail verdict.\n\n${field("Tested and untested (as reported)", sections.scope)}\n\n${field("Confirmed defects (as reported)", sections.confirmed)}\n\n${field("Suspected issues (as reported)", sections.suspected)}\n`;
+}
+
 /** @param {{model: string, effectiveDate: string, inputUsdPerMillion: number, cachedInputUsdPerMillion: number, outputUsdPerMillion: number} | null} [rates] */
 export function runMetrics(manifest, pr, rates = null) {
   const agent = manifest?.agent ?? "unknown";
@@ -60,6 +84,8 @@ export function main(argv = process.argv.slice(2)) {
     const rates = ratesPath && existsSync(ratesPath) ? rateSchema.parse(readJson(ratesPath)) : null;
     const metrics = runMetrics(manifest, pr, rates);
     writeFileSync(join(dir, "metrics.json"), JSON.stringify(metrics, null, 2) + "\n");
+    const reportPath = join(dir, "report.md");
+    if (existsSync(reportPath)) writeFileSync(join(dir, "report-summary.json"), JSON.stringify(reportSections(readFileSync(reportPath, "utf8")), null, 2) + "\n");
     saveSummary(`### PR #${pr} exploratory QA\n${comparisonTable([metrics])}`);
     return;
   }
@@ -67,16 +93,27 @@ export function main(argv = process.argv.slice(2)) {
     const pr = z.coerce.number().int().positive().parse(argv[2]);
     const parent = resolve(argv[1]);
     const metrics = [];
+    const reviews = [];
     for (const agent of ["claude", "codex"]) {
       const dir = join(parent, `qa-metrics-${agent}`);
       const files = existsSync(dir) ? readdirSync(dir, { recursive: true }) : [];
       const matching = files.filter(file => String(file).endsWith("metrics.json"));
+      let item = runMetrics({ agent, status: "blocked", terminationReason: "missing-metrics" }, pr);
       if (matching.length === 1) {
-        try { metrics.push(readJson(join(dir, matching[0]))); continue; } catch { /* Report unknown, never success. */ }
+        try { item = readJson(join(dir, matching[0])); } catch { /* Report unknown, never success. */ }
       }
-      metrics.push(runMetrics({ agent, status: "blocked", terminationReason: "missing-metrics" }, pr));
+      metrics.push(item);
+      const reports = files.filter(file => String(file).endsWith("report-summary.json"));
+      let sections = null;
+      if (reports.length === 1) {
+        try {
+          sections = z.object({ scope: z.string().nullable(), confirmed: z.string().nullable(), suspected: z.string().nullable() })
+            .parse(readJson(join(dir, reports[0])));
+        } catch { /* Missing/malformed report remains unknown. */ }
+      }
+      reviews.push(reviewSummary(agent, sections, item.status));
     }
-    saveSummary(`### PR #${pr}: Claude / Codex run metrics\n${comparisonTable(metrics)}`);
+    saveSummary(`### PR #${pr}: Claude / Codex run metrics\n${comparisonTable(metrics)}\n${reviews.join("\n")}`);
     return;
   }
   throw new Error("Usage: node metrics.mjs run RUN_PARENT PR_NUMBER [RATE_CARD_JSON] | compare DOWNLOADED_ARTIFACTS PR_NUMBER");

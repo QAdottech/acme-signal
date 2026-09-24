@@ -246,7 +246,9 @@ jobs:
         if: always()
         with:
           name: qa-metrics-${{ matrix.agent }}
-          path: test-results/agent-browser/**/metrics.json
+          path: |
+            test-results/agent-browser/**/metrics.json
+            test-results/agent-browser/**/report-summary.json
           if-no-files-found: warn
           retention-days: 90
       - uses: actions/upload-artifact@v4
