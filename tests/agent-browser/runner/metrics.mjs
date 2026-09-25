@@ -118,7 +118,11 @@ export function main(argv = process.argv.slice(2)) {
       }
       reviews.push(reviewSummary(agent, sections, item.status));
     }
-    saveSummary(`### PR #${pr}: Claude / Codex run metrics\n${comparisonTable(metrics)}\n${reviews.join("\n")}`);
+    const hashes = metrics.map(item => /^[0-9a-f]{64}$/.test(item.inputHash) ? item.inputHash : "unknown");
+    const inputSummary = hashes[0] !== "unknown" && hashes[0] === hashes[1]
+      ? `Input bundle SHA-256: ${hashes[0]} (same for both agents)`
+      : `Input bundle hashes: unavailable or different (Claude: ${hashes[0]}, Codex: ${hashes[1]}). Check each run's task.md and inputHash.`;
+    saveSummary(`### PR #${pr}: Claude / Codex run metrics\n${comparisonTable(metrics)}\n${inputSummary}\n\n${reviews.join("\n")}`);
     if (argv[3]) {
       const runUrl = process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
         ? `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}` : null;

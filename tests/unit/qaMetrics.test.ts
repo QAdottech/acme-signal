@@ -57,6 +57,7 @@ describe("PR QA usage summary", () => {
       expect(output).not.toContain("<img src=x>");
       expect(output).toContain("Findings are unverified");
       expect(output).toContain("claude: no report available");
+      expect(output).toContain("Input bundle hashes: unavailable or different");
       expect(output).toContain("claude");
       expect(output).toContain("0.0007");
       expect(output).toContain("blocked");
@@ -70,6 +71,19 @@ describe("PR QA usage summary", () => {
     expect(sections.scope).not.toContain("Questions");
     expect(reportSections("unstructured report")).toEqual({ scope: null, tested: null, untested: null, confirmed: null, suspected: null });
     expect(reportSections("## Tested\n- Created a task.\n## Not tested\n- Mobile.\n## Confirmed defects\nNone.")).toMatchObject({ tested: "- Created a task.", untested: "- Mobile.", confirmed: "None." });
+  });
+  test("comparison shows when both agents received the same frozen input bundle", () => {
+    const dir = mkdtempSync(join(tmpdir(), "qa-inputs-"));
+    try {
+      const hash = "a".repeat(64);
+      for (const agent of ["claude", "codex"]) {
+        const target = join(dir, `qa-metrics-${agent}`, "r1");
+        mkdirSync(target, { recursive: true });
+        writeFileSync(join(target, "metrics.json"), JSON.stringify(runMetrics({ ...manifest, agent, inputHash: hash }, 42)));
+      }
+      const output = execFileSync(process.execPath, [join(process.cwd(), "tests/agent-browser/runner/metrics.mjs"), "compare", dir, "42"], { encoding: "utf8" });
+      expect(output).toContain(`Input bundle SHA-256: ${hash} (same for both agents)`);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
   });
   test("metrics table shows unknown values and escapes untrusted cell text", () => {
     const summary = comparisonTable([runMetrics({ ...manifest, agent: "fake|bad\nrow", metrics: {} }, 42)]);

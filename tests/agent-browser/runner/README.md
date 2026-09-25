@@ -10,10 +10,10 @@ What it does:
 
 1. Takes the Vercel preview URL and deployed SHA from the deployment event.
 2. Finds the open same-repo PR with that exact head SHA.
-3. Freezes PR title/body/diff excerpts into one shared context file.
+3. Freezes PR title/body/diff excerpts into one shared context file. The `context` job summary shows its source SHA, brief excerpt, changed filenames, size and hash; download `approved-pr-context` for the exact text.
 4. Runs two isolated jobs: Claude and Codex.
 5. Uploads metrics and browser evidence artifacts.
-6. Shows metrics in the Actions run summary and updates a single bot comment on the PR with each agent's tested/untested scope and findings, linked to the run. Stale PR revisions are not posted. These are unverified report excerpts, not PR verdicts.
+6. Shows metrics and whether both agents received the same input bundle hash in the Actions run summary, and updates a single bot comment on the PR with each agent's tested/untested scope and findings, linked to the run. Stale PR revisions are not posted. These are unverified report excerpts, not PR verdicts.
 
 It rejects forks, stale SHAs, production deployments, missing HTTPS preview URLs, and ambiguous SHA→PR matches.
 
