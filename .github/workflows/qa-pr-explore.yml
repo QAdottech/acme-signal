@@ -70,12 +70,12 @@ jobs:
       codex_rates: ${{ steps.settings.outputs.codex_rates }}
       rate_effective_date: ${{ steps.settings.outputs.rate_effective_date }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.workflow_sha }}
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22.22.0'
           cache: pnpm
@@ -153,7 +153,7 @@ jobs:
           const metadata = JSON.parse(readFileSync('test-results/pr-run.json', 'utf8'));
           console.log(`pr_number=${metadata.prNumber}`);
           NODE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: approved-pr-context
           path: test-results/pr-context.md
@@ -172,12 +172,12 @@ jobs:
     runs-on: ${{ matrix.agent == 'codex' && 'ubuntu-22.04' || 'ubuntu-latest' }}
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.workflow_sha }}
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22.22.0'
           cache: pnpm
@@ -188,7 +188,7 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - name: Install verified agent CLIs (no authentication yet)
         run: npm install --global @anthropic-ai/claude-code@2.1.280 @openai/codex@0.147.0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: approved-pr-context
           path: test-results
@@ -242,7 +242,7 @@ jobs:
         env:
           PR_NUMBER: ${{ needs.context.outputs.pr_number }}
         run: node tests/agent-browser/runner/metrics.mjs run test-results/agent-browser "$PR_NUMBER" test-results/codex-rate-card.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: qa-metrics-${{ matrix.agent }}
@@ -251,7 +251,7 @@ jobs:
             test-results/agent-browser/**/report-summary.json
           if-no-files-found: warn
           retention-days: 90
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: qa-evidence-${{ matrix.agent }}
@@ -266,22 +266,33 @@ jobs:
     if: always() && needs.context.result == 'success'
     needs: [context, explore]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.workflow_sha }}
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22.22.0'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           pattern: qa-metrics-*
           path: qa-artifacts
-      - name: Show side-by-side metrics (not a verdict)
+      - name: Show side-by-side metrics and prepare PR comment (not a verdict)
         env:
           PR_NUMBER: ${{ needs.context.outputs.pr_number }}
-        run: node tests/agent-browser/runner/metrics.mjs compare qa-artifacts "$PR_NUMBER"
+          DEPLOYED_SHA: ${{ needs.context.outputs.deployed_sha }}
+        run: node tests/agent-browser/runner/metrics.mjs compare qa-artifacts "$PR_NUMBER" qa-comment.md
+      - name: Post or update PR coverage comment
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.context.outputs.pr_number }}
+          DEPLOYED_SHA: ${{ needs.context.outputs.deployed_sha }}
+        run: node tests/agent-browser/runner/qa-comment.mjs "$REPOSITORY" "$PR_NUMBER" "$DEPLOYED_SHA" qa-comment.md

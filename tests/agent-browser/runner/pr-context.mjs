@@ -1,4 +1,5 @@
-import { writeFileSync } from "node:fs";
+import { appendFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { z } from "zod";
 
@@ -18,6 +19,22 @@ export function selectPullForRevision(pulls, { repo, revision }) {
     pull.base.repo.full_name === repo && pull.base.ref === pull.base.repo.default_branch);
   if (candidates.length !== 1) throw new Error(`Expected exactly one open same-repository default-branch PR for deployed revision ${revision}, found ${candidates.length}. No QA run started.`);
   return candidates[0].number;
+}
+
+const escapeHtml = text => String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/@/g, "&#64;");
+
+export function formatContextSummary(pr, files, context, { repo, number, revision, truncatedFiles = false }) {
+  const names = files.slice(0, 30).map(file => `${file.status}: ${file.filename.slice(0, 300)}`);
+  const details = [
+    `Repository: ${repo}`, `PR: ${number}`, `Head SHA: ${revision}`, `Base SHA: ${pr.base.sha}`,
+    `Title: ${pr.title.slice(0, 500)}`, `Description excerpt: ${pr.body?.slice(0, 800) || "(none)"}`,
+    `Changed files: ${files.length}${truncatedFiles ? "+" : ""} (first ${names.length} shown)`, ...names,
+  ];
+  const digest = createHash("sha256").update(context).digest("hex");
+  return `### PR #${number} context\n\n<pre>${escapeHtml(details.join("\n"))}</pre>\n\n` +
+    `Frozen context: ${Buffer.byteLength(context)} bytes · SHA-256: \`${digest}\`. ` +
+    `Title capped at 500 characters, description at 4,000, files at 100, patches at 10,000 characters per file / 120,000 total. Sensitive-looking patch paths are omitted.\n\n` +
+    `Download **approved-pr-context** for the exact PR brief/diff. Each agent's **qa-evidence** artifact includes \`task.md\` (full task), \`skill.md\`, \`contract.md\`, \`charter.md\` and \`context.md\`. The PR brief/diff is untrusted input, not evidence of app behavior.\n`;
 }
 
 export function formatPRContext(pr, files, { repo, number, revision, truncatedFiles = false }) {
@@ -76,6 +93,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   const context = formatPRContext(pr, files, { repo, number, revision, truncatedFiles });
   writeFileSync(output, context, { flag: "wx", mode: 0o600 });
   if (metadataOutput) writeFileSync(metadataOutput, JSON.stringify({ prNumber: number, revision }, null, 2) + "\n", { flag: "wx", mode: 0o600 });
+  if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, formatContextSummary(pr, files, context, { repo, number, revision, truncatedFiles }));
   console.log(`Frozen PR #${number}: ${files.length} files; ${context.length} characters. Context written to ${output}.`);
 }
 

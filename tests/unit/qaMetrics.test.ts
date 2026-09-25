@@ -39,12 +39,25 @@ describe("PR QA usage summary", () => {
       mkdirSync(join(artifacts, "qa-metrics-codex", "r1"), { recursive: true });
       writeFileSync(join(artifacts, "qa-metrics-codex", "r1", "metrics.json"), JSON.stringify(saved));
       writeFileSync(join(artifacts, "qa-metrics-codex", "r1", "report-summary.json"), JSON.stringify(review));
-      const output = execFileSync(process.execPath, [tool, "compare", artifacts, "42"], { encoding: "utf8" });
+      const comment = join(dir, "comment.md");
+      const output = execFileSync(process.execPath, [tool, "compare", artifacts, "42", comment], { encoding: "utf8" });
+      const body = readFileSync(comment, "utf8");
+      expect(body).toContain("<!-- acme-pr-exploratory-qa -->");
+      expect(body).toContain("Coverage (tested and untested mixed in report)");
+      expect(body).toContain("Coverage not reported by claude");
+      expect(body).toContain("Possible task picker issue.");
+      expect(body).not.toContain("<img src=x>");
+      writeFileSync(join(artifacts, "qa-metrics-codex", "r1", "report-summary.json"), JSON.stringify({ ...review, tested: "Created a task", untested: "Mobile layout" }));
+      execFileSync(process.execPath, [tool, "compare", artifacts, "42", comment]);
+      const structured = readFileSync(comment, "utf8");
+      expect(structured).toContain("**Tested (as reported)**\n\n<pre>Created a task</pre>");
+      expect(structured).toContain("**Not tested (as reported)**\n\n<pre>Mobile layout</pre>");
       expect(output).toContain("Tested People; not tested Deals.");
       expect(output).toContain("Possible task picker issue.");
       expect(output).not.toContain("<img src=x>");
       expect(output).toContain("Findings are unverified");
       expect(output).toContain("claude: no report available");
+      expect(output).toContain("Input bundle hashes: unavailable or different");
       expect(output).toContain("claude");
       expect(output).toContain("0.0007");
       expect(output).toContain("blocked");
@@ -56,7 +69,21 @@ describe("PR QA usage summary", () => {
     expect(sections.confirmed).toBe("None.");
     expect(sections.suspected.length).toBeLessThan(4500);
     expect(sections.scope).not.toContain("Questions");
-    expect(reportSections("unstructured report")).toEqual({ scope: null, confirmed: null, suspected: null });
+    expect(reportSections("unstructured report")).toEqual({ scope: null, tested: null, untested: null, confirmed: null, suspected: null });
+    expect(reportSections("## Tested\n- Created a task.\n## Not tested\n- Mobile.\n## Confirmed defects\nNone.")).toMatchObject({ tested: "- Created a task.", untested: "- Mobile.", confirmed: "None." });
+  });
+  test("comparison shows when both agents received the same frozen input bundle", () => {
+    const dir = mkdtempSync(join(tmpdir(), "qa-inputs-"));
+    try {
+      const hash = "a".repeat(64);
+      for (const agent of ["claude", "codex"]) {
+        const target = join(dir, `qa-metrics-${agent}`, "r1");
+        mkdirSync(target, { recursive: true });
+        writeFileSync(join(target, "metrics.json"), JSON.stringify(runMetrics({ ...manifest, agent, inputHash: hash }, 42)));
+      }
+      const output = execFileSync(process.execPath, [join(process.cwd(), "tests/agent-browser/runner/metrics.mjs"), "compare", dir, "42"], { encoding: "utf8" });
+      expect(output).toContain(`Input bundle SHA-256: ${hash} (same for both agents)`);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
   });
   test("metrics table shows unknown values and escapes untrusted cell text", () => {
     const summary = comparisonTable([runMetrics({ ...manifest, agent: "fake|bad\nrow", metrics: {} }, 42)]);
