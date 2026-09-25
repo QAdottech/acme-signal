@@ -191,6 +191,17 @@ export function getTasksForPerson(personId: string): Task[] {
   return getTasks().filter((t) => t.relatedPersonId === personId);
 }
 
+// Includes today and the following seven calendar days, in UTC like stored due dates.
+export function isDueSoon(task: Task): boolean {
+  if (task.status === "done" || !task.dueDate) return false;
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
+  const end = new Date(now);
+  end.setUTCDate(end.getUTCDate() + 7);
+  const lastDay = end.toISOString().split("T")[0];
+  return task.dueDate >= today && task.dueDate <= lastDay;
+}
+
 export function getOverdueTasks(): Task[] {
   const today = new Date().toISOString().split("T")[0];
   return getTasks().filter(
