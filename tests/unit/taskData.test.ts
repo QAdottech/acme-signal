@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  addTask, deleteTask, getOverdueTasks, getTask, getTasks,
+  addTask, deleteTask, getOverdueTasks, getTask, getTasks, isDueSoon,
   getTasksForDeal, getTasksForOrganization, getTasksForPerson,
   saveTasks, updateTask,
 } from "@/lib/taskData";
@@ -49,6 +49,21 @@ describe("tasks", () => {
     expect(getTasksForOrganization("company-a")).toEqual([related]);
     expect(getTasksForPerson("person-a")).toEqual([related]);
     expect(getTasksForDeal("missing")).toEqual([]);
+  });
+
+  it("includes unfinished tasks due today through seven days from now", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-07T23:30:00Z"));
+    const task = (dueDate: string | undefined, status: Task["status"] = "todo"): Task => ({
+      ...input, id: dueDate ?? "no-date", createdAt: "2026-03-01T00:00:00Z", dueDate, status,
+    });
+
+    expect(isDueSoon(task("2026-03-06"))).toBe(false);
+    expect(isDueSoon(task("2026-03-07"))).toBe(true);
+    expect(isDueSoon(task("2026-03-14", "in_progress"))).toBe(true);
+    expect(isDueSoon(task("2026-03-15"))).toBe(false);
+    expect(isDueSoon(task("2026-03-08", "done"))).toBe(false);
+    expect(isDueSoon(task(undefined))).toBe(false);
   });
 
   it("only treats unfinished tasks due before today as overdue (UTC boundary)", () => {

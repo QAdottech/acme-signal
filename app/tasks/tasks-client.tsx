@@ -19,7 +19,7 @@ import { Search, Plus, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import type { Task, TaskStatus, TaskPriority } from "@/types/task";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
-import { getTasks, saveTasks, addTask as addTaskToStore, deleteTask as deleteTaskFromStore } from "@/lib/taskData";
+import { getTasks, saveTasks, addTask as addTaskToStore, deleteTask as deleteTaskFromStore, isDueSoon } from "@/lib/taskData";
 import { getDeals } from "@/lib/dealData";
 import { getOrganizations } from "@/lib/organizationData";
 import { getPeople } from "@/lib/personData";
@@ -203,6 +203,8 @@ export function TasksClient() {
 
     if (activeTab === "overdue") {
       filtered = filtered.filter(isOverdue);
+    } else if (activeTab === "due_soon") {
+      filtered = filtered.filter(isDueSoon);
     } else if (activeTab === "my_tasks" && user) {
       filtered = filtered.filter((task) => task.assignee === user.fullName);
     }
@@ -212,6 +214,10 @@ export function TasksClient() {
 
   const overdueCount = useMemo(
     () => tasks.filter(isOverdue).length,
+    [tasks]
+  );
+  const dueSoonCount = useMemo(
+    () => tasks.filter(isDueSoon).length,
     [tasks]
   );
 
@@ -367,6 +373,14 @@ export function TasksClient() {
               </span>
             )}
           </TabsTrigger>
+          <TabsTrigger value="due_soon" title="Due today or in the next seven days">
+            Due Soon
+            {dueSoonCount > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 text-xs font-medium">
+                {dueSoonCount}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <div className="mt-4 mb-4">
@@ -463,6 +477,35 @@ export function TasksClient() {
                 {searchTerm
                   ? "No overdue tasks found matching your search."
                   : "No overdue tasks. You're all caught up!"}
+              </p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="due_soon">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10" />
+                <TableHead>Title</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Due Date</TableHead>
+                <TableHead>Related</TableHead>
+                <TableHead>Assignee</TableHead>
+                <TableHead className="w-10" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTasks.map(renderTaskRow)}
+            </TableBody>
+          </Table>
+          {filteredTasks.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500 dark:text-gray-400">
+                {searchTerm
+                  ? "No due soon tasks found matching your search."
+                  : "No tasks due in the next seven days."}
               </p>
             </div>
           )}
