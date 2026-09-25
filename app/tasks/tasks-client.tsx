@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Plus, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import type { Task, TaskStatus, TaskPriority } from "@/types/task";
 import type { Deal } from "@/types/deal";
@@ -89,6 +90,7 @@ export function TasksClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState<"all" | TaskPriority>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
@@ -201,6 +203,14 @@ export function TasksClient() {
       task.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    if (priorityFilter !== "all") {
+      filtered = filtered.filter((task) =>
+        priorityFilter === "urgent"
+          ? task.priority === "high"
+          : task.priority === priorityFilter
+      );
+    }
+
     if (activeTab === "overdue") {
       filtered = filtered.filter(isOverdue);
     } else if (activeTab === "due_soon") {
@@ -210,7 +220,7 @@ export function TasksClient() {
     }
 
     return filtered.sort(sortByDueDate);
-  }, [tasks, searchTerm, activeTab, user]);
+  }, [tasks, searchTerm, priorityFilter, activeTab, user]);
 
   const overdueCount = useMemo(
     () => tasks.filter(isOverdue).length,
@@ -383,8 +393,8 @@ export function TasksClient() {
           </TabsTrigger>
         </TabsList>
 
-        <div className="mt-4 mb-4">
-          <div className="relative max-w-md">
+        <div className="mt-4 mb-4 flex flex-wrap gap-3">
+          <div className="relative w-full max-w-md">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search tasks..."
@@ -393,6 +403,25 @@ export function TasksClient() {
               className="pl-8 bg-gray-50 dark:bg-gray-800 border-transparent focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
             />
           </div>
+          <Select
+            value={priorityFilter}
+            onValueChange={(value) => {
+              if (value === "all" || value === "low" || value === "medium" || value === "high" || value === "urgent") {
+                setPriorityFilter(value);
+              }
+            }}
+          >
+            <SelectTrigger aria-label="Filter by priority" className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All priorities</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="urgent">Urgent</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <TabsContent value="all">

@@ -1,5 +1,21 @@
 import { test, expect } from "./fixtures";
 
+test("TASKS-03: priority filter narrows tasks across tabs and can be cleared", async ({ signedInPage: page }) => {
+  await page.getByRole("link", { name: "Tasks", exact: true }).click();
+  const priority = page.getByRole("combobox", { name: "Filter by priority" });
+
+  await priority.click();
+  await page.getByRole("option", { name: "Low" }).click();
+  await expect(page.getByRole("row").filter({ hasText: "Prepare Perplexity onboarding docs" })).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: "Send proposal to Anthropic" })).toHaveCount(0);
+
+  await page.getByRole("tab", { name: /Due Soon/ }).click();
+  await expect(page.getByRole("row").filter({ hasText: "Prepare Perplexity onboarding docs" })).toBeVisible();
+  await priority.click();
+  await page.getByRole("option", { name: "All priorities" }).click();
+  await expect(page.getByRole("row").filter({ hasText: "Send proposal to Anthropic" })).toBeVisible();
+});
+
 test("TASKS-02: due soon shows only unfinished tasks due within seven days", async ({ signedInPage: page }) => {
   await page.clock.setFixedTime(new Date("2026-06-01T12:00:00Z"));
   await page.getByRole("link", { name: "Tasks", exact: true }).click();
