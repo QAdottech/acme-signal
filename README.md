@@ -2,7 +2,7 @@
 
 A CRM platform for managing contacts, organizations, and collections.
 
-This project is a demo application set up for QA.tech testing purposes.
+This project is a demo CRM application with standard automated tests and PR browser-testing workflows.
 
 ## Development
 
@@ -23,4 +23,4 @@ pnpm test:e2e       # Playwright journeys against a managed production build
 pnpm test:all       # Test typecheck, unit coverage, and E2E
 ```
 
-See [tests/README.md](tests/README.md) for coverage, isolation, CI, debugging, and the scenario-by-scenario QA.tech comparison contract.
+See [tests/README.md](tests/README.md) for coverage, isolation, CI, debugging, and browser scenario contracts.

@@ -1,4 +1,4 @@
-name: PR exploratory browser QA (approved)
+name: PR exploratory browser QA
 
 on:
   workflow_dispatch:
@@ -42,23 +42,37 @@ on:
         description: 'Type APPROVE_PAID_QA_SAFE_PREVIEW after verifying target, email/Turnstile safeguards, billing and PR context'
         type: string
         required: true
+  deployment_status:
 
 permissions:
   contents: read
   pull-requests: read
+  deployments: read
 
 concurrency:
-  group: pr-qa-${{ inputs.pr_number }}-${{ inputs.deployed_sha }}
+  group: pr-qa-${{ github.event_name }}-${{ inputs.pr_number || github.event.deployment.sha || github.run_id }}-${{ inputs.deployed_sha || github.event.deployment_status.id || github.run_attempt }}
   cancel-in-progress: false
 
 jobs:
   context:
-    if: github.ref == 'refs/heads/main' && inputs.approval == 'APPROVE_PAID_QA_SAFE_PREVIEW'
+    if: >
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.approval == 'APPROVE_PAID_QA_SAFE_PREVIEW') ||
+      (github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success' && github.event.deployment.environment != 'Production' && (github.event.deployment_status.environment_url != '' || github.event.deployment_status.target_url != ''))
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      pr_number: ${{ steps.resolved.outputs.pr_number }}
+      preview_url: ${{ steps.settings.outputs.preview_url }}
+      deployed_sha: ${{ steps.settings.outputs.deployed_sha }}
+      claude_model: ${{ steps.settings.outputs.claude_model }}
+      codex_model: ${{ steps.settings.outputs.codex_model }}
+      seconds: ${{ steps.settings.outputs.seconds }}
+      codex_rates: ${{ steps.settings.outputs.codex_rates }}
+      rate_effective_date: ${{ steps.settings.outputs.rate_effective_date }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.workflow_sha }}
           persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -66,15 +80,79 @@ jobs:
           node-version: '22.22.0'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Resolve QA trigger inputs
+        id: settings
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_PR_NUMBER: ${{ inputs.pr_number || '' }}
+          MANUAL_PREVIEW_URL: ${{ inputs.preview_url || '' }}
+          MANUAL_DEPLOYED_SHA: ${{ inputs.deployed_sha || '' }}
+          MANUAL_CLAUDE_MODEL: ${{ inputs.claude_model || '' }}
+          MANUAL_CODEX_MODEL: ${{ inputs.codex_model || '' }}
+          MANUAL_SECONDS: ${{ inputs.seconds || '' }}
+          MANUAL_CODEX_RATES: ${{ inputs.codex_rates || '' }}
+          MANUAL_RATE_DATE: ${{ inputs.rate_effective_date || '' }}
+          AUTO_PREVIEW_URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url || '' }}
+          AUTO_DEPLOYED_SHA: ${{ github.event.deployment.sha || '' }}
+          AUTO_CLAUDE_MODEL: ${{ vars.QA_CLAUDE_MODEL || 'claude-opus-5-5' }}
+          AUTO_CODEX_MODEL: ${{ vars.QA_CODEX_MODEL || 'gpt-6-sol' }}
+          AUTO_SECONDS: ${{ vars.QA_EXPLORE_SECONDS || '600' }}
+          AUTO_CODEX_RATES: ${{ vars.QA_CODEX_RATES || '' }}
+          AUTO_RATE_DATE: ${{ vars.QA_CODEX_RATE_EFFECTIVE_DATE || '' }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            pr_number="$MANUAL_PR_NUMBER"
+            preview_url="$MANUAL_PREVIEW_URL"
+            deployed_sha="$MANUAL_DEPLOYED_SHA"
+            claude_model="$MANUAL_CLAUDE_MODEL"
+            codex_model="$MANUAL_CODEX_MODEL"
+            seconds="$MANUAL_SECONDS"
+            codex_rates="$MANUAL_CODEX_RATES"
+            rate_date="$MANUAL_RATE_DATE"
+          else
+            pr_number="auto"
+            preview_url="$AUTO_PREVIEW_URL"
+            deployed_sha="$AUTO_DEPLOYED_SHA"
+            claude_model="$AUTO_CLAUDE_MODEL"
+            codex_model="$AUTO_CODEX_MODEL"
+            seconds="$AUTO_SECONDS"
+            codex_rates="$AUTO_CODEX_RATES"
+            rate_date="$AUTO_RATE_DATE"
+          fi
+          [[ "$preview_url" =~ ^https:// ]] || { echo "Preview URL must be HTTPS." >&2; exit 1; }
+          [[ "$deployed_sha" =~ ^[0-9a-f]{40}$ ]] || { echo "Deployed SHA must be a 40-character lowercase hex commit." >&2; exit 1; }
+          [[ "$seconds" =~ ^[0-9]+$ ]] && (( seconds >= 1 && seconds <= 3600 )) || { echo "Seconds must be 1-3600." >&2; exit 1; }
+          [[ -n "$claude_model" && -n "$codex_model" ]] || { echo "Model IDs must be configured." >&2; exit 1; }
+          {
+            echo "pr_number=$pr_number"
+            echo "preview_url=$preview_url"
+            echo "deployed_sha=$deployed_sha"
+            echo "claude_model=$claude_model"
+            echo "codex_model=$codex_model"
+            echo "seconds=$seconds"
+            echo "rate_effective_date=$rate_date"
+            echo "codex_rates<<__QA_RATES__"
+            printf '%s\n' "$codex_rates"
+            echo "__QA_RATES__"
+          } >> "$GITHUB_OUTPUT"
       - name: Freeze approved PR context (never checkout PR code)
         env:
           GITHUB_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-          DEPLOYED_SHA: ${{ inputs.deployed_sha }}
+          PR_NUMBER: ${{ steps.settings.outputs.pr_number }}
+          DEPLOYED_SHA: ${{ steps.settings.outputs.deployed_sha }}
         run: |
           mkdir -p test-results
-          node tests/agent-browser/runner/pr-context.mjs "$REPOSITORY" "$PR_NUMBER" "$DEPLOYED_SHA" test-results/pr-context.md
+          node tests/agent-browser/runner/pr-context.mjs "$REPOSITORY" "$PR_NUMBER" "$DEPLOYED_SHA" test-results/pr-context.md test-results/pr-run.json
+      - name: Publish resolved PR metadata
+        id: resolved
+        run: |
+          node --input-type=module <<'NODE' >> "$GITHUB_OUTPUT"
+          import { readFileSync } from 'node:fs';
+          const metadata = JSON.parse(readFileSync('test-results/pr-run.json', 'utf8'));
+          console.log(`pr_number=${metadata.prNumber}`);
+          NODE
       - uses: actions/upload-artifact@v4
         with:
           name: approved-pr-context
@@ -90,35 +168,44 @@ jobs:
           - agent: claude
           - agent: codex
     name: Explore PR with ${{ matrix.agent }}
-    runs-on: ubuntu-latest
-    environment: qa-browser-benchmark
+    # Codex workspace-write uses bubblewrap user namespaces, blocked on Ubuntu 24.04 runners.
+    runs-on: ${{ matrix.agent == 'codex' && 'ubuntu-22.04' || 'ubuntu-latest' }}
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.workflow_sha }}
           persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22.22.0'
           cache: pnpm
+      - name: Verify Codex sandbox can create a user namespace (before model calls)
+        if: matrix.agent == 'codex'
+        run: unshare --user --map-root-user --mount true
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
       - name: Install verified agent CLIs (no authentication yet)
-        run: npm install --global @anthropic-ai/claude-code@2.1.123 @openai/codex@0.147.0
+        run: npm install --global @anthropic-ai/claude-code@2.1.280 @openai/codex@0.147.0
       - uses: actions/download-artifact@v4
         with:
           name: approved-pr-context
           path: test-results
       - name: Record explicitly supplied model-specific price card
         env:
-          CODEX_MODEL: ${{ inputs.codex_model }}
-          CODEX_RATES: ${{ inputs.codex_rates }}
-          RATE_DATE: ${{ inputs.rate_effective_date }}
+          CODEX_MODEL: ${{ needs.context.outputs.codex_model }}
+          CODEX_RATES: ${{ needs.context.outputs.codex_rates }}
+          RATE_DATE: ${{ needs.context.outputs.rate_effective_date }}
         run: |
           node --input-type=module <<'NODE'
           import { writeFileSync } from 'node:fs';
-          const rates = JSON.parse(process.env.CODEX_RATES ?? 'null');
+          const raw = process.env.CODEX_RATES?.trim();
+          if (!raw) {
+            console.log('No Codex rate card configured; Codex USD will be reported as unknown, not zero.');
+            process.exit(0);
+          }
+          const rates = JSON.parse(raw);
           if (!rates || typeof rates !== 'object' || Array.isArray(rates) ||
               !['input', 'cached', 'output'].every(key => typeof rates[key] === 'number' && Number.isFinite(rates[key]) && rates[key] >= 0)) {
             throw new Error('CODEX_RATES must contain nonnegative numeric input, cached and output USD rates. No model call started.');
@@ -134,11 +221,11 @@ jobs:
         continue-on-error: true
         env:
           QA_AGENT: ${{ matrix.agent }}
-          CLAUDE_MODEL: ${{ inputs.claude_model }}
-          CODEX_MODEL: ${{ inputs.codex_model }}
-          TARGET_URL: ${{ inputs.preview_url }}
-          DEPLOYED_SHA: ${{ inputs.deployed_sha }}
-          SECONDS: ${{ inputs.seconds }}
+          CLAUDE_MODEL: ${{ needs.context.outputs.claude_model }}
+          CODEX_MODEL: ${{ needs.context.outputs.codex_model }}
+          TARGET_URL: ${{ needs.context.outputs.preview_url }}
+          DEPLOYED_SHA: ${{ needs.context.outputs.deployed_sha }}
+          SECONDS: ${{ needs.context.outputs.seconds }}
           ANTHROPIC_API_KEY: ${{ matrix.agent == 'claude' && secrets.ANTHROPIC_API_KEY || '' }}
           CODEX_API_KEY: ${{ matrix.agent == 'codex' && secrets.CODEX_API_KEY || '' }}
         run: |
@@ -153,13 +240,15 @@ jobs:
         id: metrics
         if: always()
         env:
-          PR_NUMBER: ${{ inputs.pr_number }}
+          PR_NUMBER: ${{ needs.context.outputs.pr_number }}
         run: node tests/agent-browser/runner/metrics.mjs run test-results/agent-browser "$PR_NUMBER" test-results/codex-rate-card.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: qa-metrics-${{ matrix.agent }}
-          path: test-results/agent-browser/**/metrics.json
+          path: |
+            test-results/agent-browser/**/metrics.json
+            test-results/agent-browser/**/report-summary.json
           if-no-files-found: warn
           retention-days: 90
       - uses: actions/upload-artifact@v4
@@ -180,15 +269,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.workflow_sha }}
           persist-credentials: false
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22.22.0'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
           pattern: qa-metrics-*
           path: qa-artifacts
       - name: Show side-by-side metrics (not a verdict)
         env:
-          PR_NUMBER: ${{ inputs.pr_number }}
+          PR_NUMBER: ${{ needs.context.outputs.pr_number }}
         run: node tests/agent-browser/runner/metrics.mjs compare qa-artifacts "$PR_NUMBER"

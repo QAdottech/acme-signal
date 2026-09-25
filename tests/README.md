@@ -59,11 +59,11 @@ Coverage includes **all** `lib` modules, `middleware.ts`, and API routes, includ
 
 Vite 7 is an explicit testing dependency because Vite 8 produced TSX coverage parsing errors with this repo's `jsx: preserve` configuration. Vitest does not replace Next's app bundler.
 
-## Browser scenarios / QA.tech comparison contract
+## Browser scenarios
 
-Scenario IDs are embedded in test names and reports. Give QA.tech the same objectives and expected outcomes, without requiring the same selectors or exact sequence of clicks.
+Scenario IDs are embedded in test names and reports. These objectives can be reused by Playwright, QA.tech, or agentic browser-testing workflows without requiring the same selectors or exact click sequence.
 
-The repository-local [agent-browser QA skill](../.agents/skills/acme-agent-browser-qa/SKILL.md) executes UI regression and exploratory testing. See [`agent-browser/README.md`](agent-browser/README.md) for setup, reusable prompts, the shared JSON scenario contract, evidence collection and comparison guidance. An optional [Claude/Codex launcher](agent-browser/runner/README.md) and manually approved [PR workflow](../.github/workflows/qa-pr-explore.yml) support change-focused exploration with token and cost-provenance summaries; neither validates findings or replaces the tests. The Playwright scenarios below remain the deterministic baseline.
+The repository-local [agent-browser QA skill](../.agents/skills/acme-agent-browser-qa/SKILL.md) executes UI regression and exploratory testing. See [`agent-browser/README.md`](agent-browser/README.md) for setup, reusable prompts, the shared JSON scenario contract, and evidence collection. An optional [Claude/Codex launcher](agent-browser/runner/README.md) and Vercel-preview-triggered [PR workflow](../.github/workflows/qa-pr-explore.yml) support change-focused exploration with token and cost-provenance summaries; neither validates findings or replaces the tests. The Playwright scenarios below remain the deterministic baseline.
 
 Unless marked public, start in a fresh browser and log in with the seeded demo account. Self-service signup is unavailable. Keep the default demo data.
 
@@ -79,13 +79,13 @@ Unless marked public, start in a fresh browser and log in with the seeded demo a
 | SIGN-01 | **Public:** open a proposal, submit without name/consent and verify all errors. Name plus terms consent alone still fails. With both consents, signing shows confirmation. |
 | NETWORK-01 | **Public:** send the custom-header request. Verify the actual POST headers/body, 200 response, echoed values, and success feedback in the UI. |
 
-For an apples-to-apples comparison:
+When evaluating browser-testing workflows:
 
-1. Use the same commit/build, demo data, Chromium version, desktop viewport (1440×1000), locale (`en-US`), and timezone (`UTC`). Use equivalent clock control for TASKS-01, or yesterday's UTC date if the other runner cannot fix time; record that difference.
-2. Start with a clean browser for each scenario. Disable real email delivery on the QA.tech target too; this repository does not configure an external deployment.
+1. Use the same commit/build, demo data, Chromium version, desktop viewport (1440×1000), locale (`en-US`), and timezone (`UTC`). Use equivalent clock control for TASKS-01, or yesterday's UTC date if the runner cannot fix time; record that difference.
+2. Start with a clean browser for each scenario. Disable real email delivery on any deployed target.
 3. Keep the same expected outcomes above. Distinguish discovering new bugs from executing these known regression checks.
 4. Record first-run failures, rerun results, scenario runtime, setup/build time separately, authoring/maintenance effort, and evidence quality. Retry count is **zero** here so flakiness is not hidden.
-5. Run repeated trials (`--repeat-each=3`) before drawing conclusions. Do not equate a green run, test count, or unit coverage percentage with defect-detection effectiveness. A stronger later comparison can use an identical, documented set of seeded regressions for both tools.
+5. Run repeated trials (`--repeat-each=3`) before drawing conclusions. Do not equate a green run, test count, or unit coverage percentage with defect-detection effectiveness.
 
 ### Evidence and CI
 

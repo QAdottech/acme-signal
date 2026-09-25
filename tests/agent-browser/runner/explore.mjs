@@ -11,7 +11,16 @@ import { usageFromEvents } from "./usage.mjs";
 import { runProcess } from "./process.mjs";
 
 const root = fileURLToPath(new URL("../../..", import.meta.url));
-const tested = { claude: "2.1.123", codex: "0.147.0", browser: "0.26.0" };
+const tested = { codex: "0.147.0", browser: "0.26.0" };
+const minClaudePatch = 280;
+
+export function supportedCliVersion(agent, version) {
+  if (agent === "claude") {
+    const match = /^2\.1\.(\d+) \(Claude Code\)$/.exec(version);
+    return match !== null && Number(match[1]) >= minClaudePatch;
+  }
+  return agent === "codex" && version === `codex-cli ${tested.codex}`;
+}
 const optionsSchema = z.object({
   agent: z.enum(["claude", "codex"]), model: z.string().min(1),
   url: z.string().url().refine(value => {
@@ -73,7 +82,7 @@ Write report.md before stopping, updating it during the run so partial findings 
 - Suspected/intermittent issues (also record frequency and reproduction attempts)
 - Questions and usability suggestions (separate from defects)
 - Obstacles, time breakdown, human intervention, and next checks
-Do not assert a bug was introduced by this PR without a base-revision comparison. Do not claim comprehensive coverage, no bugs, or an automatic pass. Findings need human review.
+Do not assert a bug was introduced by this PR without checking the base revision. Do not claim comprehensive coverage, no bugs, or an automatic pass. Findings need human review.
 
 ## QA skill\n${skill}
 
@@ -147,11 +156,11 @@ export async function main(argv = process.argv.slice(2)) {
     manifest.taskHash = hash(taskText);
     json(resolve(runDir, "manifest.json"), manifest);
     if (options.execute) {
-      if (manifest.versions.agent.match(/\d+\.\d+\.\d+/)?.[0] !== tested[options.agent] || manifest.versions.browserTool !== `agent-browser ${tested.browser}`) throw new Error(`CLI version mismatch or missing executable. Verified versions: ${JSON.stringify(tested)}. Inspect new CLI help and update adapters/tests before execution.`);
+      if (!supportedCliVersion(options.agent, manifest.versions.agent) || manifest.versions.browserTool !== `agent-browser ${tested.browser}`) throw new Error(`CLI version mismatch or missing executable. Supported: Claude Code 2.1.${minClaudePatch}+ (2.1.x only), Codex CLI ${tested.codex}, agent-browser ${tested.browser}. Observed: ${manifest.versions.agent}, ${manifest.versions.browserTool}. Inspect new CLI help and update adapters/tests before execution.`);
       const chrome = chromium.executablePath();
       if (!existsSync(chrome)) throw new Error("Baseline Chromium is missing. Run pnpm exec playwright install chromium, then start a new run.");
       manifest.versions.chromium = capture(chrome, ["--version"], browserEnv, workspace);
-      json(path("agent-browser.json"), { executablePath: chrome, headed: false, downloadPath: path("artifacts/downloads"), screenshotDir: path("artifacts"), contentBoundaries: true, allowedDomains: [new URL(options.url).hostname, "challenges.cloudflare.com"] });
+      json(path("agent-browser.json"), { executablePath: chrome, headed: false, args: "--no-sandbox", downloadPath: path("artifacts/downloads"), screenshotDir: path("artifacts"), contentBoundaries: true, allowedDomains: [new URL(options.url).hostname, "challenges.cloudflare.com"] });
       browser = (args, name) => {
         const result = spawnSync(browserBinary, ["--config", path("agent-browser.json"), "--session", session, ...args], { cwd: workspace, env: browserEnv, timeout: 15_000, encoding: "utf8", maxBuffer: 10 * 1024 * 1024 });
         writeFileSync(path(`artifacts/${name}.txt`), `${result.stdout ?? ""}${result.stderr ?? ""}${result.error?.message ?? ""}`);
