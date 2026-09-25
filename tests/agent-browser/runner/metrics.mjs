@@ -11,12 +11,14 @@ const safe = value => String(value ?? "unknown").replace(/[\n\r|<>]/g, " ").slic
 const display = value => value === null || value === undefined || value === "unknown" ? "unknown" : String(value);
 
 export function reportSections(report) {
-  const sections = { scope: null, confirmed: null, suspected: null };
+  const sections = { scope: null, tested: null, untested: null, confirmed: null, suspected: null };
   let current = null;
   for (const line of report.split(/\r?\n/)) {
     if (/^##\s+/.test(line)) {
       const heading = line.replace(/^##\s+/, "").toLowerCase();
       current = heading.startsWith("environment and scope") ? "scope" :
+        heading.startsWith("not tested") ? "untested" :
+        heading.startsWith("tested") ? "tested" :
         heading.startsWith("confirmed defects") ? "confirmed" :
         heading.startsWith("suspected/intermittent issues") ? "suspected" : null;
       if (current !== null) sections[current] = "";
@@ -27,11 +29,14 @@ export function reportSections(report) {
   return Object.fromEntries(Object.entries(sections).map(([key, value]) => [key, value?.trim().slice(0, 3500) || null]));
 }
 
-const escapeHtml = text => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+const escapeHtml = text => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/@/g, "&#64;");
 function reviewSummary(agent, sections, status) {
   const field = (heading, text) => `**${heading}**\n\n<pre>${escapeHtml(text ?? "Not recorded in the report.")}</pre>`;
-  if (!sections) return `### ${agent}: no report available\n\nStatus: ${escapeHtml(safe(status))}. Coverage and findings unknown.\n`;
-  return `### ${agent}: agent-reported exploration\n\nStatus: ${escapeHtml(safe(status))}. Findings are unverified; this is not a PR pass/fail verdict.\n\n${field("Tested and untested (as reported)", sections.scope)}\n\n${field("Confirmed defects (as reported)", sections.confirmed)}\n\n${field("Suspected issues (as reported)", sections.suspected)}\n`;
+  if (!sections) return `### ${agent}: no report available\n\nStatus: ${escapeHtml(safe(status))}. Coverage not reported by ${agent}; findings unknown.\n`;
+  const coverage = sections.tested || sections.untested
+    ? `${field("Tested (as reported)", sections.tested)}\n\n${field("Not tested (as reported)", sections.untested)}`
+    : field("Coverage (tested and untested mixed in report)", sections.scope);
+  return `### ${agent}: agent-reported exploration\n\nStatus: ${escapeHtml(safe(status))}. Findings are unverified; this is not a PR pass/fail verdict.\n\n${coverage}\n\n${field("Confirmed defects (as reported)", sections.confirmed)}\n\n${field("Suspected issues (as reported)", sections.suspected)}\n`;
 }
 
 /** @param {{model: string, effectiveDate: string, inputUsdPerMillion: number, cachedInputUsdPerMillion: number, outputUsdPerMillion: number} | null} [rates] */
@@ -89,7 +94,7 @@ export function main(argv = process.argv.slice(2)) {
     saveSummary(`### PR #${pr} exploratory QA\n${comparisonTable([metrics])}`);
     return;
   }
-  if (argv[0] === "compare" && argv.length === 3) {
+  if (argv[0] === "compare" && (argv.length === 3 || argv.length === 4)) {
     const pr = z.coerce.number().int().positive().parse(argv[2]);
     const parent = resolve(argv[1]);
     const metrics = [];
@@ -107,16 +112,21 @@ export function main(argv = process.argv.slice(2)) {
       let sections = null;
       if (reports.length === 1) {
         try {
-          sections = z.object({ scope: z.string().nullable(), confirmed: z.string().nullable(), suspected: z.string().nullable() })
+          sections = z.object({ scope: z.string().nullable(), tested: z.string().nullable().default(null), untested: z.string().nullable().default(null), confirmed: z.string().nullable(), suspected: z.string().nullable() })
             .parse(readJson(join(dir, reports[0])));
         } catch { /* Missing/malformed report remains unknown. */ }
       }
       reviews.push(reviewSummary(agent, sections, item.status));
     }
     saveSummary(`### PR #${pr}: Claude / Codex run metrics\n${comparisonTable(metrics)}\n${reviews.join("\n")}`);
+    if (argv[3]) {
+      const runUrl = process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
+        ? `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}` : null;
+      writeFileSync(argv[3], `<!-- acme-pr-exploratory-qa -->\n## Exploratory browser QA — human review required\n${runUrl ? `[Run and evidence](${runUrl}) · ` : ""}Revision: \`${safe(process.env.DEPLOYED_SHA ?? metrics[0]?.revision)}\`\n\n${reviews.join("\n")}\nAgent-reported observations are not an automatic QA pass. See the run artifacts for evidence.\n`);
+    }
     return;
   }
-  throw new Error("Usage: node metrics.mjs run RUN_PARENT PR_NUMBER [RATE_CARD_JSON] | compare DOWNLOADED_ARTIFACTS PR_NUMBER");
+  throw new Error("Usage: node metrics.mjs run RUN_PARENT PR_NUMBER [RATE_CARD_JSON] | compare DOWNLOADED_ARTIFACTS PR_NUMBER [COMMENT_FILE]");
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
