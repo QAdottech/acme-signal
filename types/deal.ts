@@ -4,6 +4,8 @@ export type ActivityType = "email" | "meeting" | "note" | "call" | "task";
 
 export type SignatureStatus = "not_sent" | "sent" | "signed";
 
+export type DealHealth = "overdue" | "stale" | "closing_soon" | "on_track";
+
 export interface Deal {
   id: string;
   title: string;

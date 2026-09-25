@@ -3,7 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Filter, Search, X, Plus } from "lucide-react";
 import { FilterPopover } from "@/components/filter-popover";
 import { cn } from "@/lib/utils";
-import { formatDealValue } from "@/lib/dealData";
+import { DEAL_HEALTH_LABELS, formatDealValue } from "@/lib/dealData";
+import type { DealHealth } from "@/types/deal";
 
 interface PipelineHeaderProps {
   openModal: () => void;
@@ -23,6 +24,9 @@ interface PipelineHeaderProps {
   >;
   totalValue: number;
   dealCount: number;
+  healthFilter: DealHealth | "all";
+  onHealthFilterChange: (filter: DealHealth | "all") => void;
+  healthCounts: Record<DealHealth | "all", number>;
 }
 
 export function PipelineHeader({
@@ -33,8 +37,19 @@ export function PipelineHeader({
   setFilters,
   totalValue,
   dealCount,
+  healthFilter,
+  onHealthFilterChange,
+  healthCounts,
 }: PipelineHeaderProps) {
   const totalFilters = Object.values(filters).flat().length;
+
+  const healthChips: { id: DealHealth | "all"; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "overdue", label: DEAL_HEALTH_LABELS.overdue },
+    { id: "stale", label: DEAL_HEALTH_LABELS.stale },
+    { id: "closing_soon", label: DEAL_HEALTH_LABELS.closing_soon },
+    { id: "on_track", label: DEAL_HEALTH_LABELS.on_track },
+  ];
 
   const clearFilters = () => {
     setFilters({ location: [], dealStage: [], industry: [] });
@@ -100,6 +115,34 @@ export function PipelineHeader({
             Clear filters
           </Button>
         )}
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        {healthChips.map((chip) => {
+          const isActive = healthFilter === chip.id;
+          return (
+            <button
+              key={chip.id}
+              type="button"
+              onClick={() => onHealthFilterChange(chip.id)}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                isActive
+                  ? "bg-orange-500 text-white border-orange-500"
+                  : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              )}
+            >
+              {chip.label}
+              <span
+                className={cn(
+                  "tabular-nums",
+                  isActive ? "text-orange-100" : "text-muted-foreground"
+                )}
+              >
+                {healthCounts[chip.id]}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
