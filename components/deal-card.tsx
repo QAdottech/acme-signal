@@ -5,9 +5,15 @@ import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
 import type { Person } from "@/types/person";
 import { useRouter } from "next/navigation";
-import { formatDealValue } from "@/lib/dealData";
+import {
+  DEAL_HEALTH_BAR_COLORS,
+  formatDealValue,
+  getDealHealth,
+} from "@/lib/dealData";
 import { getPeople } from "@/lib/personData";
+import { DealHealthBadge } from "@/components/deal-health-badge";
 import { useMemo } from "react";
+import { cn } from "@/lib/utils";
 
 interface DealCardProps {
   deal: Deal;
@@ -105,9 +111,14 @@ export function DealCard({ deal, organization }: DealCardProps) {
       })
     : null;
 
+  const health = getDealHealth(deal);
+
   return (
     <Card
-      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-gray-200 dark:border-gray-800 shadow-sm"
+      className={cn(
+        "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-gray-200 dark:border-gray-800 shadow-sm border-l-4",
+        DEAL_HEALTH_BAR_COLORS[health]
+      )}
       onClick={() => router.push(`/deals/${deal.id}`)}
     >
       <CardContent className="p-3">
@@ -117,16 +128,19 @@ export function DealCard({ deal, organization }: DealCardProps) {
             {deal.title}
           </h3>
 
-          {/* Row 2: Amount + Close date */}
-          <div className="flex items-center justify-between">
+          {/* Row 2: Amount + Close date + health */}
+          <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-medium text-gray-900 dark:text-white">
               {formatDealValue(deal.value)}
             </span>
-            {closeDate && (
-              <span className="text-xs text-muted-foreground">
-                {closeDate}
-              </span>
-            )}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {closeDate && (
+                <span className="text-xs text-muted-foreground">
+                  {closeDate}
+                </span>
+              )}
+              <DealHealthBadge health={health} />
+            </div>
           </div>
 
           {/* Row 3: Next step */}

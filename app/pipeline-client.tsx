@@ -9,7 +9,15 @@ import { AddDealModal } from "@/components/add-deal-modal";
 import type { Organization, DealStage } from "@/types/organization";
 import type { Deal } from "@/types/deal";
 import { getOrganizations } from "@/lib/organizationData";
-import { getDeals, saveDeals, addDeal, formatDealValue, STAGE_PROBABILITIES } from "@/lib/dealData";
+import {
+  getDeals,
+  saveDeals,
+  addDeal,
+  formatDealValue,
+  STAGE_PROBABILITIES,
+  getDealHealth,
+} from "@/lib/dealData";
+import type { DealHealth } from "@/types/deal";
 import {
   DndContext,
   DragEndEvent,
@@ -153,6 +161,7 @@ export function PipelineClient() {
     industry: [] as string[],
   });
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [healthFilter, setHealthFilter] = useState<DealHealth | "all">("all");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -192,8 +201,48 @@ export function PipelineClient() {
       const matchesIndustry =
         filters.industry.length === 0 ||
         filters.industry.includes(org.industry);
+      const matchesHealth =
+        healthFilter === "all" || getDealHealth(deal) === healthFilter;
+      return (
+        matchesSearch &&
+        matchesLocation &&
+        matchesStage &&
+        matchesIndustry &&
+        matchesHealth
+      );
+    });
+  }, [deals, searchTerm, filters, orgMap, healthFilter]);
+
+  const healthCounts = useMemo(() => {
+    const searchable = deals.filter((deal) => {
+      const org = orgMap[deal.organizationId];
+      if (!org) return false;
+      const matchesSearch =
+        deal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        org.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesLocation =
+        filters.location.length === 0 ||
+        filters.location.includes(org.location);
+      const matchesStage =
+        filters.dealStage.length === 0 ||
+        filters.dealStage.includes(deal.stage);
+      const matchesIndustry =
+        filters.industry.length === 0 ||
+        filters.industry.includes(org.industry);
       return matchesSearch && matchesLocation && matchesStage && matchesIndustry;
     });
+
+    const counts: Record<DealHealth | "all", number> = {
+      all: searchable.length,
+      overdue: 0,
+      stale: 0,
+      closing_soon: 0,
+      on_track: 0,
+    };
+    searchable.forEach((deal) => {
+      counts[getDealHealth(deal)] += 1;
+    });
+    return counts;
   }, [deals, searchTerm, filters, orgMap]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -264,6 +313,9 @@ export function PipelineClient() {
           setFilters={setFilters}
           totalValue={totalPipelineValue}
           dealCount={filteredDeals.length}
+          healthFilter={healthFilter}
+          onHealthFilterChange={setHealthFilter}
+          healthCounts={healthCounts}
         />
         <div className="mt-10">
           <div className="overflow-x-auto pb-4">
