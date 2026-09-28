@@ -14,6 +14,10 @@ cp .env.example .env.local
 pnpm dev
 ```
 
+## Organization maps
+
+Organization pages link to their location in Google Maps. To also show an embedded map, enable the Google Maps Embed API in Google Cloud and set `NEXT_PUBLIC_GOOGLE_MAPS_EMBED_API_KEY` in `.env.local`. Restrict this public browser key to your site's HTTP referrers and the Maps Embed API. Locations are city-level, so the map does not indicate an exact office address.
+
 ## Testing
 
 ```sh

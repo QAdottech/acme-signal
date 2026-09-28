@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { CollectionManager } from "@/components/collection-manager";
 import { deduplicateCollectionOrganizationIds } from "@/lib/organizationData";
+import { getOrganizationMapUrls } from "@/lib/organizationMap";
 import { OrganizationImage } from "@/components/organization-image";
 import { getPeople } from "@/lib/personData";
 import { getActivities } from "@/lib/activityData";
@@ -245,6 +246,11 @@ export function OrganizationDetailClient({
     return <div>Loading...</div>;
   }
 
+  const mapUrls = getOrganizationMapUrls(
+    organization.location,
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_API_KEY
+  );
+
   return (
     <>
       {/* Header */}
@@ -327,6 +333,38 @@ export function OrganizationDetailClient({
                       </p>
                     </CardContent>
                   </Card>
+
+                  {mapUrls && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Location</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {organization.location}
+                        </p>
+                        {mapUrls.embedUrl && (
+                          <iframe
+                            title={`Map of ${organization.location}`}
+                            src={mapUrls.embedUrl}
+                            className="w-full h-64 rounded-lg border-0"
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                            allowFullScreen
+                          />
+                        )}
+                        <a
+                          href={mapUrls.searchUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sm text-orange-600 hover:underline"
+                        >
+                          <MapPin className="w-4 h-4" />
+                          Open in Google Maps
+                        </a>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* Contacts at this organization */}
                   <Card>
