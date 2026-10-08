@@ -10,7 +10,7 @@ Use Node 22.22.0 and pnpm 10.33.4.
 
 ```sh
 pnpm install --frozen-lockfile
-cp .env.example .env.local
+cp .env.example .env.local   # then fill in any required secrets locally
 pnpm dev
 ```
 
