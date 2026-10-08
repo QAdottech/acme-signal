@@ -18,19 +18,23 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const { login } = useAuth();
 
+  const emailTrimmed = email.trim();
+  const canSubmit =
+    emailTrimmed.length > 0 &&
+    emailTrimmed.includes("@") &&
+    password.length >= 8;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    // Validate password length
     if (password.length < 8) {
       setError("Password must be at least 8 characters long");
       return;
     }
 
-    const success = login(email, password);
+    const success = login(emailTrimmed, password);
     if (success) {
-      // Redirect to the page they were trying to access, or home
       const from = searchParams.get("from") || "/";
       router.push(from);
     } else {
@@ -65,8 +69,12 @@ export function LoginForm() {
             <Input
               id="email"
               type="email"
+              autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (error) setError("");
+              }}
               required
               className="mt-1.5 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
               placeholder="you@company.com"
@@ -83,8 +91,12 @@ export function LoginForm() {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError("");
+                }}
                 required
                 minLength={8}
                 className="pr-10 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
@@ -105,11 +117,17 @@ export function LoginForm() {
             </div>
           </div>
           {error && (
-            <p className="text-red-500 dark:text-red-400 text-sm">{error}</p>
+            <p
+              role="alert"
+              className="text-red-500 dark:text-red-400 text-sm"
+            >
+              {error}
+            </p>
           )}
           <Button
             type="submit"
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+            disabled={!canSubmit}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50 disabled:pointer-events-none"
           >
             Sign in
           </Button>
