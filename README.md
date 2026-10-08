@@ -14,6 +14,8 @@ cp .env.example .env.local
 pnpm dev
 ```
 
+`pnpm dev` serves the app at http://localhost:3000.
+
 ## Testing
 
 ```sh
