@@ -14,6 +14,8 @@ cp .env.example .env.local
 pnpm dev
 ```
 
+Before opening a PR, run `pnpm lint` and the commands under [Testing](#testing).
+
 ## Testing
 
 ```sh
