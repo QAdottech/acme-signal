@@ -14,6 +14,8 @@ cp .env.example .env.local
 pnpm dev
 ```
 
+The dev server listens on [http://localhost:3000](http://localhost:3000) by default.
+
 ## Testing
 
 ```sh
