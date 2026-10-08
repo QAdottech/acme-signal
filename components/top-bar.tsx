@@ -26,21 +26,24 @@ export function TopBar() {
               <Button
                 variant="ghost"
                 aria-label="Account menu"
-                className="relative h-8 w-8 rounded-full overflow-hidden p-0"
+                className="relative h-8 rounded-full pl-0 pr-2 gap-2"
               >
                 {user.avatar ? (
                   <img
                     src={user.avatar || "/placeholder.svg"}
-                    alt="Avatar"
-                    className="w-full h-full object-cover"
+                    alt=""
+                    className="h-8 w-8 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                     <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                       {user.fullName.charAt(0)}
                     </span>
                   </div>
                 )}
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                  {user.fullName}
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
