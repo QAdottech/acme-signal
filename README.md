@@ -14,6 +14,14 @@ cp .env.example .env.local
 pnpm dev
 ```
 
+## Quality checks
+
+```sh
+pnpm lint
+```
+
+Run this before you push or open a pull request. For full verification, use the [Testing](#testing) commands below.
+
 ## Testing
 
 ```sh
