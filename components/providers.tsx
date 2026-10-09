@@ -21,6 +21,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const isPublicRoute = !pathname || publicRoutes.includes(pathname);
 
   if (isPublicRoute) {
+    if (pathname === "/login") {
+      return <>{children}</>;
+    }
+
     return (
       <>
         <PublicHeader />
