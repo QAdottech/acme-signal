@@ -8,10 +8,12 @@ import { useRouter } from "next/navigation";
 import { formatDealValue } from "@/lib/dealData";
 import { getPeople } from "@/lib/personData";
 import { useMemo } from "react";
+import type { PipelineDensity } from "@/lib/usePipelineViewPrefs";
 
 interface DealCardProps {
   deal: Deal;
   organization?: Organization;
+  density?: PipelineDensity;
 }
 
 const TAG_COLORS: Record<string, string> = {
@@ -77,7 +79,7 @@ function getRelativeActivityText(
   return `${typeLabel} ${diffDays}d ago`;
 }
 
-export function DealCard({ deal, organization }: DealCardProps) {
+export function DealCard({ deal, organization, density = "comfortable" }: DealCardProps) {
   const router = useRouter();
 
   const contacts: Person[] = useMemo(() => {
@@ -105,13 +107,15 @@ export function DealCard({ deal, organization }: DealCardProps) {
       })
     : null;
 
+  const isCompact = density === "compact";
+
   return (
     <Card
       className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-gray-200 dark:border-gray-800 shadow-sm"
       onClick={() => router.push(`/deals/${deal.id}`)}
     >
-      <CardContent className="p-3">
-        <div className="flex flex-col gap-1.5">
+      <CardContent className={isCompact ? "p-2" : "p-3"}>
+        <div className={`flex flex-col ${isCompact ? "gap-1" : "gap-1.5"}`}>
           {/* Row 1: Title */}
           <h3 className="font-semibold text-sm truncate text-gray-900 dark:text-white">
             {deal.title}
@@ -130,14 +134,14 @@ export function DealCard({ deal, organization }: DealCardProps) {
           </div>
 
           {/* Row 3: Next step */}
-          {deal.nextStep && (
+          {!isCompact && deal.nextStep && (
             <p className="text-xs text-muted-foreground truncate">
               {deal.nextStep}
             </p>
           )}
 
-          {/* Row 4: Tags */}
-          {tags.length > 0 && (
+          {/* Row 4: Tags — hidden in compact mode */}
+          {!isCompact && tags.length > 0 && (
             <div className="flex items-center gap-1 flex-wrap">
               {visibleTags.map((tag) => (
                 <span
@@ -157,8 +161,8 @@ export function DealCard({ deal, organization }: DealCardProps) {
             </div>
           )}
 
-          {/* Row 5: Contact avatars + last activity */}
-          {(visibleContacts.length > 0 || activityText) && (
+          {/* Row 5: Contact avatars + last activity — hidden in compact mode */}
+          {!isCompact && (visibleContacts.length > 0 || activityText) && (
             <div className="flex items-center justify-between mt-0.5">
               <div className="flex items-center -space-x-1">
                 {visibleContacts.map((person) => (

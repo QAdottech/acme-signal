@@ -3,6 +3,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { ALL_STAGE_NAMES } from "@/lib/pipelineConfig"
 
 interface FilterPopoverProps {
   children: React.ReactNode;
@@ -20,7 +21,7 @@ interface FilterPopoverProps {
 
 const filterOptions = {
   location: ['Stockholm', 'Helsinki', 'San Francisco', 'New York', 'Copenhagen', 'Austin', 'Amsterdam'],
-  dealStage: ['New', 'Lead', 'Qualified', 'Proposal', 'Negotiation', 'Customer', 'Churned', 'Closed Lost'],
+  dealStage: ALL_STAGE_NAMES,
   industry: ['Music', 'Food', 'Software testing', 'Web Development', 'HR Technology', 'Gaming', 'Fintech', 'Contract Management', 'Developer Tools', 'Analytics', 'Artificial Intelligence', 'E-commerce AI', 'EdTech', 'Design Tools', 'Biotechnology', 'Financial Technology', 'Legal Technology'],
 };
 
