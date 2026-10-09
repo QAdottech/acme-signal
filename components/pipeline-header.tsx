@@ -47,6 +47,9 @@ export function PipelineHeader({
           <h1 className="text-2xl font-semibold tracking-tight">
             Sales Pipeline
           </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Drag a deal into another stage to update its probability.
+          </p>
           <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
             <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
               {dealCount} deals
