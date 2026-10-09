@@ -14,6 +14,8 @@ cp .env.example .env.local   # then fill in any required secrets locally
 pnpm dev
 ```
 
+`pnpm dev` serves the app at [http://localhost:3000](http://localhost:3000). Browser tests sign in with the seeded demo account `james.morrison@example.com`.
+
 ## Testing
 
 ```sh
