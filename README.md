@@ -14,6 +14,8 @@ cp .env.example .env.local   # then fill in any required secrets locally
 pnpm dev
 ```
 
+After the dev server starts, open the app at http://localhost:3000.
+
 ## Testing
 
 ```sh

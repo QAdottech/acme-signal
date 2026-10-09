@@ -187,13 +187,18 @@ export function PeopleClient() {
   return (
       <main className="container py-8 max-w-[1400px] mx-auto px-6">
         <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-semibold">People</h1>
-            <span className="text-sm text-muted-foreground">
-              {isFiltered
-                ? `${filteredPeople.length} of ${people.length} contacts`
-                : `${people.length} contacts`}
-            </span>
+          <div>
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-semibold">People</h1>
+              <span className="text-sm text-muted-foreground">
+                {isFiltered
+                  ? `${filteredPeople.length} of ${people.length} contacts`
+                  : `${people.length} contacts`}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Contacts stay in this browser after you reload.
+            </p>
           </div>
           <div className="flex gap-3">
             <Button
