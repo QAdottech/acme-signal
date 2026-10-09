@@ -351,6 +351,9 @@ export function TasksClient() {
           <p className="text-sm text-muted-foreground mt-0.5">
             {tasks.length} {tasks.length === 1 ? "task" : "tasks"}
           </p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Use the checkbox on a row to mark it done or reopen it.
+          </p>
         </div>
         <Button
           onClick={() => setIsModalOpen(true)}
