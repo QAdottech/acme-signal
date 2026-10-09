@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Deal } from "@/types/deal";
 import type { Organization, DealStage } from "@/types/organization";
 import type { Person } from "@/types/person";
-import { getDeal, saveDeal, deleteDeal, formatDealValue, STAGE_PROBABILITIES } from "@/lib/dealData";
+import { getDeal, saveDeal, deleteDeal, formatDealValue, STAGE_PROBABILITIES, getDealHealth } from "@/lib/dealData";
 import { getOrganizations } from "@/lib/organizationData";
 import { getPeople } from "@/lib/personData";
 import { getNotesForOrganization, addNote } from "@/lib/notesData";
@@ -37,10 +37,12 @@ import {
   FileSignature,
   Clock,
   CheckCircle2,
+  Activity,
   Plus,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { SendForSignatureModal } from "@/components/send-for-signature-modal";
+import { DealHealthBadge } from "@/components/deal-health-badge";
 import {
   Command,
   CommandEmpty,
@@ -292,6 +294,10 @@ export function DealDetailClient({
                 >
                   {deal.stage}
                 </span>
+                <DealHealthBadge
+                  health={getDealHealth(deal)}
+                  className="text-xs px-2 py-0.5"
+                />
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -724,6 +730,16 @@ export function DealDetailClient({
                       year: "numeric",
                     })}
                   </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500 flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5" />
+                    Health
+                  </span>
+                  <DealHealthBadge
+                    health={getDealHealth(deal)}
+                    className="text-xs px-2 py-0.5"
+                  />
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-500 flex items-center gap-1.5">

@@ -24,7 +24,8 @@ import {
 import Link from "next/link";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
-import { getDeals, saveDeals, addDeal, formatDealValue } from "@/lib/dealData";
+import { getDeals, saveDeals, addDeal, formatDealValue, getDealHealth } from "@/lib/dealData";
+import { DealHealthBadge } from "@/components/deal-health-badge";
 import { getOrganizations } from "@/lib/organizationData";
 import { AddDealModal } from "@/components/add-deal-modal";
 import { OrganizationImage } from "@/components/organization-image";
@@ -396,6 +397,7 @@ export function DealsClient() {
                 <SortIcon field="expectedCloseDate" />
               </div>
             </TableHead>
+            <TableHead>Health</TableHead>
             <TableHead
               className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
               onClick={() => handleSort("probability")}
@@ -473,6 +475,14 @@ export function DealsClient() {
                       "en-US",
                       { month: "short", day: "numeric" }
                     )}
+                  </Link>
+                </TableCell>
+                <TableCell>
+                  <Link href={`/deals/${deal.id}`} className="block">
+                    <DealHealthBadge
+                      health={getDealHealth(deal)}
+                      className="text-xs px-2 py-0.5"
+                    />
                   </Link>
                 </TableCell>
                 <TableCell>
