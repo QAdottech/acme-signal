@@ -269,13 +269,16 @@ export function DealsClient() {
     <main className="container py-8 max-w-[1400px] mx-auto px-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-semibold">Deals</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Deals</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {filteredDeals.length === deals.length
               ? `${deals.length} deals`
               : `${filteredDeals.length} of ${deals.length} deals`}
             {" · "}
             {formatDealValue(totalValue)} total value
+          </p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Stage badges show where each deal sits in the pipeline.
           </p>
         </div>
         <div className="flex gap-3">
