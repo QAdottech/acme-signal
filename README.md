@@ -14,6 +14,8 @@ cp .env.example .env.local   # then fill in any required secrets locally
 pnpm dev
 ```
 
+After `pnpm dev` starts, open http://localhost:3000 in your browser.
+
 ## Testing
 
 ```sh
