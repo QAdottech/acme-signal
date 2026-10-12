@@ -24,3 +24,5 @@ pnpm test:all       # Test typecheck, unit coverage, and E2E
 ```
 
 See [tests/README.md](tests/README.md) for coverage, isolation, CI, debugging, and browser scenario contracts.
+
+Playwright E2E tests use a managed production build (`pnpm test:e2e`).
