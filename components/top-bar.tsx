@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "@/components/global-search";
 import { HelpPopover } from "@/components/help-popover";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/lib/auth-context";
 import {
   DropdownMenu,
@@ -19,6 +20,7 @@ export function TopBar() {
     <header className="h-14 flex items-center justify-between border-b bg-white dark:bg-gray-950 px-6">
       <GlobalSearch />
       <div className="flex items-center space-x-2">
+        <ThemeToggle />
         <HelpPopover />
         {user && (
           <DropdownMenu>
