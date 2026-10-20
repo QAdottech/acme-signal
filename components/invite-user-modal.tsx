@@ -26,10 +26,14 @@ export function InviteUserModal({ isOpen, onClose }: InviteUserModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await inviteUser(email)
-    toast.success(`Invitation sent to ${email}`)
-    setEmail('')
-    onClose()
+    try {
+      await inviteUser(email)
+      toast.success(`Invitation sent to ${email}`)
+      setEmail('')
+      onClose()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to send invitation')
+    }
   }
 
   return (
