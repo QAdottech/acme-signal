@@ -20,11 +20,11 @@ export function CustomerCard({ customers, trend }: CustomerCardProps) {
     <Card className="overflow-hidden border-emerald-200 dark:border-emerald-900">
       <div className="h-1 bg-emerald-500" aria-hidden="true" />
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
+        <CardTitle className="text-sm font-bold">Active Customers</CardTitle>
         <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{customers.length}</div>
+        <div className="text-2xl font-extrabold">{customers.length}</div>
         <p className="text-xs text-muted-foreground mt-1">Current customers</p>
         {trend && (
           <p
@@ -53,7 +53,7 @@ export function CustomerCard({ customers, trend }: CustomerCardProps) {
                       className="rounded-full"
                     />
                   </span>
-                  <span className="truncate text-xs font-medium">{org.name}</span>
+                  <span className="truncate text-xs font-bold">{org.name}</span>
                 </Link>
               </li>
             ))}
