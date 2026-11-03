@@ -35,6 +35,7 @@ import { exportPeopleToCSV } from "@/lib/exportUtils";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { useCreateIntent } from "@/lib/create-intent";
 
 type SortField = "name" | "role" | "organization" | "status" | "lastContact";
 type SortDirection = "asc" | "desc";
@@ -42,7 +43,17 @@ type SortDirection = "asc" | "desc";
 export function PeopleClient() {
   const [people, setPeople] = useState<Person[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  // Pre-fill search from ?q= (used by the ⌘K menu to jump to a person).
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) setSearchTerm(q);
+    const onSearch = (event: Event) =>
+      setSearchTerm((event as CustomEvent<string>).detail);
+    window.addEventListener("acme:people-search", onSearch);
+    return () => window.removeEventListener("acme:people-search", onSearch);
+  }, []);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  useCreateIntent("person", () => setIsModalOpen(true));
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<SortField>("name");

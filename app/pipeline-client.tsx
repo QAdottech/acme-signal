@@ -24,6 +24,7 @@ import {
 import { useDraggable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 import { getStageStyle } from "@/lib/stages";
+import { useCreateIntent } from "@/lib/create-intent";
 
 const pipelineStages: { id: string; name: DealStage }[] = [
   { id: "new", name: "New" },
@@ -156,6 +157,7 @@ export function PipelineClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  useCreateIntent("deal", () => setIsModalOpen(true));
   const [filters, setFilters] = useState({
     location: [] as string[],
     dealStage: [] as string[],

@@ -16,11 +16,13 @@ import { Plus, Edit } from "lucide-react";
 import { AddCollectionModal } from "@/components/add-collection-modal";
 import { EditCollectionModal } from "@/components/edit-collection-modal";
 import { PageHeader } from "@/components/page-header";
+import { useCreateIntent } from "@/lib/create-intent";
 
 export function CollectionsClient() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  useCreateIntent("list", () => setIsAddModalOpen(true));
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCollection, setEditingCollection] = useState<Collection | null>(
     null

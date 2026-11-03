@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { StageBadge } from "@/components/stage-badge";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
+import { useCreateIntent } from "@/lib/create-intent";
 
 type SortField =
   | "title"
@@ -50,6 +51,7 @@ export function DealsClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  useCreateIntent("deal", () => setIsModalOpen(true));
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
     location: [] as string[],

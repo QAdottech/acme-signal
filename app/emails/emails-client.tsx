@@ -18,6 +18,7 @@ import type { EmailRecord, EmailType, EmailStatus } from "@/types/email";
 import { formatRelative } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { useCreateIntent } from "@/lib/create-intent";
 
 
 function getTypeBadgeClasses(type: EmailType): string {
@@ -64,6 +65,7 @@ export function EmailsClient() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
+  useCreateIntent("email", () => setIsComposeOpen(true));
 
   useEffect(() => {
     setEmails(getEmails());

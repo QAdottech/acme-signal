@@ -29,6 +29,7 @@ import type { Person } from "@/types/person";
 import { useAuth } from "@/lib/auth-context";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
+import { useCreateIntent } from "@/lib/create-intent";
 
 const statusConfig: Record<TaskStatus, { label: string; className: string }> = {
   todo: {
@@ -88,6 +89,7 @@ export function TasksClient() {
   const [people, setPeople] = useState<Person[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  useCreateIntent("task", () => setIsModalOpen(true));
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
 

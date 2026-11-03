@@ -32,6 +32,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { exportOrganizationsToCSV } from "@/lib/exportUtils";
 import { StageBadge } from "@/components/stage-badge";
 import { PageHeader } from "@/components/page-header";
+import { useCreateIntent } from "@/lib/create-intent";
 
 type SortField =
   | "name"
@@ -46,6 +47,7 @@ export function OrganizationsClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  useCreateIntent("company", () => setIsModalOpen(true));
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
     location: [] as string[],

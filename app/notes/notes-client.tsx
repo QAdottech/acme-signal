@@ -19,6 +19,7 @@ import type { Organization } from "@/types/organization";
 import { AddNoteModal } from "@/components/add-note-modal";
 import { formatRelative } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
+import { useCreateIntent } from "@/lib/create-intent";
 
 
 export function NotesClient() {
@@ -27,6 +28,7 @@ export function NotesClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  useCreateIntent("note", () => setIsModalOpen(true));
 
   useEffect(() => {
     setNotes(getNotes());

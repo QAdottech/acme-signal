@@ -151,6 +151,7 @@ export function getTask(id: string): Task | undefined {
 export function saveTasks(tasks: Task[]): void {
   if (typeof window === "undefined") return;
   localStorage.setItem("tasks", JSON.stringify(tasks));
+  window.dispatchEvent(new Event("tasks-updated"));
 }
 
 export function addTask(task: Omit<Task, "id" | "createdAt">): Task {
