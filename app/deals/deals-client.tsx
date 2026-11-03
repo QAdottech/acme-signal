@@ -1,525 +1,320 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Input } from "@/components/ui/input";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import {
-  Search,
-  Plus,
-  Filter,
-  X,
-  ChevronUp,
-  ChevronDown,
+  Building2,
+  CalendarDays,
+  CircleDashed,
+  DollarSign,
   Download,
-  Trash2,
+  Percent,
+  Plus,
+  Type,
+  UserRound,
 } from "lucide-react";
-import Link from "next/link";
-import type { Deal } from "@/types/deal";
-import type { Organization } from "@/types/organization";
-import { getDeals, saveDeals, addDeal, formatDealValue } from "@/lib/dealData";
-import { getOrganizations } from "@/lib/organizationData";
+import { Button } from "@/components/ui/button";
 import { AddDealModal } from "@/components/add-deal-modal";
-import { OrganizationImage } from "@/components/organization-image";
-import { Checkbox } from "@/components/ui/checkbox";
-import { FilterPopover } from "@/components/filter-popover";
-import { cn } from "@/lib/utils";
 import { StageBadge } from "@/components/stage-badge";
+import {
+  RecordTable,
+  useRecordTableState,
+  type Column,
+} from "@/components/record-table/record-table";
+import {
+  CompanyChip,
+  Empty,
+  OwnerCell,
+  PrimaryCell,
+  StageCell,
+} from "@/components/record-table/cells";
+import {
+  DealViewSwitcher,
+  FilterMenu,
+  SearchField,
+  countFilters,
+  emptyFilters,
+  facetOptions,
+  type FilterFacet,
+  type FilterValues,
+} from "@/components/record-table/toolbar";
+import { RecordListLayout } from "@/components/record-table/layout";
+import { SelectionBar } from "@/components/record-table/selection-bar";
+import { addDeal, formatDealValue, getDeals, saveDeals, withStage } from "@/lib/dealData";
+import { getOrganizations } from "@/lib/organizationData";
+import { exportDealsToCSV } from "@/lib/exportUtils";
+import { STAGE_STYLES } from "@/lib/stages";
 import { formatDate } from "@/lib/format";
-import { PageHeader } from "@/components/page-header";
 import { useCreateIntent } from "@/lib/create-intent";
+import type { Deal } from "@/types/deal";
+import type { DealStage, Organization } from "@/types/organization";
 
-type SortField =
-  | "title"
-  | "company"
-  | "value"
-  | "stage"
-  | "owner"
-  | "expectedCloseDate"
-  | "probability";
-type SortDirection = "asc" | "desc";
+const STAGES = Object.keys(STAGE_STYLES) as DealStage[];
 
 export function DealsClient() {
+  const router = useRouter();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   useCreateIntent("deal", () => setIsModalOpen(true));
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [filters, setFilters] = useState({
-    location: [] as string[],
-    dealStage: [] as string[],
-    industry: [] as string[],
+  const { sort, setSort, selectedIds, setSelectedIds } = useRecordTableState({
+    columnId: "value",
+    direction: "desc",
   });
-  const [sortField, setSortField] = useState<SortField>("value");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   useEffect(() => {
     setDeals(getDeals());
     setOrganizations(getOrganizations());
   }, []);
 
-  const orgMap = useMemo(() => {
-    const map: Record<string, Organization> = {};
-    organizations.forEach((org) => {
-      map[org.id] = org;
-    });
-    return map;
-  }, [organizations]);
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection(field === "value" || field === "probability" ? "desc" : "asc");
-    }
-  };
-
-  const sortDeals = (d: Deal[]) => {
-    return [...d].sort((a, b) => {
-      let aValue: string | number;
-      let bValue: string | number;
-
-      switch (sortField) {
-        case "title":
-          aValue = a.title.toLowerCase();
-          bValue = b.title.toLowerCase();
-          break;
-        case "company":
-          aValue = (orgMap[a.organizationId]?.name || "").toLowerCase();
-          bValue = (orgMap[b.organizationId]?.name || "").toLowerCase();
-          break;
-        case "value":
-          aValue = a.value;
-          bValue = b.value;
-          break;
-        case "stage":
-          aValue = a.stage.toLowerCase();
-          bValue = b.stage.toLowerCase();
-          break;
-        case "owner":
-          aValue = a.owner.toLowerCase();
-          bValue = b.owner.toLowerCase();
-          break;
-        case "expectedCloseDate":
-          aValue = a.expectedCloseDate;
-          bValue = b.expectedCloseDate;
-          break;
-        case "probability":
-          aValue = a.probability;
-          bValue = b.probability;
-          break;
-        default:
-          return 0;
-      }
-
-      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-      return 0;
-    });
-  };
-
-  const filteredDeals = sortDeals(
-    deals.filter((deal) => {
-      const org = orgMap[deal.organizationId];
-      const matchesSearch =
-        deal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (org?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        deal.owner.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesLocation =
-        filters.location.length === 0 ||
-        (org && filters.location.includes(org.location));
-      const matchesStage =
-        filters.dealStage.length === 0 ||
-        filters.dealStage.includes(deal.stage);
-      const matchesIndustry =
-        filters.industry.length === 0 ||
-        (org && filters.industry.includes(org.industry));
-      return matchesSearch && matchesLocation && matchesStage && matchesIndustry;
-    })
+  const orgById = useMemo(
+    () => new Map(organizations.map((org) => [org.id, org])),
+    [organizations]
   );
+  const orgName = (id: string) => orgById.get(id)?.name ?? "";
 
-  const totalFilters = Object.values(filters).flat().length;
+  const facets: FilterFacet[] = useMemo(
+    () => [
+      { key: "stage", label: "Stage", options: STAGES.filter((s) => deals.some((d) => d.stage === s)) },
+      { key: "owner", label: "Owner", options: facetOptions(deals.map((d) => d.owner)) },
+      { key: "industry", label: "Industry", options: facetOptions(deals.map((d) => orgById.get(d.organizationId)?.industry)) },
+      { key: "location", label: "Location", options: facetOptions(deals.map((d) => orgById.get(d.organizationId)?.location)) },
+    ],
+    [deals, orgById]
+  );
+  const [filters, setFilters] = useState<FilterValues>(() => emptyFilters([]));
 
-  const clearFilters = () => {
-    setFilters({ location: [], dealStage: [], industry: [] });
+  const visibleDeals = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    const matches = (key: string, value: string | undefined) =>
+      !filters[key]?.length || (!!value && filters[key].includes(value));
+    return deals.filter((deal) => {
+      const org = orgById.get(deal.organizationId);
+      const matchesSearch =
+        !term ||
+        deal.title.toLowerCase().includes(term) ||
+        (org?.name ?? "").toLowerCase().includes(term) ||
+        deal.owner.toLowerCase().includes(term);
+      return (
+        matchesSearch &&
+        matches("stage", deal.stage) &&
+        matches("owner", deal.owner) &&
+        matches("industry", org?.industry) &&
+        matches("location", org?.location)
+      );
+    });
+  }, [deals, filters, orgById, searchTerm]);
+
+  const persist = (next: Deal[]) => {
+    setDeals(next);
+    saveDeals(next);
   };
 
-  const toggleSelection = (id: string) => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedIds(newSelected);
+  const updateDeal = (id: string, change: (deal: Deal) => Deal, message: string) => {
+    persist(deals.map((deal) => (deal.id === id ? change(deal) : deal)));
+    toast.success(message);
   };
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredDeals.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredDeals.map((d) => d.id)));
-    }
+  const columns: Column<Deal>[] = [
+    {
+      id: "title",
+      header: "Deal",
+      icon: Type,
+      width: 260,
+      sortValue: (d) => d.title.toLowerCase(),
+      cell: (d) => <PrimaryCell href={`/deals/${d.id}`}>{d.title}</PrimaryCell>,
+      footer: (rows) => `${rows.length} ${rows.length === 1 ? "deal" : "deals"}`,
+    },
+    {
+      id: "company",
+      header: "Company",
+      icon: Building2,
+      width: 190,
+      sortValue: (d) => orgName(d.organizationId).toLowerCase(),
+      cell: (d) => {
+        const org = orgById.get(d.organizationId);
+        return org ? (
+          <CompanyChip name={org.name} logo={org.logo} href={`/organizations/${org.id}`} />
+        ) : (
+          <Empty />
+        );
+      },
+    },
+    {
+      id: "value",
+      header: "Value",
+      icon: DollarSign,
+      width: 120,
+      align: "right",
+      firstSortDirection: "desc",
+      sortValue: (d) => d.value,
+      cell: (d) => <span className="font-medium">{formatDealValue(d.value)}</span>,
+      footer: (rows) => (
+        <>
+          <span className="mr-1.5">Sum</span>
+          <span className="font-medium text-foreground">
+            {formatDealValue(rows.reduce((sum, d) => sum + d.value, 0))}
+          </span>
+        </>
+      ),
+    },
+    {
+      id: "stage",
+      header: "Stage",
+      icon: CircleDashed,
+      width: 150,
+      sortValue: (d) => STAGES.indexOf(d.stage),
+      cell: (d) => (
+        <StageCell
+          value={d.stage}
+          onChange={(stage) =>
+            updateDeal(d.id, (deal) => withStage(deal, stage), `Moved “${d.title}” to ${stage}`)
+          }
+        />
+      ),
+    },
+    {
+      id: "owner",
+      header: "Owner",
+      icon: UserRound,
+      width: 180,
+      sortValue: (d) => d.owner.toLowerCase(),
+      cell: (d) => (
+        <OwnerCell
+          value={d.owner}
+          onChange={(owner) =>
+            updateDeal(d.id, (deal) => ({ ...deal, owner }), `${owner} now owns “${d.title}”`)
+          }
+        />
+      ),
+    },
+    {
+      id: "close",
+      header: "Close date",
+      icon: CalendarDays,
+      width: 130,
+      sortValue: (d) => d.expectedCloseDate || "9999",
+      cell: (d) => (d.expectedCloseDate ? formatDate(d.expectedCloseDate) : <Empty />),
+    },
+    {
+      id: "probability",
+      header: "Probability",
+      icon: Percent,
+      width: 120,
+      align: "right",
+      firstSortDirection: "desc",
+      sortValue: (d) => d.probability,
+      cell: (d) => `${d.probability}%`,
+      footer: (rows) => (
+        <>
+          <span className="mr-1.5">Weighted</span>
+          <span className="font-medium text-foreground">
+            {formatDealValue(rows.reduce((sum, d) => sum + (d.value * d.probability) / 100, 0))}
+          </span>
+        </>
+      ),
+    },
+  ];
+
+  const selectedDeals = deals.filter((deal) => selectedIds.has(deal.id));
+
+  const handleBulkStage = (stage: DealStage) => {
+    const count = selectedIds.size;
+    persist(deals.map((deal) => (selectedIds.has(deal.id) ? withStage(deal, stage) : deal)));
+    setSelectedIds(new Set());
+    toast.success(`Moved ${count} ${count === 1 ? "deal" : "deals"} to ${stage}`);
   };
 
   const handleBulkDelete = () => {
-    if (confirm(`Are you sure you want to delete ${selectedIds.size} deals?`)) {
-      const updated = deals.filter((d) => !selectedIds.has(d.id));
-      setDeals(updated);
-      saveDeals(updated);
-      setSelectedIds(new Set());
-    }
-  };
-
-  const handleBulkStageChange = (stage: string) => {
-    const updated = deals.map((d) =>
-      selectedIds.has(d.id)
-        ? { ...d, stage: stage as Deal["stage"] }
-        : d
-    );
-    setDeals(updated);
-    saveDeals(updated);
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} deals?`)) return;
+    const count = selectedIds.size;
+    persist(deals.filter((deal) => !selectedIds.has(deal.id)));
     setSelectedIds(new Set());
-  };
-
-  const handleExport = () => {
-    const selectedDeals = deals.filter((d) => selectedIds.has(d.id));
-    const rows = selectedDeals.map((d) => {
-      const org = orgMap[d.organizationId];
-      return [
-        d.title,
-        org?.name || "",
-        d.value,
-        d.stage,
-        d.owner,
-        d.expectedCloseDate,
-        d.probability,
-      ].join(",");
-    });
-    const csv = ["Title,Company,Value,Stage,Owner,Close Date,Probability", ...rows].join(
-      "\n"
-    );
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "deals-export.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleExportAll = () => {
-    const rows = filteredDeals.map((d) => {
-      const org = orgMap[d.organizationId];
-      return [
-        d.title,
-        org?.name || "",
-        d.value,
-        d.stage,
-        d.owner,
-        d.expectedCloseDate,
-        d.probability,
-      ].join(",");
-    });
-    const csv = ["Title,Company,Value,Stage,Owner,Close Date,Probability", ...rows].join(
-      "\n"
-    );
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "deals-export.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    toast.success(`Deleted ${count} ${count === 1 ? "deal" : "deals"}`);
   };
 
   const handleAddDeal = (dealData: Omit<Deal, "id" | "createdAt">) => {
     const newDeal = addDeal(dealData);
-    setDeals([...deals, newDeal]);
+    setDeals((prev) => [...prev, newDeal]);
     setIsModalOpen(false);
+    toast.success(`Created “${newDeal.title}”`);
   };
 
-  const totalValue = filteredDeals.reduce((sum, d) => sum + d.value, 0);
-
-  const SortIcon = ({ field }: { field: SortField }) =>
-    sortField === field ? (
-      sortDirection === "asc" ? (
-        <ChevronUp className="w-4 h-4" />
-      ) : (
-        <ChevronDown className="w-4 h-4" />
-      )
-    ) : null;
+  const totalValue = visibleDeals.reduce((sum, d) => sum + d.value, 0);
+  const isFiltered = searchTerm !== "" || countFilters(filters) > 0;
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
-      <PageHeader
-        title="Deals"
-        description={
-          <>
-            {filteredDeals.length === deals.length
-              ? `${deals.length} deals`
-              : `${filteredDeals.length} of ${deals.length} deals`}
-            {" · "}
-            {formatDealValue(totalValue)} total value
-          </>
-        }
-        actions={
-          <>
-            <Button onClick={handleExportAll} variant="outline">
-              <Download />
-              Export CSV
-            </Button>
-            <Button onClick={() => setIsModalOpen(true)}>
-              <Plus />
-              Add Deal
-            </Button>
-          </>
+    <RecordListLayout
+      title="Deals"
+      description={
+        <>
+          {isFiltered ? `${visibleDeals.length} of ${deals.length} deals` : `${deals.length} deals`}
+          {" · "}
+          {formatDealValue(totalValue)} total value
+        </>
+      }
+      actions={
+        <>
+          <Button
+            variant="outline"
+            onClick={() => exportDealsToCSV(visibleDeals, orgName)}
+          >
+            <Download />
+            Export CSV
+          </Button>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus />
+            Add Deal
+          </Button>
+        </>
+      }
+      toolbar={
+        <>
+          <DealViewSwitcher current="table" />
+          <span className="mx-1 h-5 w-px bg-border" />
+          <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="Search deals..." />
+          <FilterMenu facets={facets} values={filters} onChange={setFilters} />
+        </>
+      }
+    >
+      <RecordTable
+        rows={visibleDeals}
+        columns={columns}
+        getRowId={(d) => d.id}
+        rowLabel={(d) => d.title}
+        sort={sort}
+        onSortChange={setSort}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+        onRowClick={(d) => router.push(`/deals/${d.id}`)}
+        emptyState={
+          isFiltered
+            ? "No deals found matching your criteria."
+            : "No deals yet. Click 'Add Deal' to get started."
         }
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="relative w-full max-w-xs">
-          <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search deals..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
-          />
-        </div>
-        <FilterPopover filters={filters} setFilters={setFilters}>
-          <Button
-            variant="outline"
-            className={cn(
-              "",
-              totalFilters > 0 &&
-                "bg-accent border-foreground/20 text-foreground"
-            )}
-          >
-            <Filter className="w-4 h-4" />
-            Filters {totalFilters > 0 && `(${totalFilters})`}
-          </Button>
-        </FilterPopover>
-        {totalFilters > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="text-muted-foreground"
-          >
-            <X className="w-4 h-4" />
-            Clear filters
-          </Button>
-        )}
-      </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12">
-              <Checkbox
-                checked={
-                  selectedIds.size === filteredDeals.length &&
-                  filteredDeals.length > 0
-                }
-                onCheckedChange={toggleSelectAll}
-              />
-            </TableHead>
-            <TableHead
-              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-              onClick={() => handleSort("title")}
-            >
-              <div className="flex items-center gap-2">
-                Title
-                <SortIcon field="title" />
-              </div>
-            </TableHead>
-            <TableHead
-              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-              onClick={() => handleSort("company")}
-            >
-              <div className="flex items-center gap-2">
-                Company
-                <SortIcon field="company" />
-              </div>
-            </TableHead>
-            <TableHead
-              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-              onClick={() => handleSort("value")}
-            >
-              <div className="flex items-center gap-2">
-                Value
-                <SortIcon field="value" />
-              </div>
-            </TableHead>
-            <TableHead
-              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-              onClick={() => handleSort("stage")}
-            >
-              <div className="flex items-center gap-2">
-                Stage
-                <SortIcon field="stage" />
-              </div>
-            </TableHead>
-            <TableHead
-              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-              onClick={() => handleSort("owner")}
-            >
-              <div className="flex items-center gap-2">
-                Owner
-                <SortIcon field="owner" />
-              </div>
-            </TableHead>
-            <TableHead
-              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-              onClick={() => handleSort("expectedCloseDate")}
-            >
-              <div className="flex items-center gap-2">
-                Close Date
-                <SortIcon field="expectedCloseDate" />
-              </div>
-            </TableHead>
-            <TableHead
-              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-              onClick={() => handleSort("probability")}
-            >
-              <div className="flex items-center gap-2">
-                Prob.
-                <SortIcon field="probability" />
-              </div>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredDeals.map((deal) => {
-            const org = orgMap[deal.organizationId];
-            return (
-              <TableRow
-                key={deal.id}
-                className="cursor-pointer"
-              >
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <Checkbox
-                    checked={selectedIds.has(deal.id)}
-                    onCheckedChange={() => toggleSelection(deal.id)}
-                  />
-                </TableCell>
-                <TableCell className="font-medium">
-                  <Link href={`/deals/${deal.id}`} className="block">
-                    {deal.title}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <Link
-                    href={`/organizations/${deal.organizationId}`}
-                    className="flex items-center gap-2 hover:underline underline-offset-2"
-                  >
-                    {org && (
-                      <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-                        <OrganizationImage
-                          src={org.logo}
-                          alt={org.name}
-                          width={24}
-                          height={24}
-                          className="rounded-full"
-                        />
-                      </div>
-                    )}
-                    <span className="truncate">{org?.name || "Unknown"}</span>
-                  </Link>
-                </TableCell>
-                <TableCell className="font-semibold">
-                  <Link href={`/deals/${deal.id}`} className="block">
-                    {formatDealValue(deal.value)}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <Link href={`/deals/${deal.id}`} className="block">
-                    <StageBadge stage={deal.stage} />
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <Link href={`/deals/${deal.id}`} className="block text-sm">
-                    {deal.owner}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <Link href={`/deals/${deal.id}`} className="block text-sm">
-                    {formatDate(deal.expectedCloseDate)}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <Link href={`/deals/${deal.id}`} className="block text-sm">
-                    {deal.probability}%
-                  </Link>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
-
-      {filteredDeals.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500 dark:text-gray-400">
-            {searchTerm || totalFilters > 0
-              ? "No deals found matching your criteria."
-              : "No deals yet. Click 'Add Deal' to get started."}
-          </p>
-        </div>
-      )}
-
-      {/* Bulk actions */}
-      {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-          <div className="bg-foreground text-background rounded-lg shadow-xl px-4 py-2.5 flex items-center gap-4">
-            <span className="font-medium">{selectedIds.size} selected</span>
-            <div className="h-6 w-px bg-background/20" />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleExport}
-              className="text-background hover:bg-background/10 hover:text-background"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBulkDelete}
-              className="text-white hover:bg-red-600"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete
-            </Button>
-            <div className="h-6 w-px bg-background/20" />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedIds(new Set())}
-              className="text-background hover:bg-background/10 hover:text-background"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+      <SelectionBar
+        count={selectedIds.size}
+        nouns={["deal", "deals"]}
+        setField={{
+          label: "Set stage",
+          options: STAGES,
+          renderOption: (stage) => <StageBadge stage={stage} />,
+          onSelect: handleBulkStage,
+        }}
+        onExport={() => exportDealsToCSV(selectedDeals, orgName)}
+        onDelete={handleBulkDelete}
+        onClear={() => setSelectedIds(new Set())}
+      />
 
       <AddDealModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddDeal}
       />
-    </main>
+    </RecordListLayout>
   );
 }

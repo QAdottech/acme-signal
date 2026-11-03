@@ -1,46 +1,37 @@
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Filter, Search, X, Plus } from "lucide-react";
-import { FilterPopover } from "@/components/filter-popover";
-import { cn } from "@/lib/utils";
-import { formatDealValue } from "@/lib/dealData";
 import { PageHeader } from "@/components/page-header";
+import {
+  DealViewSwitcher,
+  FilterMenu,
+  SearchField,
+  type FilterFacet,
+  type FilterValues,
+} from "@/components/record-table/toolbar";
+import { formatDealValue } from "@/lib/dealData";
 
 interface PipelineHeaderProps {
   openModal: () => void;
   searchTerm: string;
-  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  filters: {
-    location: string[];
-    dealStage: string[];
-    industry: string[];
-  };
-  setFilters: React.Dispatch<
-    React.SetStateAction<{
-      location: string[];
-      dealStage: string[];
-      industry: string[];
-    }>
-  >;
+  onSearchChange: (value: string) => void;
+  facets: FilterFacet[];
+  filters: FilterValues;
+  onFiltersChange: (filters: FilterValues) => void;
   totalValue: number;
   dealCount: number;
 }
 
+/** Header for the deals board: same toolbar as the Deals table view. */
 export function PipelineHeader({
   openModal,
   searchTerm,
   onSearchChange,
+  facets,
   filters,
-  setFilters,
+  onFiltersChange,
   totalValue,
   dealCount,
 }: PipelineHeaderProps) {
-  const totalFilters = Object.values(filters).flat().length;
-
-  const clearFilters = () => {
-    setFilters({ location: [], dealStage: [], industry: [] });
-  };
-
   return (
     <div className="space-y-4">
       <PageHeader
@@ -54,40 +45,11 @@ export function PipelineHeader({
           </Button>
         }
       />
-      <div className="flex items-center gap-2">
-        <div className="relative w-full max-w-xs">
-          <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Filter deals..."
-            value={searchTerm}
-            onChange={onSearchChange}
-            className="pl-8 w-full "
-          />
-        </div>
-        <FilterPopover filters={filters} setFilters={setFilters}>
-          <Button
-            variant="outline"
-            className={cn(
-              "",
-              totalFilters > 0 &&
-                "bg-accent border-foreground/20 text-foreground"
-            )}
-          >
-            <Filter className="w-4 h-4" />
-            Filters {totalFilters > 0 && `(${totalFilters})`}
-          </Button>
-        </FilterPopover>
-        {totalFilters > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="text-muted-foreground"
-          >
-            <X className="w-4 h-4" />
-            Clear filters
-          </Button>
-        )}
+      <div className="flex flex-wrap items-center gap-2">
+        <DealViewSwitcher current="board" />
+        <span className="mx-1 h-5 w-px bg-border" />
+        <SearchField value={searchTerm} onChange={onSearchChange} placeholder="Filter deals..." />
+        <FilterMenu facets={facets} values={filters} onChange={onFiltersChange} />
       </div>
     </div>
   );

@@ -30,6 +30,7 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
+import { OWNERS } from "@/lib/team";
 
 interface AddDealModalProps {
   isOpen: boolean;
@@ -46,12 +47,7 @@ const dealStages: DealStage[] = [
   "Negotiation",
 ];
 
-const owners = [
-  "Sarah Johnson",
-  "Michael Chen",
-  "Emma Wilson",
-  "David Martinez",
-];
+const owners = OWNERS;
 
 const AVAILABLE_TAGS = [
   "Pre POC",

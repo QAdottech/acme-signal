@@ -383,3 +383,15 @@ export const STAGE_PROBABILITIES: Record<string, number> = {
   Customer: 100,
   "Closed Lost": 0,
 };
+
+/**
+ * Move a deal to a stage. Probability follows the stage's default, the same
+ * rule the pipeline board applies when a card is dragged.
+ */
+export function withStage(deal: Deal, stage: DealStage): Deal {
+  return {
+    ...deal,
+    stage,
+    probability: STAGE_PROBABILITIES[stage] ?? deal.probability,
+  };
+}

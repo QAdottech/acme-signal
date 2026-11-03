@@ -9,7 +9,9 @@ import { AddDealModal } from "@/components/add-deal-modal";
 import type { Organization, DealStage } from "@/types/organization";
 import type { Deal } from "@/types/deal";
 import { getOrganizations } from "@/lib/organizationData";
-import { getDeals, saveDeals, addDeal, formatDealValue, STAGE_PROBABILITIES } from "@/lib/dealData";
+import { getDeals, saveDeals, addDeal, formatDealValue, STAGE_PROBABILITIES, withStage } from "@/lib/dealData";
+import { toast } from "sonner";
+import { facetOptions, type FilterFacet, type FilterValues } from "@/components/record-table/toolbar";
 import {
   DndContext,
   DragEndEvent,
@@ -158,11 +160,7 @@ export function PipelineClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   useCreateIntent("deal", () => setIsModalOpen(true));
-  const [filters, setFilters] = useState({
-    location: [] as string[],
-    dealStage: [] as string[],
-    industry: [] as string[],
-  });
+  const [filters, setFilters] = useState<FilterValues>({});
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -186,30 +184,36 @@ export function PipelineClient() {
     return map;
   }, [organizations]);
 
+  const facets: FilterFacet[] = useMemo(
+    () => [
+      { key: "stage", label: "Stage", options: pipelineStages.map((s) => s.name).filter((name) => deals.some((d) => d.stage === name)) },
+      { key: "owner", label: "Owner", options: facetOptions(deals.map((d) => d.owner)) },
+      { key: "industry", label: "Industry", options: facetOptions(deals.map((d) => orgMap[d.organizationId]?.industry)) },
+      { key: "location", label: "Location", options: facetOptions(deals.map((d) => orgMap[d.organizationId]?.location)) },
+    ],
+    [deals, orgMap]
+  );
+
   const filteredDeals = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    const matches = (key: string, value: string | undefined) =>
+      !filters[key]?.length || (!!value && filters[key].includes(value));
     return deals.filter((deal) => {
       const org = orgMap[deal.organizationId];
       if (!org) return false;
-
       const matchesSearch =
-        deal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        org.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesLocation =
-        filters.location.length === 0 ||
-        filters.location.includes(org.location);
-      const matchesStage =
-        filters.dealStage.length === 0 ||
-        filters.dealStage.includes(deal.stage);
-      const matchesIndustry =
-        filters.industry.length === 0 ||
-        filters.industry.includes(org.industry);
-      return matchesSearch && matchesLocation && matchesStage && matchesIndustry;
+        !term ||
+        deal.title.toLowerCase().includes(term) ||
+        org.name.toLowerCase().includes(term);
+      return (
+        matchesSearch &&
+        matches("stage", deal.stage) &&
+        matches("owner", deal.owner) &&
+        matches("industry", org.industry) &&
+        matches("location", org.location)
+      );
     });
   }, [deals, searchTerm, filters, orgMap]);
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -227,16 +231,16 @@ export function PipelineClient() {
     const stageObj = pipelineStages.find((s) => s.id === newStageId);
     if (!stageObj) return;
 
-    const updatedDeals = deals.map((d) => {
-      if (d.id === dealId) {
-        const probability = STAGE_PROBABILITIES[stageObj.name] ?? d.probability;
-        return { ...d, stage: stageObj.name, probability };
-      }
-      return d;
-    });
+    const moved = deals.find((d) => d.id === dealId);
+    if (!moved || moved.stage === stageObj.name) return;
+
+    const updatedDeals = deals.map((d) =>
+      d.id === dealId ? withStage(d, stageObj.name) : d
+    );
 
     setDeals(updatedDeals);
     saveDeals(updatedDeals);
+    toast.success(`Moved “${moved.title}” to ${stageObj.name}`);
   };
 
   const handleDragCancel = () => {
@@ -270,9 +274,10 @@ export function PipelineClient() {
         <PipelineHeader
           openModal={() => setIsModalOpen(true)}
           searchTerm={searchTerm}
-          onSearchChange={handleSearchChange}
+          onSearchChange={setSearchTerm}
+          facets={facets}
           filters={filters}
-          setFilters={setFilters}
+          onFiltersChange={setFilters}
           totalValue={totalPipelineValue}
           dealCount={filteredDeals.length}
         />

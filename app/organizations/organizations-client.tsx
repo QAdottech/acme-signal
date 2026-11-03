@@ -1,446 +1,258 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import {
-  Search,
-  Plus,
-  Filter,
-  X,
+  Building2,
+  CircleDashed,
   Download,
-  ChevronUp,
-  ChevronDown,
+  Factory,
+  MapPin,
+  Plus,
+  UserRound,
+  Users,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { AddOrganizationModal } from "@/components/add-organization-modal";
-import { BulkActionsBar } from "@/components/bulk-actions-bar";
-import Link from "next/link";
-import type { Organization } from "@/types/organization";
-import { FilterPopover } from "@/components/filter-popover";
-import { cn } from "@/lib/utils";
-import { OrganizationImage } from "@/components/organization-image";
-import { getOrganizations } from "@/lib/organizationData";
-import { Checkbox } from "@/components/ui/checkbox";
-import { exportOrganizationsToCSV } from "@/lib/exportUtils";
 import { StageBadge } from "@/components/stage-badge";
-import { PageHeader } from "@/components/page-header";
+import {
+  RecordTable,
+  useRecordTableState,
+  type Column,
+} from "@/components/record-table/record-table";
+import { CompanyChip, Empty, OwnerCell, StageCell } from "@/components/record-table/cells";
+import {
+  FilterMenu,
+  SearchField,
+  countFilters,
+  facetOptions,
+  type FilterFacet,
+  type FilterValues,
+} from "@/components/record-table/toolbar";
+import { RecordListLayout } from "@/components/record-table/layout";
+import { SelectionBar } from "@/components/record-table/selection-bar";
+import { getOrganizations, saveOrganizations } from "@/lib/organizationData";
+import { exportOrganizationsToCSV } from "@/lib/exportUtils";
+import { STAGE_STYLES } from "@/lib/stages";
 import { useCreateIntent } from "@/lib/create-intent";
+import type { DealStage, Organization } from "@/types/organization";
 
-type SortField =
-  | "name"
-  | "industry"
-  | "location"
-  | "employees"
-  | "dealStage"
-  | "owner";
-type SortDirection = "asc" | "desc";
+const STAGES = Object.keys(STAGE_STYLES) as DealStage[];
 
 export function OrganizationsClient() {
+  const router = useRouter();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   useCreateIntent("company", () => setIsModalOpen(true));
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [filters, setFilters] = useState({
-    location: [] as string[],
-    dealStage: [] as string[],
-    industry: [] as string[],
+  const [filters, setFilters] = useState<FilterValues>({});
+  const { sort, setSort, selectedIds, setSelectedIds } = useRecordTableState({
+    columnId: "name",
+    direction: "asc",
   });
-  const [sortField, setSortField] = useState<SortField>("name");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   useEffect(() => {
     setOrganizations(getOrganizations());
   }, []);
 
-  const saveOrganizations = (newOrganizations: Organization[]) => {
-    setOrganizations(newOrganizations);
-    localStorage.setItem("organizations", JSON.stringify(newOrganizations));
+  const persist = (next: Organization[]) => {
+    setOrganizations(next);
+    saveOrganizations(next);
   };
 
-  const addOrganization = (newOrganization: Omit<Organization, "id">) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    const updatedOrganizations = [...organizations, { ...newOrganization, id }];
-    saveOrganizations(updatedOrganizations);
-    setIsModalOpen(false);
+  const updateOrganization = (id: string, changes: Partial<Organization>, message: string) => {
+    persist(organizations.map((org) => (org.id === id ? { ...org, ...changes } : org)));
+    toast.success(message);
   };
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
-    }
-  };
-
-  const sortOrganizations = (orgs: Organization[]) => {
-    return [...orgs].sort((a, b) => {
-      let aValue: string | number;
-      let bValue: string | number;
-
-      switch (sortField) {
-        case "name":
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
-        case "industry":
-          aValue = a.industry.toLowerCase();
-          bValue = b.industry.toLowerCase();
-          break;
-        case "location":
-          aValue = a.location.toLowerCase();
-          bValue = b.location.toLowerCase();
-          break;
-        case "employees":
-          aValue = a.employees;
-          bValue = b.employees;
-          break;
-        case "dealStage":
-          aValue = a.dealStage.toLowerCase();
-          bValue = b.dealStage.toLowerCase();
-          break;
-        case "owner":
-          aValue = (a.owner || "").toLowerCase();
-          bValue = (b.owner || "").toLowerCase();
-          break;
-        default:
-          return 0;
-      }
-
-      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-      return 0;
-    });
-  };
-
-  const filteredOrganizations = sortOrganizations(
-    organizations.filter((org) => {
-      const matchesSearch =
-        org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        org.industry.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        org.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (org.owner || "").toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesLocation =
-        filters.location.length === 0 ||
-        filters.location.includes(org.location);
-      const matchesStatus =
-        filters.dealStage.length === 0 ||
-        filters.dealStage.includes(org.dealStage);
-      const matchesIndustry =
-        filters.industry.length === 0 ||
-        filters.industry.includes(org.industry);
-      return (
-        matchesSearch && matchesLocation && matchesStatus && matchesIndustry
-      );
-    })
+  const facets: FilterFacet[] = useMemo(
+    () => [
+      { key: "dealStage", label: "Stage", options: STAGES.filter((s) => organizations.some((o) => o.dealStage === s)) },
+      { key: "industry", label: "Industry", options: facetOptions(organizations.map((o) => o.industry)) },
+      { key: "location", label: "Location", options: facetOptions(organizations.map((o) => o.location)) },
+      { key: "owner", label: "Owner", options: facetOptions(organizations.map((o) => o.owner)) },
+    ],
+    [organizations]
   );
 
-  const clearFilters = () => {
-    setFilters({
-      location: [] as string[],
-      dealStage: [] as string[],
-      industry: [] as string[],
+  const visibleOrganizations = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    const matches = (key: string, value: string | undefined) =>
+      !filters[key]?.length || (!!value && filters[key].includes(value));
+    return organizations.filter((org) => {
+      const matchesSearch =
+        !term ||
+        [org.name, org.industry, org.location, org.owner ?? ""].some((field) =>
+          field.toLowerCase().includes(term)
+        );
+      return (
+        matchesSearch &&
+        matches("dealStage", org.dealStage) &&
+        matches("industry", org.industry) &&
+        matches("location", org.location) &&
+        matches("owner", org.owner)
+      );
     });
-  };
+  }, [organizations, filters, searchTerm]);
 
-  const toggleSelection = (id: string) => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedIds(newSelected);
-  };
+  const columns: Column<Organization>[] = [
+    {
+      id: "name",
+      header: "Company",
+      icon: Building2,
+      width: 240,
+      sortValue: (o) => o.name.toLowerCase(),
+      cell: (o) => (
+        <span className="font-medium">
+          <CompanyChip name={o.name} logo={o.logo} href={`/organizations/${o.id}`} />
+        </span>
+      ),
+      footer: (rows) => `${rows.length} ${rows.length === 1 ? "company" : "companies"}`,
+    },
+    {
+      id: "stage",
+      header: "Stage",
+      icon: CircleDashed,
+      width: 150,
+      sortValue: (o) => STAGES.indexOf(o.dealStage),
+      cell: (o) => (
+        <StageCell
+          value={o.dealStage}
+          onChange={(stage) => updateOrganization(o.id, { dealStage: stage }, `Moved ${o.name} to ${stage}`)}
+        />
+      ),
+    },
+    {
+      id: "industry",
+      header: "Industry",
+      icon: Factory,
+      width: 200,
+      sortValue: (o) => o.industry.toLowerCase(),
+      cell: (o) => o.industry || <Empty />,
+    },
+    {
+      id: "location",
+      header: "Location",
+      icon: MapPin,
+      width: 200,
+      sortValue: (o) => o.location.toLowerCase(),
+      cell: (o) => o.location || <Empty />,
+    },
+    {
+      id: "employees",
+      header: "Employees",
+      icon: Users,
+      width: 120,
+      align: "right",
+      firstSortDirection: "desc",
+      sortValue: (o) => o.employees,
+      cell: (o) => o.employees.toLocaleString("en-US"),
+    },
+    {
+      id: "owner",
+      header: "Owner",
+      icon: UserRound,
+      width: 180,
+      sortValue: (o) => (o.owner ?? "").toLowerCase(),
+      cell: (o) => (
+        <OwnerCell
+          value={o.owner}
+          onChange={(owner) => updateOrganization(o.id, { owner }, `${owner} now owns ${o.name}`)}
+        />
+      ),
+    },
+  ];
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredOrganizations.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredOrganizations.map((org) => org.id)));
-    }
-  };
-
-  const handleBulkStatusChange = (status: string) => {
-    const updatedOrganizations = organizations.map((org) =>
-      selectedIds.has(org.id)
-        ? { ...org, dealStage: status as Organization["dealStage"] }
-        : org
-    );
-    saveOrganizations(updatedOrganizations);
+  const handleBulkStage = (stage: DealStage) => {
+    const count = selectedIds.size;
+    persist(organizations.map((org) => (selectedIds.has(org.id) ? { ...org, dealStage: stage } : org)));
     setSelectedIds(new Set());
-  };
-
-  const handleBulkExport = () => {
-    const selectedOrgs = organizations.filter((org) => selectedIds.has(org.id));
-    exportOrganizationsToCSV(selectedOrgs);
+    toast.success(`Moved ${count} ${count === 1 ? "company" : "companies"} to ${stage}`);
   };
 
   const handleBulkDelete = () => {
-    if (
-      confirm(
-        `Are you sure you want to delete ${selectedIds.size} organizations?`
-      )
-    ) {
-      const updatedOrganizations = organizations.filter(
-        (org) => !selectedIds.has(org.id)
-      );
-      saveOrganizations(updatedOrganizations);
-      setSelectedIds(new Set());
-    }
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} companies?`)) return;
+    const count = selectedIds.size;
+    persist(organizations.filter((org) => !selectedIds.has(org.id)));
+    setSelectedIds(new Set());
+    toast.success(`Deleted ${count} ${count === 1 ? "company" : "companies"}`);
   };
 
-  const handleExportAll = () => {
-    exportOrganizationsToCSV(filteredOrganizations);
+  const addOrganization = (newOrganization: Omit<Organization, "id">) => {
+    const id = Math.random().toString(36).slice(2, 11);
+    persist([...organizations, { ...newOrganization, id }]);
+    setIsModalOpen(false);
+    toast.success(`Added ${newOrganization.name}`);
   };
+
+  const isFiltered = searchTerm !== "" || countFilters(filters) > 0;
 
   return (
-      <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
-          <PageHeader
-            title="Companies"
-            description={
-              filteredOrganizations.length === organizations.length
-                ? `${organizations.length} companies`
-                : `${filteredOrganizations.length} of ${organizations.length} companies`
-            }
-            actions={
-              <>
-              <Button onClick={handleExportAll} variant="outline">
-                <Download />
-                Export CSV
-              </Button>
-              <Button onClick={() => setIsModalOpen(true)}>
-                <Plus />
-                Add Company
-              </Button>
-              </>
-            }
-          />
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <div className="relative w-full max-w-xs">
-              <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search companies..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <FilterPopover filters={filters} setFilters={setFilters}>
-              <Button
-                variant="outline"
-                className={cn(
-                  "",
-                  Object.values(filters).flat().length > 0 &&
-                    "bg-accent border-foreground/20 text-foreground"
-                )}
-              >
-                <Filter className="w-4 h-4" />
-                Filters{" "}
-                {Object.values(filters).flat().length > 0 &&
-                  `(${Object.values(filters).flat().length})`}
-              </Button>
-            </FilterPopover>
-            {Object.values(filters).flat().length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="text-muted-foreground"
-              >
-                <X className="w-4 h-4" />
-                Clear filters
-              </Button>
-            )}
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={
-                      selectedIds.size === filteredOrganizations.length &&
-                      filteredOrganizations.length > 0
-                    }
-                    onCheckedChange={toggleSelectAll}
-                  />
-                </TableHead>
-                <TableHead className="w-10"><span className="sr-only">Logo</span></TableHead>
-                <TableHead
-                  className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-                  onClick={() => handleSort("name")}
-                >
-                  <div className="flex items-center gap-2">
-                    Name
-                    {sortField === "name" &&
-                      (sortDirection === "asc" ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      ))}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-                  onClick={() => handleSort("industry")}
-                >
-                  <div className="flex items-center gap-2">
-                    Industry
-                    {sortField === "industry" &&
-                      (sortDirection === "asc" ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      ))}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-                  onClick={() => handleSort("location")}
-                >
-                  <div className="flex items-center gap-2">
-                    Location
-                    {sortField === "location" &&
-                      (sortDirection === "asc" ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      ))}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-                  onClick={() => handleSort("employees")}
-                >
-                  <div className="flex items-center gap-2">
-                    Employees
-                    {sortField === "employees" &&
-                      (sortDirection === "asc" ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      ))}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-                  onClick={() => handleSort("dealStage")}
-                >
-                  <div className="flex items-center gap-2">
-                    Deal Stage
-                    {sortField === "dealStage" &&
-                      (sortDirection === "asc" ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      ))}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-                  onClick={() => handleSort("owner")}
-                >
-                  <div className="flex items-center gap-2">
-                    Owner
-                    {sortField === "owner" &&
-                      (sortDirection === "asc" ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      ))}
-                  </div>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredOrganizations.map((org) => (
-                <TableRow
-                  key={org.id}
-                  className="cursor-pointer"
-                >
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={selectedIds.has(org.id)}
-                      onCheckedChange={() => toggleSelection(org.id)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/organizations/${org.id}`} className="block">
-                      <div className="w-6 h-6 relative rounded-md overflow-hidden">
-                        <OrganizationImage
-                          src={org.logo || "/placeholder.svg"}
-                          alt={`${org.name} logo`}
-                          width={24}
-                          height={24}
-                          className="rounded-md"
-                        />
-                      </div>
-                    </Link>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <Link href={`/organizations/${org.id}`} className="block">
-                      {org.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/organizations/${org.id}`} className="block">
-                      {org.industry}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/organizations/${org.id}`} className="block">
-                      {org.location}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/organizations/${org.id}`} className="block">
-                      {org.employees}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/organizations/${org.id}`} className="block">
-                      <StageBadge stage={org.dealStage} />
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/organizations/${org.id}`} className="block">
-                      {org.owner || "-"}
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          {filteredOrganizations.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 dark:text-gray-400">
-                {searchTerm || Object.values(filters).flat().length > 0
-                  ? "No organizations found matching your criteria."
-                  : "No organizations yet. Click 'Add Organization' to get started."}
-              </p>
-            </div>
-          )}
-          <AddOrganizationModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            onAdd={addOrganization}
-          />
-          <BulkActionsBar
-            selectedCount={selectedIds.size}
-            onClearSelection={() => setSelectedIds(new Set())}
-            onChangeStatus={handleBulkStatusChange}
-            onExport={handleBulkExport}
-            onDelete={handleBulkDelete}
-          />
-      </main>
+    <RecordListLayout
+      title="Companies"
+      description={
+        isFiltered
+          ? `${visibleOrganizations.length} of ${organizations.length} companies`
+          : `${organizations.length} companies`
+      }
+      actions={
+        <>
+          <Button variant="outline" onClick={() => exportOrganizationsToCSV(visibleOrganizations)}>
+            <Download />
+            Export CSV
+          </Button>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus />
+            Add Company
+          </Button>
+        </>
+      }
+      toolbar={
+        <>
+          <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="Search companies..." />
+          <FilterMenu facets={facets} values={filters} onChange={setFilters} />
+        </>
+      }
+    >
+      <RecordTable
+        rows={visibleOrganizations}
+        columns={columns}
+        getRowId={(o) => o.id}
+        rowLabel={(o) => o.name}
+        sort={sort}
+        onSortChange={setSort}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+        onRowClick={(o) => router.push(`/organizations/${o.id}`)}
+        emptyState={
+          isFiltered
+            ? "No companies found matching your criteria."
+            : "No companies yet. Click 'Add Company' to get started."
+        }
+      />
+
+      <SelectionBar
+        count={selectedIds.size}
+        nouns={["company", "companies"]}
+        setField={{
+          label: "Set stage",
+          options: STAGES,
+          renderOption: (stage) => <StageBadge stage={stage} />,
+          onSelect: handleBulkStage,
+        }}
+        onExport={() =>
+          exportOrganizationsToCSV(organizations.filter((org) => selectedIds.has(org.id)))
+        }
+        onDelete={handleBulkDelete}
+        onClear={() => setSelectedIds(new Set())}
+      />
+
+      <AddOrganizationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAdd={addOrganization}
+      />
+    </RecordListLayout>
   );
 }

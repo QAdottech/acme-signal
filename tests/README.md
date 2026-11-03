@@ -74,6 +74,7 @@ Unless marked public, start in a fresh browser and log in with the seeded demo a
 | PEOPLE-01 | Create a contact with name, email, role, company. Reload, find by email, edit role, reload and verify. Delete with confirmation, reload and verify absence; existing contacts remain. |
 | PEOPLE-02 | Search for Daniel Ek and export CSV. The downloaded file has the expected headers and only that contact, not other contacts. |
 | DEALS-01 | Create a $12,000 Lead deal for Spotify owned by Emma Wilson. Filter to it, drag to Qualified, reload. It remains Qualified; the Deals table shows Spotify, $12K, and 30% probability. |
+| RECORDS-01 | On Deals, change Platform Integration's stage to Negotiation and its owner to Michael Chen from the table cells; it stays on the list, probability becomes 75%, and both survive a reload. Filter Stage = Negotiation (2 deals, removable chip), select all, Set stage → Proposal (50%). Board shows it under Proposal; Table returns to Deals. |
 | REPORTS-01 | Create a named custom report from Pipeline by Stage. Reload; its three widgets and active-deal summary render. Delete it, reload; it is absent while Pipeline Overview remains. |
 | TASKS-01 | At a fixed date of 2026-06-01 UTC, create a task due 2026-05-31. It appears under Overdue. Complete it; it disappears from Overdue and remains checked/Done after reload. |
 | SIGN-01 | **Public:** open a proposal, submit without name/consent and verify all errors. Name plus terms consent alone still fails. With both consents, signing shows confirmation. |
