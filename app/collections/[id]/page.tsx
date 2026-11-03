@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { CollectionDetailClient } from "./collection-detail-client";
 
 export const metadata: Metadata = {
-  title: "Collection",
+  title: "List",
 };
 
 export default function CollectionDetailPage({

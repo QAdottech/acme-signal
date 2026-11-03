@@ -113,7 +113,7 @@ export function CollectionManager({
   return (
     <Card className="mt-4">
       <CardHeader>
-        <CardTitle className="text-base">Collections</CardTitle>
+        <CardTitle className="text-base">Lists</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
@@ -141,7 +141,7 @@ export function CollectionManager({
               aria-expanded={open}
               className="w-full justify-between mt-4"
             >
-              Add to collection
+              Add to list
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>

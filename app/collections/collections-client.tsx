@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Edit } from "lucide-react";
 import { AddCollectionModal } from "@/components/add-collection-modal";
 import { EditCollectionModal } from "@/components/edit-collection-modal";
+import { PageHeader } from "@/components/page-header";
 
 export function CollectionsClient() {
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -72,17 +73,17 @@ export function CollectionsClient() {
   };
 
   return (
-      <main className="container py-8 max-w-[1400px] mx-auto px-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold">Collections</h1>
-          <Button
-            onClick={() => setIsAddModalOpen(true)}
-            className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            <Plus className="w-4 h-4" />
-            Add Collection
-          </Button>
-        </div>
+      <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
+        <PageHeader
+          title="Lists"
+          description={`${collections.length} ${collections.length === 1 ? "list" : "lists"}`}
+          actions={
+            <Button onClick={() => setIsAddModalOpen(true)}>
+              <Plus />
+              New List
+            </Button>
+          }
+        />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {collections.map((collection) => {
             const orgCount = collection.organizationIds?.length || 0;
@@ -196,7 +197,7 @@ export function CollectionsClient() {
         {collections.length === 0 && (
           <div className="text-center py-16">
             <p className="text-gray-500 dark:text-gray-400">
-              No collections yet. Click &apos;Add Collection&apos; to organize your companies.
+              No lists yet. Click &apos;New List&apos; to group your companies.
             </p>
           </div>
         )}

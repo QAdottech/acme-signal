@@ -61,7 +61,7 @@ export function FilterPopover({ children, filters, setFilters }: FilterPopoverPr
                       checked={filters[key as keyof typeof filters].includes(option)}
                       onCheckedChange={() => handleFilterChange(key as keyof typeof filters, option)}
                       className={cn(
-                        "peer h-3 w-3 shrink-0 rounded-sm border border-gray-300 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500",
+                        "peer h-3 w-3 shrink-0 rounded-sm border border-gray-300 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground",
                         "flex items-center justify-center [&>span]:h-2 [&>span]:w-2"
                       )}
                     />

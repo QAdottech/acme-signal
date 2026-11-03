@@ -15,23 +15,10 @@ import {
 import { getEmails } from "@/lib/emailData";
 import { ComposeEmailModal } from "@/components/compose-email-modal";
 import type { EmailRecord, EmailType, EmailStatus } from "@/types/email";
+import { formatRelative } from "@/lib/format";
+import { PageHeader } from "@/components/page-header";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 
-function timeAgo(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  const weeks = Math.floor(days / 7);
-  if (weeks < 4) return `${weeks}w ago`;
-  return date.toLocaleDateString();
-}
 
 function getTypeBadgeClasses(type: EmailType): string {
   switch (type) {
@@ -105,85 +92,56 @@ export function EmailsClient() {
     searchTerm !== "" || typeFilter !== "all" || statusFilter !== "all";
 
   return (
-    <main className="container py-8 max-w-[1400px] mx-auto px-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-semibold">Emails</h1>
-          <span className="text-sm text-muted-foreground">
-            {isFiltered
-              ? `${filteredEmails.length} of ${emails.length} emails`
-              : `${emails.length} emails`}
-          </span>
-        </div>
-        <Button
-          onClick={() => setIsComposeOpen(true)}
-          className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
-        >
-          <Plus className="w-4 h-4" />
-          Compose
-        </Button>
-      </div>
+    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
+      <PageHeader
+        title="Emails"
+        description={
+          isFiltered
+            ? `${filteredEmails.length} of ${emails.length} emails`
+            : `${emails.length} emails`
+        }
+        actions={
+          <Button onClick={() => setIsComposeOpen(true)}>
+            <Plus />
+            Compose
+          </Button>
+        }
+      />
 
-      <div className="mb-6 flex flex-wrap items-center gap-4">
-        <div className="relative flex-grow max-w-md">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search emails..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 bg-gray-50 dark:bg-gray-800 border-transparent focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+            className="pl-8"
           />
         </div>
 
-        <div className="flex gap-2">
-          {(
-            [
-              { value: "all", label: "All Types" },
-              { value: "verification", label: "Verification" },
-              { value: "outreach", label: "Outreach" },
-              { value: "follow_up", label: "Follow Up" },
-            ] as const
-          ).map((item) => (
-            <Button
-              key={item.value}
-              variant={typeFilter === item.value ? "default" : "outline"}
-              size="sm"
-              onClick={() => setTypeFilter(item.value)}
-              className={
-                typeFilter === item.value
-                  ? "bg-orange-500 hover:bg-orange-600"
-                  : ""
-              }
-            >
-              {item.label}
-            </Button>
-          ))}
-        </div>
+        <SegmentedControl
+          aria-label="Filter by type"
+          value={typeFilter}
+          onChange={setTypeFilter}
+          options={[
+            { value: "all", label: "All types" },
+            { value: "verification", label: "Verification" },
+            { value: "outreach", label: "Outreach" },
+            { value: "follow_up", label: "Follow up" },
+          ]}
+        />
 
-        <div className="flex gap-2">
-          {(
-            [
-              { value: "all", label: "All" },
-              { value: "sent", label: "Sent" },
-              { value: "delivered", label: "Delivered" },
-              { value: "failed", label: "Failed" },
-            ] as const
-          ).map((item) => (
-            <Button
-              key={item.value}
-              variant={statusFilter === item.value ? "default" : "outline"}
-              size="sm"
-              onClick={() => setStatusFilter(item.value)}
-              className={
-                statusFilter === item.value
-                  ? "bg-orange-500 hover:bg-orange-600"
-                  : ""
-              }
-            >
-              {item.label}
-            </Button>
-          ))}
-        </div>
+        <SegmentedControl
+          aria-label="Filter by status"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[
+            { value: "all", label: "Any status" },
+            { value: "sent", label: "Sent" },
+            { value: "delivered", label: "Delivered" },
+            { value: "failed", label: "Failed" },
+          ]}
+        />
       </div>
 
       {filteredEmails.length > 0 ? (
@@ -230,7 +188,7 @@ export function EmailsClient() {
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {timeAgo(email.sentAt)}
+                      {formatRelative(email.sentAt)}
                     </span>
                     {isExpanded ? (
                       <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -295,7 +253,7 @@ export function EmailsClient() {
           {!isFiltered && (
             <Button
               onClick={() => setIsComposeOpen(true)}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              
             >
               <Plus className="w-4 h-4 mr-2" />
               Compose Email

@@ -48,7 +48,7 @@ export function EditProfileClient() {
 
   if (isLoading) {
     return (
-      <main className="container py-8 max-w-[1400px] mx-auto px-6">
+      <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
         <div className="flex items-center justify-center">
           <div>Loading...</div>
         </div>
@@ -61,7 +61,7 @@ export function EditProfileClient() {
   }
 
   return (
-    <main className="container py-8 max-w-[1400px] mx-auto px-6">
+    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
         <Card className="max-w-md mx-auto">
           <CardHeader>
             <CardTitle>Edit Profile</CardTitle>

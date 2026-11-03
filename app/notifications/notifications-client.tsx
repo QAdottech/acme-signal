@@ -22,6 +22,8 @@ import {
   markAllAsRead,
 } from "@/lib/activityData";
 import { cn } from "@/lib/utils";
+import { formatRelative } from "@/lib/format";
+import { PageHeader } from "@/components/page-header";
 
 type TimeGroup = "Today" | "Yesterday" | "This Week" | "Earlier";
 
@@ -74,22 +76,6 @@ function getTimeGroup(timestamp: string): TimeGroup {
   return "Earlier";
 }
 
-function getTimeAgo(timestamp: string): string {
-  const now = new Date();
-  const date = new Date(timestamp);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMinutes < 1) return "Just now";
-  if (diffMinutes < 60) return `${diffMinutes}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return "1 day ago";
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  return `${Math.floor(diffDays / 30)} months ago`;
-}
 
 function getActivityIcon(type: Activity["type"]) {
   switch (type) {
@@ -184,31 +170,24 @@ export function NotificationsClient() {
   const hasActivities = filteredActivities.length > 0;
 
   return (
-    <main className="container py-8 max-w-[900px] mx-auto px-6">
+    <main className="mx-auto w-full max-w-[880px] px-8 py-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Notifications
-          </h1>
-          {unreadCount > 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {unreadCount} unread notification{unreadCount !== 1 ? "s" : ""}
-            </p>
-          )}
-        </div>
-        {unreadCount > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleMarkAllAsRead}
-            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          >
-            <CheckCheck className="w-4 h-4 mr-1.5" />
-            Mark all as read
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Notifications"
+        description={
+          unreadCount > 0
+            ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
+            : "You're all caught up"
+        }
+        actions={
+          unreadCount > 0 ? (
+            <Button variant="outline" onClick={handleMarkAllAsRead}>
+              <CheckCheck />
+              Mark all as read
+            </Button>
+          ) : null
+        }
+      />
 
       {/* Filters */}
       <div className="flex items-center gap-2 mb-6 flex-wrap">
@@ -236,7 +215,7 @@ export function NotificationsClient() {
           >
             Unread
             {unreadCount > 0 && (
-              <span className="ml-1.5 bg-orange-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center inline-block">
+              <span className="ml-1.5 bg-blue-600 text-white text-[11px] font-medium leading-4 rounded-full px-1.5 min-w-[18px] text-center inline-block">
                 {unreadCount}
               </span>
             )}
@@ -284,7 +263,7 @@ export function NotificationsClient() {
                           "w-full flex items-start gap-3 p-3 rounded-lg text-left transition-colors",
                           "hover:bg-gray-100 dark:hover:bg-gray-800/60",
                           isUnread
-                            ? "bg-orange-50/50 dark:bg-orange-500/5"
+                            ? "bg-blue-50/50 dark:bg-blue-500/5"
                             : ""
                         )}
                       >
@@ -315,7 +294,7 @@ export function NotificationsClient() {
                             {activity.userName && (
                               <span>{activity.userName} &middot; </span>
                             )}
-                            {getTimeAgo(activity.timestamp)}
+                            {formatRelative(activity.timestamp)}
                           </p>
                         </div>
 

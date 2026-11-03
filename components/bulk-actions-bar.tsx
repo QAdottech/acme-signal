@@ -29,10 +29,10 @@ export function BulkActionsBar({
 
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-      <div className="bg-orange-500 text-white rounded-lg shadow-2xl px-6 py-4 flex items-center gap-4">
+      <div className="bg-foreground text-background rounded-lg shadow-xl px-4 py-2.5 flex items-center gap-4">
         <span className="font-medium">{selectedCount} selected</span>
         
-        <div className="h-6 w-px bg-orange-300" />
+        <div className="h-6 w-px bg-background/20" />
         
         <Select onValueChange={onChangeStatus}>
           <SelectTrigger className="w-[180px] bg-white text-gray-900 border-0">
@@ -54,7 +54,7 @@ export function BulkActionsBar({
           variant="ghost"
           size="sm"
           onClick={onExport}
-          className="text-white hover:bg-orange-600"
+          className="text-background hover:bg-background/10 hover:text-background"
         >
           <Download className="w-4 h-4 mr-2" />
           Export
@@ -70,13 +70,13 @@ export function BulkActionsBar({
           Delete
         </Button>
 
-        <div className="h-6 w-px bg-orange-300" />
+        <div className="h-6 w-px bg-background/20" />
 
         <Button
           variant="ghost"
           size="sm"
           onClick={onClearSelection}
-          className="text-white hover:bg-orange-600"
+          className="text-background hover:bg-background/10 hover:text-background"
         >
           <X className="w-4 h-4" />
         </Button>

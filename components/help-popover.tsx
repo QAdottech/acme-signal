@@ -54,7 +54,7 @@ export function HelpPopover() {
                 className="flex items-start gap-3 p-3 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
                 onClick={item.action}
               >
-                <item.icon className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
+                <item.icon className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h4 className="font-medium text-sm">{item.title}</h4>
@@ -86,7 +86,7 @@ export function HelpPopover() {
             <Button
               variant="link"
               size="sm"
-              className="h-auto p-0 text-xs text-orange-500 hover:text-orange-600"
+              className="h-auto p-0 text-xs text-link hover:underline underline-offset-2"
               onClick={() => window.open("https://docs.example.com", "_blank")}
             >
               Visit our documentation →

@@ -22,6 +22,8 @@ import {
   useDroppable,
 } from "@dnd-kit/core";
 import { useDraggable } from "@dnd-kit/core";
+import { cn } from "@/lib/utils";
+import { getStageStyle } from "@/lib/stages";
 
 const pipelineStages: { id: string; name: DealStage }[] = [
   { id: "new", name: "New" },
@@ -85,18 +87,25 @@ function DroppableColumn({
   );
 
   return (
-    <div className="flex flex-col min-w-[280px] max-w-[320px]">
+    <div className="flex w-[272px] shrink-0 flex-col rounded-lg bg-muted/60 dark:bg-muted/30">
       {/* Column header */}
-      <div className="bg-gray-100 dark:bg-gray-800/50 px-4 py-3 rounded-md mb-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-medium text-sm">
-            <span className="text-muted-foreground">({probability}%)</span>{" "}
-            {title}
-          </h3>
-          <span className="text-xs text-muted-foreground bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+      <div className="flex items-center justify-between px-3 pt-2.5 pb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className={cn("h-2 w-2 shrink-0 rounded-full", getStageStyle(title).dot)}
+            aria-hidden
+          />
+          <h3 className="truncate text-[13px] font-medium">{title}</h3>
+          <span className="text-xs tabular-nums text-muted-foreground">
             {deals.length}
           </span>
         </div>
+        <span
+          className="text-xs tabular-nums text-muted-foreground"
+          title="Win probability for this stage"
+        >
+          {probability}%
+        </span>
       </div>
 
       {/* Card list */}
@@ -104,13 +113,13 @@ function DroppableColumn({
         ref={setNodeRef}
         role="region"
         aria-label={`${title} deals`}
-        className={`flex-1 space-y-3 px-1 min-h-[200px] rounded-lg transition-colors ${
+        className={`flex-1 space-y-2 px-2 pb-2 min-h-[200px] rounded-lg transition-colors ${
           isOver
-            ? "bg-orange-50 dark:bg-orange-900/10 ring-2 ring-orange-500"
+            ? "bg-blue-50/60 dark:bg-blue-500/10 ring-2 ring-blue-500/50"
             : ""
         } ${
           isActiveColumn
-            ? "ring-1 ring-dashed ring-gray-300 dark:ring-gray-700"
+            ? "ring-1 ring-inset ring-border"
             : ""
         }`}
       >
@@ -126,11 +135,11 @@ function DroppableColumn({
       </div>
 
       {/* Column footer - sticky at bottom */}
-      <div className="border-t border-gray-200 dark:border-gray-700 mt-4 pt-3 px-2">
-        <div className="text-xs text-muted-foreground space-y-1">
+      <div className="border-t border-border/70 px-3 py-2">
+        <div className="text-xs text-muted-foreground space-y-0.5 tabular-nums">
           <div className="flex justify-between">
             <span>Total</span>
-            <span className="font-medium">{formatDealValue(columnTotal)}</span>
+            <span className="font-medium text-foreground">{formatDealValue(columnTotal)}</span>
           </div>
           <div className="flex justify-between">
             <span>Weighted</span>
@@ -255,7 +264,7 @@ export function PipelineClient() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <main className="container py-8 max-w-[1400px] mx-auto px-6">
+      <main className="w-full px-8 py-6">
         <PipelineHeader
           openModal={() => setIsModalOpen(true)}
           searchTerm={searchTerm}
@@ -265,9 +274,9 @@ export function PipelineClient() {
           totalValue={totalPipelineValue}
           dealCount={filteredDeals.length}
         />
-        <div className="mt-10">
+        <div className="mt-5">
           <div className="overflow-x-auto pb-4">
-            <div className="flex gap-6 min-w-max">
+            <div className="flex items-start gap-3 min-w-max">
               {pipelineStages.map((stage) => {
                 const stageDeals = filteredDeals.filter(
                   (d) =>

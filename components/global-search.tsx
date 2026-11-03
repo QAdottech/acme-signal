@@ -54,10 +54,10 @@ export function GlobalSearch() {
   return (
     <div className="relative w-80" ref={dropdownRef}>
       <div className="relative">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 focus:outline-none text-muted-foreground" />
+        <Search className="absolute left-2.5 top-2 h-4 w-4 focus:outline-none text-muted-foreground" />
         <Input
           placeholder="Search..."
-          className="pl-8 bg-gray-100 dark:bg-gray-800 border-transparent text-gray-900 dark:text-white placeholder:text-gray-500 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+          className="pl-8 bg-gray-100 dark:bg-gray-800 border-transparent text-gray-900 dark:text-white placeholder:text-gray-500"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />

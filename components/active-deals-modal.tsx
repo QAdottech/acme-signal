@@ -8,33 +8,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { Building2 } from "lucide-react";
 import { OrganizationImage } from "@/components/organization-image";
 import { getOrganizations } from "@/lib/organizationData";
 import { formatDealValue } from "@/lib/dealData";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
+import { StageBadge } from "@/components/stage-badge";
 
 interface ActiveDealsModalProps {
   isOpen: boolean;
   onClose: () => void;
   deals: Deal[];
-}
-
-function getStageColor(stage: string): string {
-  switch (stage) {
-    case "Lead":
-      return "bg-blue-100 text-blue-800";
-    case "Qualified":
-      return "bg-orange-100 text-orange-800";
-    case "Proposal":
-      return "bg-purple-100 text-purple-800";
-    case "Negotiation":
-      return "bg-yellow-100 text-yellow-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
 }
 
 export function ActiveDealsModal({
@@ -104,9 +89,7 @@ export function ActiveDealsModal({
                         <span className="font-semibold text-lg">
                           {formatDealValue(deal.value, deal.currency)}
                         </span>
-                        <Badge className={getStageColor(deal.stage)}>
-                          {deal.stage}
-                        </Badge>
+                        <StageBadge stage={deal.stage} />
                       </div>
                     </div>
 

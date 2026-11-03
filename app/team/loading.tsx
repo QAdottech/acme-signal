@@ -5,10 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 export default function TeamLoading() {
   return (
-    <div className="container py-16 max-w-[1400px] mx-auto px-6">
+    <div className="mx-auto w-full max-w-[1400px] px-8 py-6">
       <div className="flex justify-between items-center mb-6">
         <Skeleton className="h-8 w-40" />
-        <Button disabled className="bg-orange-500 hover:bg-orange-600 text-white">
+        <Button disabled >
           Invite User
         </Button>
       </div>

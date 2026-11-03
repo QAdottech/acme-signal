@@ -110,7 +110,7 @@ export function Sidebar() {
                   <span className="flex items-center gap-2">
                     Notifications
                     {unreadCount > 0 && (
-                      <span className="bg-orange-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
+                      <span className="bg-blue-600 text-white text-[11px] font-medium leading-4 rounded-full px-1.5 min-w-[18px] text-center">
                         {unreadCount}
                       </span>
                     )}

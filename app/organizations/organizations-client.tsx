@@ -30,17 +30,8 @@ import { OrganizationImage } from "@/components/organization-image";
 import { getOrganizations } from "@/lib/organizationData";
 import { Checkbox } from "@/components/ui/checkbox";
 import { exportOrganizationsToCSV } from "@/lib/exportUtils";
-
-const stageColors: Record<string, string> = {
-  New: "bg-gray-100 text-gray-700",
-  Lead: "bg-blue-100 text-blue-700",
-  Qualified: "bg-orange-100 text-orange-700",
-  Proposal: "bg-purple-100 text-purple-700",
-  Negotiation: "bg-amber-100 text-amber-700",
-  Customer: "bg-green-100 text-green-700",
-  Churned: "bg-red-100 text-red-700",
-  "Closed Lost": "bg-red-100 text-red-700",
-};
+import { StageBadge } from "@/components/stage-badge";
+import { PageHeader } from "@/components/page-header";
 
 type SortField =
   | "name"
@@ -211,52 +202,44 @@ export function OrganizationsClient() {
   };
 
   return (
-      <main className="container py-8 max-w-[1400px] mx-auto px-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-semibold">Organizations</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {filteredOrganizations.length === organizations.length
-                  ? `${organizations.length} companies`
-                  : `${filteredOrganizations.length} of ${organizations.length} companies`}
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={handleExportAll}
-                variant="outline"
-                className="gap-2"
-              >
-                <Download className="w-4 h-4" />
+      <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
+          <PageHeader
+            title="Companies"
+            description={
+              filteredOrganizations.length === organizations.length
+                ? `${organizations.length} companies`
+                : `${filteredOrganizations.length} of ${organizations.length} companies`
+            }
+            actions={
+              <>
+              <Button onClick={handleExportAll} variant="outline">
+                <Download />
                 Export CSV
               </Button>
-              <Button
-                onClick={() => setIsModalOpen(true)}
-                className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
-              >
-                <Plus className="w-4 h-4" />
-                Add Organization
+              <Button onClick={() => setIsModalOpen(true)}>
+                <Plus />
+                Add Company
               </Button>
-            </div>
-          </div>
-          <div className="mb-6 flex items-center gap-4">
-            <div className="relative flex-grow max-w-md">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              </>
+            }
+          />
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search organizations..."
+                placeholder="Search companies..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 bg-gray-50 dark:bg-gray-800 border-transparent focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="pl-8"
               />
             </div>
             <FilterPopover filters={filters} setFilters={setFilters}>
               <Button
                 variant="outline"
-                size="sm"
                 className={cn(
-                  "gap-2 bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2",
+                  "",
                   Object.values(filters).flat().length > 0 &&
-                    "bg-orange-50 border-orange-300 text-orange-600 hover:bg-orange-100"
+                    "bg-accent border-foreground/20 text-foreground"
                 )}
               >
                 <Filter className="w-4 h-4" />
@@ -270,7 +253,7 @@ export function OrganizationsClient() {
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
-                className="gap-2 text-gray-500 hover:text-gray-700"
+                className="text-muted-foreground"
               >
                 <X className="w-4 h-4" />
                 Clear filters
@@ -289,9 +272,9 @@ export function OrganizationsClient() {
                     onCheckedChange={toggleSelectAll}
                   />
                 </TableHead>
-                <TableHead>Logo</TableHead>
+                <TableHead className="w-10"><span className="sr-only">Logo</span></TableHead>
                 <TableHead
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
                   onClick={() => handleSort("name")}
                 >
                   <div className="flex items-center gap-2">
@@ -305,7 +288,7 @@ export function OrganizationsClient() {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
                   onClick={() => handleSort("industry")}
                 >
                   <div className="flex items-center gap-2">
@@ -319,7 +302,7 @@ export function OrganizationsClient() {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
                   onClick={() => handleSort("location")}
                 >
                   <div className="flex items-center gap-2">
@@ -333,7 +316,7 @@ export function OrganizationsClient() {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
                   onClick={() => handleSort("employees")}
                 >
                   <div className="flex items-center gap-2">
@@ -347,7 +330,7 @@ export function OrganizationsClient() {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
                   onClick={() => handleSort("dealStage")}
                 >
                   <div className="flex items-center gap-2">
@@ -361,7 +344,7 @@ export function OrganizationsClient() {
                   </div>
                 </TableHead>
                 <TableHead
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                  className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
                   onClick={() => handleSort("owner")}
                 >
                   <div className="flex items-center gap-2">
@@ -380,7 +363,7 @@ export function OrganizationsClient() {
               {filteredOrganizations.map((org) => (
                 <TableRow
                   key={org.id}
-                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="cursor-pointer"
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox
@@ -390,13 +373,13 @@ export function OrganizationsClient() {
                   </TableCell>
                   <TableCell>
                     <Link href={`/organizations/${org.id}`} className="block">
-                      <div className="w-10 h-10 relative rounded-full overflow-hidden">
+                      <div className="w-6 h-6 relative rounded-md overflow-hidden">
                         <OrganizationImage
                           src={org.logo || "/placeholder.svg"}
                           alt={`${org.name} logo`}
-                          width={40}
-                          height={40}
-                          className="rounded-full"
+                          width={24}
+                          height={24}
+                          className="rounded-md"
                         />
                       </div>
                     </Link>
@@ -423,7 +406,7 @@ export function OrganizationsClient() {
                   </TableCell>
                   <TableCell>
                     <Link href={`/organizations/${org.id}`} className="block">
-                      <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", stageColors[org.dealStage] || "bg-gray-100 text-gray-700")}>{org.dealStage}</span>
+                      <StageBadge stage={org.dealStage} />
                     </Link>
                   </TableCell>
                   <TableCell>

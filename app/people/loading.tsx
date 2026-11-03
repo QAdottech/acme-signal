@@ -13,7 +13,7 @@ import { Search, Plus, Download } from "lucide-react";
 
 export default function PeopleLoading() {
   return (
-    <main className="container py-8 max-w-[1400px] mx-auto px-6">
+    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <Skeleton className="h-8 w-24" />
@@ -26,20 +26,20 @@ export default function PeopleLoading() {
           </Button>
           <Button
             disabled
-            className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
+            
           >
             <Plus className="w-4 h-4" />
             Add Person
           </Button>
         </div>
       </div>
-      <div className="mb-6 flex items-center gap-4">
-        <div className="relative flex-grow max-w-md">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search people..."
             disabled
-            className="pl-8 bg-gray-50 dark:bg-gray-800 border-transparent"
+            className="pl-8"
           />
         </div>
         <div className="flex gap-2">

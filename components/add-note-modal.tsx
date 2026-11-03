@@ -178,7 +178,7 @@ export function AddNoteModal({
             <Button
               type="submit"
               disabled={!selectedOrgId || !content.trim()}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              
             >
               Add Note
             </Button>

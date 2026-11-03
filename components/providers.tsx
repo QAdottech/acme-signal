@@ -5,6 +5,10 @@ import { AppShell } from "@/components/app-shell";
 import { PublicHeader } from "@/components/public-header";
 import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
+import { ensureCurrentSeedData } from "@/lib/demo-data";
+
+// Runs on the client before any page reads seeded data from localStorage.
+ensureCurrentSeedData();
 
 // Routes that don't require auth loading to complete before rendering
 const publicRoutes = [
@@ -40,7 +44,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <AuthGate>{children}</AuthGate>
-      <Toaster richColors position="bottom-right" />
+      <Toaster position="bottom-right" />
     </AuthProvider>
   );
 }

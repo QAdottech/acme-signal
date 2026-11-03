@@ -100,7 +100,7 @@ export function EditPersonModal({
                 id="edit-name"
                 value={formData.name}
                 onChange={(e) => handleChange("name", e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 required
               />
             </div>
@@ -113,7 +113,7 @@ export function EditPersonModal({
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 required
               />
             </div>
@@ -126,7 +126,7 @@ export function EditPersonModal({
                 value={formData.role}
                 onChange={(e) => handleChange("role", e.target.value)}
                 placeholder="e.g., CEO, VP of Product"
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 required
               />
             </div>
@@ -138,7 +138,7 @@ export function EditPersonModal({
                 id="edit-organization"
                 value={formData.organization}
                 onChange={(e) => handleChange("organization", e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 required
               />
             </div>
@@ -151,7 +151,7 @@ export function EditPersonModal({
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => handleChange("phone", e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -163,7 +163,7 @@ export function EditPersonModal({
                 value={formData.linkedIn}
                 onChange={(e) => handleChange("linkedIn", e.target.value)}
                 placeholder="https://linkedin.com/in/..."
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -233,7 +233,7 @@ export function EditPersonModal({
                 type="date"
                 value={formData.lastContact}
                 onChange={(e) => handleChange("lastContact", e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -245,7 +245,7 @@ export function EditPersonModal({
                 value={formData.notes}
                 onChange={(e) => handleChange("notes", e.target.value)}
                 placeholder="Additional notes about this person..."
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 rows={3}
               />
             </div>
@@ -260,7 +260,7 @@ export function EditPersonModal({
             </Button>
             <Button
               type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              
             >
               Save Changes
             </Button>

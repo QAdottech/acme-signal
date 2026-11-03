@@ -3,6 +3,7 @@
 import { Activity } from "@/types/activity";
 import { Building2, Users, FolderKanban, ArrowRight, StickyNote, Calendar, TrendingUp, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatRelative } from "@/lib/format";
 
 interface ActivityFeedProps {
   activities: Activity[];
@@ -34,22 +35,6 @@ const activityColors: Record<Activity["type"], string> = {
 export function ActivityFeed({ activities, maxItems = 10 }: ActivityFeedProps) {
   const displayedActivities = activities.slice(0, maxItems);
 
-  const getTimeAgo = (timestamp: string) => {
-    const now = new Date();
-    const activityTime = new Date(timestamp);
-    const diffMs = now.getTime() - activityTime.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 60) {
-      return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
-    } else if (diffHours < 24) {
-      return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-    } else {
-      return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
-    }
-  };
 
   return (
     <Card>
@@ -76,7 +61,7 @@ export function ActivityFeed({ activities, maxItems = 10 }: ActivityFeedProps) {
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-xs text-gray-400">
-                      {getTimeAgo(activity.timestamp)}
+                      {formatRelative(activity.timestamp)}
                     </p>
                     {activity.userName && (
                       <>

@@ -1,4 +1,5 @@
 import { Person } from "@/types/person";
+import { seedDate } from "@/lib/demo-data";
 
 // Sample people data
 const defaultPeople: Person[] = [
@@ -12,7 +13,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/danielek",
     notes: "Founder and CEO of Spotify. Very interested in AI and podcasting.",
     status: "Active",
-    lastContact: "2026-02-20",
+    lastContact: seedDate("2026-02-20"),
   },
   {
     id: "2",
@@ -24,7 +25,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/sarahchen",
     notes: "Leading product development for enterprise features.",
     status: "Active",
-    lastContact: "2026-02-18",
+    lastContact: seedDate("2026-02-18"),
   },
   {
     id: "3",
@@ -36,7 +37,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/marcusj",
     notes: "Technical lead, focused on payment infrastructure.",
     status: "Active",
-    lastContact: "2026-02-22",
+    lastContact: seedDate("2026-02-22"),
   },
   {
     id: "4",
@@ -48,7 +49,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/emilyrodriguez",
     notes: "Financial strategy and fundraising lead.",
     status: "Active",
-    lastContact: "2026-02-15",
+    lastContact: seedDate("2026-02-15"),
   },
   {
     id: "5",
@@ -60,7 +61,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/jameswilson",
     notes: "Managing enterprise sales and partnerships.",
     status: "Active",
-    lastContact: "2026-02-24",
+    lastContact: seedDate("2026-02-24"),
   },
   {
     id: "6",
@@ -72,7 +73,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/mikiikuusi",
     notes: "Co-founder of Wolt. Focused on expanding delivery logistics.",
     status: "Active",
-    lastContact: "2026-02-12",
+    lastContact: seedDate("2026-02-12"),
   },
   {
     id: "7",
@@ -84,7 +85,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/sebastians",
     notes: "Co-founder of Klarna. Driving AI-first strategy.",
     status: "Active",
-    lastContact: "2026-02-25",
+    lastContact: seedDate("2026-02-25"),
   },
   {
     id: "8",
@@ -96,7 +97,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/darioamodei",
     notes: "CEO and co-founder. Key decision maker for enterprise partnerships.",
     status: "Active",
-    lastContact: "2026-02-23",
+    lastContact: seedDate("2026-02-23"),
   },
   {
     id: "9",
@@ -108,7 +109,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/guillermorauch",
     notes: "Founder of Vercel and Next.js. Champions developer experience.",
     status: "Active",
-    lastContact: "2026-02-19",
+    lastContact: seedDate("2026-02-19"),
   },
   {
     id: "10",
@@ -120,7 +121,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/antonosika",
     notes: "Building AI-powered full-stack development tools.",
     status: "Active",
-    lastContact: "2026-02-21",
+    lastContact: seedDate("2026-02-21"),
   },
   {
     id: "11",
@@ -132,7 +133,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/aravindsrinivas",
     notes: "Leading AI search innovation. Interested in enterprise search solutions.",
     status: "Active",
-    lastContact: "2026-02-22",
+    lastContact: seedDate("2026-02-22"),
   },
   {
     id: "12",
@@ -144,7 +145,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/michaeltruell",
     notes: "Building AI-native code editor. Very technical buyer.",
     status: "Active",
-    lastContact: "2026-02-24",
+    lastContact: seedDate("2026-02-24"),
   },
   {
     id: "13",
@@ -156,7 +157,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/joelhellermark",
     notes: "Passionate about AI in education. Enterprise learning platform.",
     status: "Active",
-    lastContact: "2026-02-14",
+    lastContact: seedDate("2026-02-14"),
   },
   {
     id: "14",
@@ -168,7 +169,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/andersjohansson",
     notes: "Exploring integration opportunities. Reports to CEO.",
     status: "Active",
-    lastContact: "2026-02-17",
+    lastContact: seedDate("2026-02-17"),
   },
   {
     id: "15",
@@ -180,7 +181,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/lisaberglund",
     notes: "Manages key enterprise accounts. Renewal champion.",
     status: "Active",
-    lastContact: "2026-01-28",
+    lastContact: seedDate("2026-01-28"),
   },
   {
     id: "16",
@@ -192,7 +193,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/thomasmueller",
     notes: "Driving enterprise ML platform adoption. Technical evaluator.",
     status: "Active",
-    lastContact: "2026-02-16",
+    lastContact: seedDate("2026-02-16"),
   },
   {
     id: "17",
@@ -202,7 +203,7 @@ const defaultPeople: Person[] = [
     organization: "Jasper",
     notes: "Account went cold after they chose a competitor. May revisit in Q3.",
     status: "Inactive",
-    lastContact: "2026-01-10",
+    lastContact: seedDate("2026-01-10"),
   },
   {
     id: "18",
@@ -214,7 +215,7 @@ const defaultPeople: Person[] = [
     linkedIn: "https://linkedin.com/in/eriklund",
     notes: "Data analytics startup. Evaluating our analytics module.",
     status: "Active",
-    lastContact: "2026-02-11",
+    lastContact: seedDate("2026-02-11"),
   },
 ];
 

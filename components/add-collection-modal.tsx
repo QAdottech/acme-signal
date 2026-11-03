@@ -60,9 +60,9 @@ export function AddCollectionModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
-          <DialogTitle>Add New Collection</DialogTitle>
+          <DialogTitle>New List</DialogTitle>
           <DialogDescription>
-            Create a new collection to group organizations.
+            Create a list to group companies.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -75,7 +75,7 @@ export function AddCollectionModal({
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 required
               />
             </div>
@@ -87,7 +87,7 @@ export function AddCollectionModal({
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 rows={3}
                 required
               />
@@ -103,7 +103,7 @@ export function AddCollectionModal({
                     value={currentTag}
                     onChange={(e) => setCurrentTag(e.target.value)}
                     placeholder="Add a tag"
-                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    
                   />
                   <Button type="button" onClick={handleAddTag}>
                     Add
@@ -132,9 +132,9 @@ export function AddCollectionModal({
           <DialogFooter>
             <Button
               type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              
             >
-              Add Collection
+              Create List
             </Button>
           </DialogFooter>
         </form>

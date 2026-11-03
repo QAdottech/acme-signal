@@ -68,7 +68,7 @@ export function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1.5 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+              className="mt-1.5"
               placeholder="you@company.com"
             />
           </div>
@@ -87,7 +87,7 @@ export function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                className="pr-10 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="pr-10"
                 placeholder="Enter your password"
               />
               <button
@@ -109,7 +109,7 @@ export function LoginForm() {
           )}
           <Button
             type="submit"
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+            className="w-full"
           >
             Sign in
           </Button>

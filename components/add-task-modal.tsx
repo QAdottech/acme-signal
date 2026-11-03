@@ -118,7 +118,7 @@ export function AddTaskModal({
                 id="task-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 placeholder="Follow up with client..."
                 required
               />
@@ -131,7 +131,7 @@ export function AddTaskModal({
                 id="task-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0 min-h-[80px]"
+                className="col-span-3 min-h-[80px]"
                 placeholder="Optional details..."
               />
             </div>
@@ -162,7 +162,7 @@ export function AddTaskModal({
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -241,7 +241,7 @@ export function AddTaskModal({
           <DialogFooter>
             <Button
               type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              
               disabled={!title.trim()}
             >
               Create Task
