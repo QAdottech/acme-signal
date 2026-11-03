@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function DashboardLoading() {
   return (
-    <main className="container py-8 max-w-[1400px] mx-auto px-6">
+    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
       <div className="mb-8">
         <Skeleton className="h-9 w-40" />
         <Skeleton className="h-4 w-64 mt-2" />

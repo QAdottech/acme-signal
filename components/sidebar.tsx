@@ -1,194 +1,347 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
-  FileBarChart,
-  BarChart3,
   Bell,
   Building2,
-  Users,
-  FolderKanban,
-  Kanban,
-  Settings,
-  UsersRound,
-  CircleDollarSign,
-  Mail,
   CheckSquare,
+  ChevronsUpDown,
+  CircleDollarSign,
+  FileBarChart,
+  Kanban,
+  LogOut,
+  Mail,
+  Plus,
+  Search,
+  Settings,
   StickyNote,
+  User,
+  Users,
+  UsersRound,
 } from "lucide-react";
-import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { getCollections } from "@/lib/organizationData";
 import { getUnreadCount } from "@/lib/activityData";
-import { useEffect, useState } from "react";
+import { getTasks, isDueSoon } from "@/lib/taskData";
+import { dispatchCreateIntent } from "@/lib/create-intent";
+import { openCommandMenu, Kbd } from "@/components/command-menu";
+import { HelpPopover } from "@/components/help-popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Collection } from "@/types/organization";
 import { cn } from "@/lib/utils";
 
-const mainNavItems = [
-  { href: "/", label: "Pipeline", icon: Kanban },
-  { href: "/deals", label: "Deals", icon: CircleDollarSign },
-  { href: "/reports", label: "Reports", icon: FileBarChart },
-  { href: "/tasks", label: "Tasks", icon: CheckSquare },
+type NavEntry = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+const RECORDS: NavEntry[] = [
   { href: "/organizations", label: "Companies", icon: Building2 },
   { href: "/people", label: "People", icon: Users },
+  { href: "/deals", label: "Deals", icon: CircleDollarSign },
+];
+
+const WORKSPACE: NavEntry[] = [
+  { href: "/", label: "Pipeline", icon: Kanban },
   { href: "/emails", label: "Emails", icon: Mail },
   { href: "/notes", label: "Notes", icon: StickyNote },
+  { href: "/reports", label: "Reports", icon: FileBarChart },
 ];
+
+/** Stable colour per list, so each list keeps its swatch across renders. */
+const LIST_SWATCHES = [
+  "bg-sky-500",
+  "bg-violet-500",
+  "bg-emerald-500",
+  "bg-amber-500",
+  "bg-rose-500",
+  "bg-indigo-500",
+];
+
+function swatchFor(id: string) {
+  let hash = 0;
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return LIST_SWATCHES[hash % LIST_SWATCHES.length];
+}
+
+function countOpenTasksDue(): number {
+  const today = new Date().toISOString().split("T")[0];
+  return getTasks().filter(
+    (task) =>
+      task.status !== "done" &&
+      !!task.dueDate &&
+      (task.dueDate < today || isDueSoon(task))
+  ).length;
+}
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { isAdmin } = useAuth();
+  const router = useRouter();
+  const { user, isAdmin, logout } = useAuth();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [dueTaskCount, setDueTaskCount] = useState(0);
+  const [isMac, setIsMac] = useState(true);
 
   useEffect(() => {
-    setCollections(getCollections());
-    setUnreadCount(getUnreadCount());
-
-    const handleNotificationsUpdate = () => setUnreadCount(getUnreadCount());
-    const handleCollectionsUpdate = () => setCollections(getCollections());
-    window.addEventListener("notifications-updated", handleNotificationsUpdate);
-    window.addEventListener("collections-updated", handleCollectionsUpdate);
-    return () => {
-      window.removeEventListener("notifications-updated", handleNotificationsUpdate);
-      window.removeEventListener("collections-updated", handleCollectionsUpdate);
-    };
+    setIsMac(/Mac|iPhone|iPad/.test(navigator.platform));
   }, []);
 
-  const isActive = (href: string) => {
-    if (href === "/") return pathname === "/";
-    return pathname?.startsWith(href);
+  // Counts are re-read on navigation and whenever the data changes.
+  useEffect(() => {
+    const refreshNotifications = () => setUnreadCount(getUnreadCount());
+    const refreshCollections = () => setCollections(getCollections());
+    const refreshTasks = () => setDueTaskCount(countOpenTasksDue());
+    refreshNotifications();
+    refreshCollections();
+    refreshTasks();
+    window.addEventListener("notifications-updated", refreshNotifications);
+    window.addEventListener("collections-updated", refreshCollections);
+    window.addEventListener("tasks-updated", refreshTasks);
+    return () => {
+      window.removeEventListener("notifications-updated", refreshNotifications);
+      window.removeEventListener("collections-updated", refreshCollections);
+      window.removeEventListener("tasks-updated", refreshTasks);
+    };
+  }, [pathname]);
+
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : !!pathname?.startsWith(href);
+
+  const createList = () => {
+    if (pathname === "/collections") dispatchCreateIntent("list");
+    else router.push("/collections?new=list");
   };
 
   return (
-    <aside className="w-60 h-screen sticky top-0 flex flex-col border-r bg-gray-50/80 dark:bg-gray-900">
-      {/* Workspace header */}
-      <div className="h-14 flex items-center px-4 border-b">
-        <Link href="/" className="flex items-center gap-2.5">
-          <Image
-            src="/logos/acme-icon.png"
-            alt="ACME Signal"
-            width={28}
-            height={28}
-            className="dark:invert"
-          />
-          <span className="text-[15px] font-semibold text-gray-800 dark:text-gray-100 tracking-tight">
-            ACME Signal
-          </span>
-        </Link>
+    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r bg-sidebar">
+      {/* Workspace + account */}
+      <div className="px-2 pt-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label="Account menu"
+              className="flex h-10 w-full items-center gap-2 rounded-md px-2 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 data-[state=open]:bg-accent"
+            >
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-foreground">
+                <Image
+                  src="/logos/acme-icon.png"
+                  alt=""
+                  width={16}
+                  height={16}
+                  className="invert dark:invert-0"
+                />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-semibold leading-4">
+                  ACME Signal
+                </span>
+                {user && (
+                  <span className="block truncate text-xs leading-4 text-muted-foreground">
+                    {user.fullName}
+                  </span>
+                )}
+              </span>
+              <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            {user && (
+              <DropdownMenuLabel className="font-normal">
+                <p className="truncate text-[13px] font-medium">{user.fullName}</p>
+                <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+              </DropdownMenuLabel>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/profile/edit">
+                <User />
+                Profile settings
+              </Link>
+            </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem asChild>
+                <Link href="/team">
+                  <UsersRound />
+                  Manage team
+                </Link>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={logout}>
+              <LogOut />
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {/* Main navigation */}
-      <nav className="flex-1 overflow-y-auto px-2 py-3">
-        <div className="space-y-0.5">
-          {mainNavItems.map((item, index) => (
-            <div key={item.href}>
-              <Link
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors",
-                  isActive(item.href)
-                    ? "bg-gray-200/80 dark:bg-gray-800 text-gray-900 dark:text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
-                )}
-              >
-                <item.icon className="w-4 h-4 flex-shrink-0" />
-                {item.label}
-              </Link>
-              {index === 0 && (
-                <Link
-                  href="/notifications"
-                  className={cn(
-                    "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors",
-                    isActive("/notifications")
-                      ? "bg-gray-200/80 dark:bg-gray-800 text-gray-900 dark:text-white"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
-                  )}
-                >
-                  <Bell className="w-4 h-4 flex-shrink-0" />
-                  <span className="flex items-center gap-2">
-                    Notifications
-                    {unreadCount > 0 && (
-                      <span className="bg-orange-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </span>
-                </Link>
-              )}
-            </div>
-          ))}
-        </div>
+      {/* Search */}
+      <div className="px-2 pb-1 pt-2">
+        <button
+          type="button"
+          onClick={openCommandMenu}
+          aria-label="Search"
+          aria-keyshortcuts="Meta+K Control+K"
+          className="flex h-8 w-full items-center gap-2 rounded-md border border-input bg-background px-2 text-[13px] text-muted-foreground shadow-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        >
+          <Search className="h-4 w-4" />
+          Search
+          <span className="ml-auto flex items-center gap-0.5">
+            <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>
+            <Kbd>K</Kbd>
+          </span>
+        </button>
+      </div>
 
-        {/* Lists / Collections */}
-        <div className="mt-6">
-          <div className="flex items-center justify-between px-2.5 mb-1">
-            <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-              Lists
-            </span>
-          </div>
-          <div className="space-y-0.5">
-            {collections.map((collection) => (
-              <Link
-                key={collection.id}
-                href={`/collections/${collection.id}`}
-                className={cn(
-                  "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors",
-                  isActive(`/collections/${collection.id}`)
-                    ? "bg-gray-200/80 dark:bg-gray-800 text-gray-900 dark:text-white font-medium"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
-                )}
+      <nav className="flex-1 overflow-y-auto px-2 pb-3" aria-label="Main">
+        <NavSection>
+          <NavLink href="/notifications" label="Notifications" icon={Bell} active={isActive("/notifications")}>
+            {unreadCount > 0 && (
+              <span className="ml-auto min-w-[18px] rounded-full bg-blue-600 px-1.5 text-center text-[11px] font-medium leading-4 text-white">
+                {unreadCount}
+              </span>
+            )}
+          </NavLink>
+          <NavLink href="/tasks" label="Tasks" icon={CheckSquare} active={isActive("/tasks")}>
+            {dueTaskCount > 0 && (
+              <span
+                aria-hidden
+                className="ml-auto text-xs tabular-nums text-muted-foreground"
+                title="Open tasks overdue or due in the next 7 days"
               >
-                <FolderKanban className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">{collection.name}</span>
-              </Link>
-            ))}
-            <Link
-              href="/collections"
-              className={cn(
-                "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors",
-                pathname === "/collections"
-                  ? "bg-gray-200/80 dark:bg-gray-800 text-gray-900 dark:text-white font-medium"
-                  : "text-gray-500 dark:text-gray-500 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
-              )}
+                {dueTaskCount}
+              </span>
+            )}
+          </NavLink>
+        </NavSection>
+
+        <NavSection title="Records">
+          {RECORDS.map((item) => (
+            <NavLink key={item.href} {...item} active={isActive(item.href)} />
+          ))}
+        </NavSection>
+
+        <NavSection title="Workspace">
+          {WORKSPACE.map((item) => (
+            <NavLink key={item.href} {...item} active={isActive(item.href)} />
+          ))}
+        </NavSection>
+
+        <NavSection
+          title="Lists"
+          titleHref="/collections"
+          action={
+            <button
+              type="button"
+              onClick={createList}
+              aria-label="New list"
+              className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground opacity-0 transition hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover/section:opacity-100"
             >
-              <span className="w-4 h-4 flex items-center justify-center text-xs">+</span>
-              All Lists
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          }
+        >
+          {collections.map((collection) => (
+            <Link
+              key={collection.id}
+              href={`/collections/${collection.id}`}
+              className={navItemClass(isActive(`/collections/${collection.id}`))}
+            >
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                <span className={cn("h-2.5 w-2.5 rounded-[3px]", swatchFor(collection.id))} />
+              </span>
+              <span className="truncate">{collection.name}</span>
             </Link>
-          </div>
-        </div>
+          ))}
+          {collections.length === 0 && (
+            <p className="px-2 py-1 text-xs text-muted-foreground">No lists yet</p>
+          )}
+        </NavSection>
       </nav>
 
-      {/* Bottom section */}
-      <div className="border-t px-2 py-3 space-y-0.5">
+      <div className="space-y-px border-t px-2 py-2">
+        <HelpPopover />
         {isAdmin && (
-          <Link
-            href="/team"
-            className={cn(
-              "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors",
-              isActive("/team")
-                ? "bg-gray-200/80 dark:bg-gray-800 text-gray-900 dark:text-white"
-                : "text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
-            )}
-          >
-            <UsersRound className="w-4 h-4 flex-shrink-0" />
-            Team
-          </Link>
+          <NavLink href="/team" label="Team" icon={UsersRound} active={isActive("/team")} />
         )}
-        <Link
-          href="/profile/edit"
-          className={cn(
-            "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors",
-            isActive("/profile")
-              ? "bg-gray-200/80 dark:bg-gray-800 text-gray-900 dark:text-white"
-              : "text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white"
-          )}
-        >
-          <Settings className="w-4 h-4 flex-shrink-0" />
-          Settings
-        </Link>
+        <NavLink href="/profile/edit" label="Settings" icon={Settings} active={isActive("/profile")} />
       </div>
     </aside>
+  );
+}
+
+export function navItemClass(active: boolean) {
+  return cn(
+    "flex h-8 items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+    "[&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0",
+    active
+      ? "bg-accent text-foreground [&_svg]:text-foreground"
+      : "text-gray-600 hover:bg-accent/70 hover:text-foreground dark:text-gray-400 [&_svg]:text-muted-foreground"
+  );
+}
+
+function NavLink({
+  href,
+  label,
+  icon: Icon,
+  active,
+  children,
+}: NavEntry & { active: boolean; children?: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={navItemClass(active)}
+    >
+      <Icon />
+      <span className="truncate">{label}</span>
+      {children}
+    </Link>
+  );
+}
+
+function NavSection({
+  title,
+  titleHref,
+  action,
+  children,
+}: {
+  title?: string;
+  titleHref?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="group/section mt-4 first:mt-2">
+      {title && (
+        <div className="mb-0.5 flex h-6 items-center justify-between px-2">
+          {titleHref ? (
+            <Link
+              href={titleHref}
+              className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {title}
+            </Link>
+          ) : (
+            <span className="text-xs font-medium text-muted-foreground">{title}</span>
+          )}
+          {action}
+        </div>
+      )}
+      <div className="space-y-px">{children}</div>
+    </div>
   );
 }

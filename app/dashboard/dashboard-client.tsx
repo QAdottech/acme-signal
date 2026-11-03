@@ -122,7 +122,7 @@ export function DashboardClient() {
 
   return (
     <>
-      <main className="container py-8 max-w-[1400px] mx-auto px-6">
+      <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground mt-1">

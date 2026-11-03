@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { formatDealValue } from "@/lib/dealData";
 import { getPeople } from "@/lib/personData";
 import { useMemo } from "react";
+import { formatDate } from "@/lib/format";
 
 interface DealCardProps {
   deal: Deal;
@@ -99,27 +100,24 @@ export function DealCard({ deal, organization }: DealCardProps) {
   );
 
   const closeDate = deal.expectedCloseDate
-    ? new Date(deal.expectedCloseDate).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      })
+    ? formatDate(deal.expectedCloseDate)
     : null;
 
   return (
     <Card
-      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors border-gray-200 dark:border-gray-800 shadow-sm"
+      className="cursor-pointer bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-gray-300 dark:hover:border-gray-600"
       onClick={() => router.push(`/deals/${deal.id}`)}
     >
       <CardContent className="p-3">
         <div className="flex flex-col gap-1.5">
           {/* Row 1: Title */}
-          <h3 className="font-semibold text-sm truncate text-gray-900 dark:text-white">
+          <h3 className="truncate text-[13px] font-medium text-foreground">
             {deal.title}
           </h3>
 
           {/* Row 2: Amount + Close date */}
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-900 dark:text-white">
+            <span className="text-[13px] tabular-nums text-foreground">
               {formatDealValue(deal.value)}
             </span>
             {closeDate && (
@@ -165,7 +163,7 @@ export function DealCard({ deal, organization }: DealCardProps) {
                   <div
                     key={person.id}
                     title={person.name}
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-white dark:ring-gray-900 ${getAvatarColor(
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-semibold text-white ring-2 ring-card ${getAvatarColor(
                       person.id
                     )}`}
                   >

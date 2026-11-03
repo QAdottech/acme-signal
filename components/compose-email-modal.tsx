@@ -158,7 +158,7 @@ export function ComposeEmailModal({
                   // Delay hiding so click on suggestion works
                   setTimeout(() => setShowSuggestions(false), 200);
                 }}
-                className="bg-gray-50 dark:bg-gray-800 border-transparent focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                
               />
               {showSuggestions && filteredPeople.length > 0 && (
                 <div
@@ -213,7 +213,7 @@ export function ComposeEmailModal({
               placeholder="Email subject..."
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="bg-gray-50 dark:bg-gray-800 border-transparent focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+              
             />
           </div>
 
@@ -225,7 +225,7 @@ export function ComposeEmailModal({
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={6}
-              className="bg-gray-50 dark:bg-gray-800 border-transparent focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0 resize-none"
+              className="resize-none"
             />
           </div>
 
@@ -241,7 +241,7 @@ export function ComposeEmailModal({
             <Button
               type="submit"
               disabled={sending || !to || !subject}
-              className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
+              
             >
               {sending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

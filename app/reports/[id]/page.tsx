@@ -261,7 +261,7 @@ export default function ReportDetailPage() {
 
   if (!report) {
     return (
-      <main className="container py-8 max-w-[1400px] mx-auto px-6">
+      <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
         <div className="flex items-center gap-2 mb-8">
           <Button variant="ghost" size="icon" onClick={() => router.push("/reports")}>
             <ArrowLeft className="h-4 w-4" />
@@ -276,7 +276,7 @@ export default function ReportDetailPage() {
   }
 
   return (
-    <main className="container py-8 max-w-[1400px] mx-auto px-6">
+    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div className="flex items-center gap-3">

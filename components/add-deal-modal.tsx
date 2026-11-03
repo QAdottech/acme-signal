@@ -153,7 +153,7 @@ export function AddDealModal({
                 id="deal-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 placeholder="Enterprise License"
                 required
               />
@@ -212,7 +212,7 @@ export function AddDealModal({
                 type="number"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 placeholder="50000"
                 required
               />
@@ -266,7 +266,7 @@ export function AddDealModal({
                 type="date"
                 value={expectedCloseDate}
                 onChange={(e) => setExpectedCloseDate(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 required
               />
             </div>
@@ -324,7 +324,7 @@ export function AddDealModal({
                 max="100"
                 value={probability}
                 onChange={(e) => setProbability(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -335,7 +335,7 @@ export function AddDealModal({
                 id="deal-next-step"
                 value={nextStep}
                 onChange={(e) => setNextStep(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 placeholder="Schedule demo with CTO"
               />
             </div>
@@ -347,13 +347,13 @@ export function AddDealModal({
                     {selectedTags.map((tag) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-muted text-foreground"
                       >
                         {tag}
                         <button
                           type="button"
                           onClick={() => handleRemoveTag(tag)}
-                          className="hover:text-orange-900 dark:hover:text-orange-100"
+                          className="text-muted-foreground hover:text-foreground"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -398,7 +398,7 @@ export function AddDealModal({
           <DialogFooter>
             <Button
               type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              
             >
               Create Deal
             </Button>

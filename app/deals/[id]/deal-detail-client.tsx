@@ -54,6 +54,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { StageBadge } from "@/components/stage-badge";
+import { formatDate, formatFullDate, formatRelative } from "@/lib/format";
 
 const dealStages: DealStage[] = [
   "New",
@@ -65,17 +67,6 @@ const dealStages: DealStage[] = [
   "Churned",
   "Closed Lost",
 ];
-
-const stageColors: Record<string, string> = {
-  New: "bg-gray-100 text-gray-700",
-  Lead: "bg-blue-100 text-blue-700",
-  Qualified: "bg-orange-100 text-orange-700",
-  Proposal: "bg-purple-100 text-purple-700",
-  Negotiation: "bg-amber-100 text-amber-700",
-  Customer: "bg-green-100 text-green-700",
-  Churned: "bg-red-100 text-red-700",
-  "Closed Lost": "bg-red-100 text-red-700",
-};
 
 const TAG_COLORS: Record<string, string> = {
   "Pre POC": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
@@ -103,15 +94,6 @@ const AVAILABLE_TAGS = [
   "Technical Eval",
 ];
 
-function getTimeAgo(timestamp: string) {
-  const now = new Date();
-  const time = new Date(timestamp);
-  const diffMs = now.getTime() - time.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  return `${diffDays}d ago`;
-}
 
 export function DealDetailClient({
   params,
@@ -252,7 +234,7 @@ export function DealDetailClient({
     <>
       {/* Header */}
       <div className="border-b bg-white dark:bg-gray-950">
-        <div className="container max-w-[1400px] mx-auto px-6 py-6">
+        <div className="mx-auto w-full max-w-[1400px] px-8 py-6">
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
             <button
               onClick={() => router.push("/")}
@@ -272,7 +254,7 @@ export function DealDetailClient({
               <div className="flex items-center gap-3 mt-2">
                 <Link
                   href={`/organizations/${organization.id}`}
-                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-orange-600 transition-colors"
+                  className="flex items-center gap-2 text-sm text-gray-500 hover:underline underline-offset-2"
                 >
                   <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                     <OrganizationImage
@@ -284,14 +266,7 @@ export function DealDetailClient({
                   </div>
                   {organization.name}
                 </Link>
-                <span
-                  className={cn(
-                    "px-2 py-0.5 rounded-full text-xs font-medium",
-                    stageColors[deal.stage] || "bg-gray-100 text-gray-700"
-                  )}
-                >
-                  {deal.stage}
-                </span>
+                <StageBadge stage={deal.stage} />
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -319,7 +294,7 @@ export function DealDetailClient({
       </div>
 
       {/* Content */}
-      <div className="container max-w-[1400px] mx-auto px-6 py-6">
+      <div className="mx-auto w-full max-w-[1400px] px-8 py-6">
         <div className="flex gap-8">
           {/* Left panel */}
           <div className="flex-1 min-w-0 space-y-6">
@@ -350,7 +325,7 @@ export function DealDetailClient({
                 ) : (
                   <button
                     onClick={() => setIsEditingValue(true)}
-                    className="text-3xl font-bold text-gray-900 dark:text-white hover:text-orange-600 transition-colors"
+                    className="text-3xl font-bold text-gray-900 dark:text-white hover:underline underline-offset-2"
                   >
                     {formatDealValue(deal.value, deal.currency)}
                   </button>
@@ -411,7 +386,7 @@ export function DealDetailClient({
               </CardHeader>
               <CardContent className="space-y-3">
                 {isAddingNote && (
-                  <div className="p-3 rounded-lg border border-orange-200 bg-orange-50/50 dark:border-orange-900/50 dark:bg-orange-950/20 space-y-2">
+                  <div className="p-3 rounded-lg border bg-muted/40 space-y-2">
                     <Textarea
                       placeholder="Write your note..."
                       value={newNoteContent}
@@ -447,7 +422,7 @@ export function DealDetailClient({
                         </Button>
                         <Button
                           size="sm"
-                          className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                          className="text-xs"
                           disabled={!newNoteContent.trim()}
                           onClick={handleAddNote}
                         >
@@ -467,7 +442,7 @@ export function DealDetailClient({
                         {note.content}
                       </p>
                       <p className="text-xs text-gray-400 mt-2">
-                        {note.authorName} &middot; {getTimeAgo(note.createdAt)}
+                        {note.authorName} &middot; {formatRelative(note.createdAt)}
                       </p>
                     </div>
                   ))
@@ -536,17 +511,12 @@ export function DealDetailClient({
                                       : "text-gray-500"
                                   )}
                                 >
-                                  {new Date(
-                                    task.dueDate + "T00:00:00"
-                                  ).toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
-                                  })}
+                                  {formatDate(task.dueDate)}
                                   {isOverdue && " (overdue)"}
                                 </span>
                               )}
                               {task.priority === "high" && (
-                                <span className="text-xs px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                                   High
                                 </span>
                               )}
@@ -647,10 +617,7 @@ export function DealDetailClient({
                         <>
                           {" "}
                           on{" "}
-                          {new Date(deal.signatureSentAt).toLocaleDateString(
-                            "en-US",
-                            { month: "short", day: "numeric" }
-                          )}
+                          {formatDate(deal.signatureSentAt)}
                         </>
                       )}
                     </p>
@@ -718,11 +685,7 @@ export function DealDetailClient({
                     Expected Close
                   </span>
                   <span className="text-sm font-medium">
-                    {new Date(deal.expectedCloseDate).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
+                    {formatFullDate(deal.expectedCloseDate)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -732,7 +695,7 @@ export function DealDetailClient({
                   </span>
                   <Link
                     href={`/organizations/${organization.id}`}
-                    className="text-sm font-medium text-orange-600 hover:underline"
+                    className="text-sm font-medium text-link hover:underline"
                   >
                     {organization.name}
                   </Link>
@@ -743,7 +706,7 @@ export function DealDetailClient({
                     Created
                   </span>
                   <span className="text-sm font-medium">
-                    {getTimeAgo(deal.createdAt)}
+                    {formatRelative(deal.createdAt)}
                   </span>
                 </div>
               </CardContent>
@@ -763,7 +726,7 @@ export function DealDetailClient({
                     <Input
                       value={editNextStep}
                       onChange={(e) => setEditNextStep(e.target.value)}
-                      className="text-sm focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                      className="text-sm"
                       placeholder="What's the next action?"
                       autoFocus
                       onKeyDown={(e) => {
@@ -793,7 +756,7 @@ export function DealDetailClient({
                 ) : (
                   <button
                     onClick={() => setIsEditingNextStep(true)}
-                    className="text-sm text-left w-full hover:text-orange-600 transition-colors"
+                    className="text-sm text-left w-full hover:underline underline-offset-2"
                   >
                     {deal.nextStep || (
                       <span className="text-gray-400 italic">
@@ -889,7 +852,7 @@ export function DealDetailClient({
                           key={person.id}
                           className="flex items-center gap-3 p-2 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                         >
-                          <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0">
                             {person.name
                               .split(" ")
                               .map((n) => n[0])
@@ -909,7 +872,7 @@ export function DealDetailClient({
                                   at{" "}
                                   <Link
                                     href={`/organizations/${personOrg.id}`}
-                                    className="text-orange-600 hover:underline"
+                                    className="text-link hover:underline"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     {personOrg.name}

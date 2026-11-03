@@ -31,6 +31,10 @@ import { OrganizationImage } from "@/components/organization-image";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterPopover } from "@/components/filter-popover";
 import { cn } from "@/lib/utils";
+import { StageBadge } from "@/components/stage-badge";
+import { formatDate } from "@/lib/format";
+import { PageHeader } from "@/components/page-header";
+import { useCreateIntent } from "@/lib/create-intent";
 
 type SortField =
   | "title"
@@ -42,22 +46,12 @@ type SortField =
   | "probability";
 type SortDirection = "asc" | "desc";
 
-const stageColors: Record<string, string> = {
-  New: "bg-gray-100 text-gray-700",
-  Lead: "bg-blue-100 text-blue-700",
-  Qualified: "bg-orange-100 text-orange-700",
-  Proposal: "bg-purple-100 text-purple-700",
-  Negotiation: "bg-amber-100 text-amber-700",
-  Customer: "bg-green-100 text-green-700",
-  Churned: "bg-red-100 text-red-700",
-  "Closed Lost": "bg-red-100 text-red-700",
-};
-
 export function DealsClient() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  useCreateIntent("deal", () => setIsModalOpen(true));
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
     location: [] as string[],
@@ -266,51 +260,49 @@ export function DealsClient() {
     ) : null;
 
   return (
-    <main className="container py-8 max-w-[1400px] mx-auto px-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Deals</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
+      <PageHeader
+        title="Deals"
+        description={
+          <>
             {filteredDeals.length === deals.length
               ? `${deals.length} deals`
               : `${filteredDeals.length} of ${deals.length} deals`}
             {" · "}
             {formatDealValue(totalValue)} total value
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button onClick={handleExportAll} variant="outline" className="gap-2">
-            <Download className="w-4 h-4" />
-            Export CSV
-          </Button>
-          <Button
-            onClick={() => setIsModalOpen(true)}
-            className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            <Plus className="w-4 h-4" />
-            Add Deal
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+        actions={
+          <>
+            <Button onClick={handleExportAll} variant="outline">
+              <Download />
+              Export CSV
+            </Button>
+            <Button onClick={() => setIsModalOpen(true)}>
+              <Plus />
+              Add Deal
+            </Button>
+          </>
+        }
+      />
 
-      <div className="mb-6 flex items-center gap-4">
-        <div className="relative flex-grow max-w-md">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search deals..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 bg-gray-50 dark:bg-gray-800 border-transparent focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+            className="pl-8"
           />
         </div>
         <FilterPopover filters={filters} setFilters={setFilters}>
           <Button
             variant="outline"
-            size="sm"
             className={cn(
-              "gap-2 bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400",
+              "",
               totalFilters > 0 &&
-                "bg-orange-50 border-orange-300 text-orange-600 hover:bg-orange-100"
+                "bg-accent border-foreground/20 text-foreground"
             )}
           >
             <Filter className="w-4 h-4" />
@@ -322,7 +314,7 @@ export function DealsClient() {
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="gap-2 text-gray-500 hover:text-gray-700"
+            className="text-muted-foreground"
           >
             <X className="w-4 h-4" />
             Clear filters
@@ -343,7 +335,7 @@ export function DealsClient() {
               />
             </TableHead>
             <TableHead
-              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
               onClick={() => handleSort("title")}
             >
               <div className="flex items-center gap-2">
@@ -352,7 +344,7 @@ export function DealsClient() {
               </div>
             </TableHead>
             <TableHead
-              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
               onClick={() => handleSort("company")}
             >
               <div className="flex items-center gap-2">
@@ -361,7 +353,7 @@ export function DealsClient() {
               </div>
             </TableHead>
             <TableHead
-              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
               onClick={() => handleSort("value")}
             >
               <div className="flex items-center gap-2">
@@ -370,7 +362,7 @@ export function DealsClient() {
               </div>
             </TableHead>
             <TableHead
-              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
               onClick={() => handleSort("stage")}
             >
               <div className="flex items-center gap-2">
@@ -379,7 +371,7 @@ export function DealsClient() {
               </div>
             </TableHead>
             <TableHead
-              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
               onClick={() => handleSort("owner")}
             >
               <div className="flex items-center gap-2">
@@ -388,7 +380,7 @@ export function DealsClient() {
               </div>
             </TableHead>
             <TableHead
-              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
               onClick={() => handleSort("expectedCloseDate")}
             >
               <div className="flex items-center gap-2">
@@ -397,7 +389,7 @@ export function DealsClient() {
               </div>
             </TableHead>
             <TableHead
-              className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+              className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
               onClick={() => handleSort("probability")}
             >
               <div className="flex items-center gap-2">
@@ -413,7 +405,7 @@ export function DealsClient() {
             return (
               <TableRow
                 key={deal.id}
-                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="cursor-pointer"
               >
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <Checkbox
@@ -429,7 +421,7 @@ export function DealsClient() {
                 <TableCell>
                   <Link
                     href={`/organizations/${deal.organizationId}`}
-                    className="flex items-center gap-2 hover:text-orange-600 transition-colors"
+                    className="flex items-center gap-2 hover:underline underline-offset-2"
                   >
                     {org && (
                       <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
@@ -452,14 +444,7 @@ export function DealsClient() {
                 </TableCell>
                 <TableCell>
                   <Link href={`/deals/${deal.id}`} className="block">
-                    <span
-                      className={cn(
-                        "px-2 py-0.5 rounded-full text-xs font-medium",
-                        stageColors[deal.stage] || "bg-gray-100 text-gray-700"
-                      )}
-                    >
-                      {deal.stage}
-                    </span>
+                    <StageBadge stage={deal.stage} />
                   </Link>
                 </TableCell>
                 <TableCell>
@@ -469,10 +454,7 @@ export function DealsClient() {
                 </TableCell>
                 <TableCell>
                   <Link href={`/deals/${deal.id}`} className="block text-sm">
-                    {new Date(deal.expectedCloseDate).toLocaleDateString(
-                      "en-US",
-                      { month: "short", day: "numeric" }
-                    )}
+                    {formatDate(deal.expectedCloseDate)}
                   </Link>
                 </TableCell>
                 <TableCell>
@@ -499,14 +481,14 @@ export function DealsClient() {
       {/* Bulk actions */}
       {selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-          <div className="bg-orange-500 text-white rounded-lg shadow-2xl px-6 py-4 flex items-center gap-4">
+          <div className="bg-foreground text-background rounded-lg shadow-xl px-4 py-2.5 flex items-center gap-4">
             <span className="font-medium">{selectedIds.size} selected</span>
-            <div className="h-6 w-px bg-orange-300" />
+            <div className="h-6 w-px bg-background/20" />
             <Button
               variant="ghost"
               size="sm"
               onClick={handleExport}
-              className="text-white hover:bg-orange-600"
+              className="text-background hover:bg-background/10 hover:text-background"
             >
               <Download className="w-4 h-4 mr-2" />
               Export
@@ -520,12 +502,12 @@ export function DealsClient() {
               <Trash2 className="w-4 h-4 mr-2" />
               Delete
             </Button>
-            <div className="h-6 w-px bg-orange-300" />
+            <div className="h-6 w-px bg-background/20" />
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setSelectedIds(new Set())}
-              className="text-white hover:bg-orange-600"
+              className="text-background hover:bg-background/10 hover:text-background"
             >
               <X className="w-4 h-4" />
             </Button>

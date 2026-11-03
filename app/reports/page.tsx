@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { getAllReports, type ReportDefinition } from "@/lib/reports";
 import { CreateReportDialog } from "@/components/reports/create-report-dialog";
+import { PageHeader } from "@/components/page-header";
 
 const reportIcons: Record<string, React.ElementType> = {
   "pipeline-overview": BarChart3,
@@ -31,20 +32,18 @@ export default function ReportsPage() {
   }, [createOpen]);
 
   return (
-    <main className="container py-8 max-w-[1400px] mx-auto px-6">
+    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Reports</h1>
-          <p className="text-muted-foreground mt-1">
-            Analyze your CRM data with built-in and custom reports.
-          </p>
-        </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add report
-        </Button>
-      </div>
+      <PageHeader
+        title="Reports"
+        description="Analyze your CRM data with built-in and custom reports."
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus />
+            Add report
+          </Button>
+        }
+      />
 
       {/* Report cards grid */}
       <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">

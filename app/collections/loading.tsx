@@ -5,12 +5,12 @@ import { Plus } from "lucide-react";
 
 export default function CollectionsLoading() {
   return (
-    <main className="container py-8 max-w-[1400px] mx-auto px-6">
+    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
       <div className="flex justify-between items-center mb-6">
         <Skeleton className="h-8 w-32" />
         <Button
           disabled
-          className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
+          
         >
           <Plus className="w-4 h-4" />
           Add Collection

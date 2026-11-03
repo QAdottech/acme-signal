@@ -77,6 +77,7 @@ Unless marked public, start in a fresh browser and log in with the seeded demo a
 | REPORTS-01 | Create a named custom report from Pipeline by Stage. Reload; its three widgets and active-deal summary render. Delete it, reload; it is absent while Pipeline Overview remains. |
 | TASKS-01 | At a fixed date of 2026-06-01 UTC, create a task due 2026-05-31. It appears under Overdue. Complete it; it disappears from Overdue and remains checked/Done after reload. |
 | SIGN-01 | **Public:** open a proposal, submit without name/consent and verify all errors. Name plus terms consent alone still fails. With both consents, signing shows confirmation. |
+| NAV-01 | Open the sidebar Search (⌘K/Ctrl+K). Typing `anthro` shows Anthropic but not loosely matching companies; selecting it opens the company. From there, "Create task" opens Tasks with the Create Task dialog. Press G then D to reach Deals; typing in a field does not trigger shortcuts. |
 | NETWORK-01 | **Public:** send the custom-header request. Verify the actual POST headers/body, 200 response, echoed values, and success feedback in the UI. |
 
 When evaluating browser-testing workflows:

@@ -95,7 +95,7 @@ export function EditCollectionModal({
   };
 
   const handleDelete = () => {
-    if (window.confirm("Are you sure you want to delete this collection?")) {
+    if (window.confirm("Are you sure you want to delete this list?")) {
       onDelete(collection.id);
     }
   };
@@ -104,9 +104,9 @@ export function EditCollectionModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
-          <DialogTitle>Edit Collection</DialogTitle>
+          <DialogTitle>Edit List</DialogTitle>
           <DialogDescription>
-            Make changes to your collection here.
+            Make changes to your list here.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -119,7 +119,7 @@ export function EditCollectionModal({
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 required
               />
             </div>
@@ -131,7 +131,7 @@ export function EditCollectionModal({
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 rows={3}
                 required
               />
@@ -147,7 +147,7 @@ export function EditCollectionModal({
                     value={currentTag}
                     onChange={(e) => setCurrentTag(e.target.value)}
                     placeholder="Add a tag"
-                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    
                   />
                   <Button type="button" onClick={handleAddTag}>
                     Add
@@ -226,11 +226,11 @@ export function EditCollectionModal({
           </div>
           <DialogFooter className="flex justify-between">
             <Button type="button" variant="destructive" onClick={handleDelete}>
-              Delete Collection
+              Delete List
             </Button>
             <Button
               type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              
             >
               Save Changes
             </Button>

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TeamMemberList } from "@/components/team-member-list";
 import { InviteUserModal } from "@/components/invite-user-modal";
 import { useRouter } from "next/navigation";
+import { PageHeader } from "@/components/page-header";
 
 export function TeamClient() {
   const { user, isAdmin, isLoading } = useAuth();
@@ -27,7 +28,7 @@ export function TeamClient() {
   // Show loading state while authentication is being determined
   if (isLoading) {
     return (
-      <main className="container py-16 max-w-[1400px] mx-auto px-6">
+      <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
         <div className="flex items-center justify-center">
           <div>Loading...</div>
         </div>
@@ -41,16 +42,16 @@ export function TeamClient() {
   }
 
   return (
-    <div className="container py-16 max-w-[1400px] mx-auto px-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Team Management</h1>
-        <Button
-          onClick={() => setIsInviteModalOpen(true)}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
-        >
-          Invite User
-        </Button>
-      </div>
+    <div className="mx-auto w-full max-w-[1400px] px-8 py-6">
+      <PageHeader
+        title="Team"
+        description="Manage who has access to this workspace."
+        actions={
+          <Button onClick={() => setIsInviteModalOpen(true)}>
+            Invite User
+          </Button>
+        }
+      />
       <Card>
         <CardHeader>
           <CardTitle>Team Members</CardTitle>

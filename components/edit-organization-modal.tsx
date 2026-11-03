@@ -157,7 +157,7 @@ export function EditOrganizationModal({
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 required
               />
             </div>
@@ -230,7 +230,7 @@ export function EditOrganizationModal({
                 id="location"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 required
               />
             </div>
@@ -243,7 +243,7 @@ export function EditOrganizationModal({
                 type="number"
                 value={employees}
                 onChange={(e) => setEmployees(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 required
               />
             </div>
@@ -322,7 +322,7 @@ export function EditOrganizationModal({
                 type="url"
                 value={website_url}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 placeholder="https://example.com"
                 required
               />
@@ -335,7 +335,7 @@ export function EditOrganizationModal({
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="col-span-3 focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                className="col-span-3"
                 rows={3}
                 required
               />
@@ -413,7 +413,7 @@ export function EditOrganizationModal({
             </Button>
             <Button
               type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              
             >
               Save Changes
             </Button>

@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 
 export default function TasksLoading() {
   return (
-    <main className="container py-8 max-w-[1400px] mx-auto px-6">
+    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
       {/* Header skeleton */}
       <div className="flex justify-between items-center mb-6">
         <div>

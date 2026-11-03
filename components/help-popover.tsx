@@ -1,99 +1,94 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { HelpCircle, Book, MessageCircle, Mail, ExternalLink } from "lucide-react"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Separator } from "@/components/ui/separator"
+import { useEffect, useState } from "react";
+import { HelpCircle, Mail, BookOpen } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { Kbd } from "@/components/command-menu";
+import { cn } from "@/lib/utils";
 
+const NAV_SHORTCUTS: [string, string][] = [
+  ["H", "Pipeline"],
+  ["I", "Notifications"],
+  ["T", "Tasks"],
+  ["C", "Companies"],
+  ["P", "People"],
+  ["D", "Deals"],
+];
+
+/** Sidebar "Help" entry: shortcuts and support links. */
 export function HelpPopover() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [open, setOpen] = useState(false);
+  const [isMac, setIsMac] = useState(true);
 
-  const helpItems = [
-    {
-      icon: Book,
-      title: "Getting Started",
-      description: "Learn the basics of managing your CRM",
-      action: () => console.log("Getting started clicked"),
-    },
-    {
-      icon: MessageCircle,
-      title: "Keyboard Shortcuts",
-      description: "Speed up your workflow with shortcuts",
-      shortcuts: [
-        { key: "Ctrl + K", action: "Global search" },
-        { key: "Ctrl + N", action: "Add organization" },
-        { key: "Esc", action: "Close modals" },
-      ],
-    },
-    {
-      icon: Mail,
-      title: "Contact Support",
-      description: "Get help from our support team",
-      action: () => window.open("mailto:support@example.com", "_blank"),
-    },
-  ]
+  useEffect(() => {
+    setIsMac(/Mac|iPhone|iPad/.test(navigator.platform));
+  }, []);
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
-          <HelpCircle className="h-5 w-5" />
-        </Button>
+        <button
+          type="button"
+          className={cn(
+            "flex h-8 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+            open
+              ? "bg-accent text-foreground"
+              : "text-gray-600 hover:bg-accent/70 hover:text-foreground dark:text-gray-400"
+          )}
+        >
+          <HelpCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
+          Help & shortcuts
+        </button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
-        <div className="p-4">
-          <h3 className="font-semibold text-lg mb-2">Help & Support</h3>
-          <p className="text-sm text-muted-foreground mb-4">Get help with using ACME Signal</p>
+      <PopoverContent side="right" align="end" sideOffset={8} className="w-72 p-0">
+        <div className="px-4 pb-2 pt-3">
+          <h3 className="text-[13px] font-semibold">Keyboard shortcuts</h3>
         </div>
-        <Separator />
-        <div className="p-2">
-          {helpItems.map((item, index) => (
-            <div key={index}>
-              <div
-                className="flex items-start gap-3 p-3 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
-                onClick={item.action}
-              >
-                <item.icon className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-medium text-sm">{item.title}</h4>
-                    {item.action && <ExternalLink className="h-3 w-3 text-muted-foreground" />}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
-                  {item.shortcuts && (
-                    <div className="mt-2 space-y-1">
-                      {item.shortcuts.map((shortcut, idx) => (
-                        <div key={idx} className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">{shortcut.action}</span>
-                          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">
-                            {shortcut.key}
-                          </kbd>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              {index < helpItems.length - 1 && <Separator className="my-1" />}
-            </div>
+        <div className="space-y-1.5 px-4 pb-3 text-[13px]">
+          <ShortcutRow label="Search and commands">
+            <Kbd>{isMac ? "⌘" : "Ctrl"}</Kbd>
+            <Kbd>K</Kbd>
+          </ShortcutRow>
+          {NAV_SHORTCUTS.map(([key, label]) => (
+            <ShortcutRow key={key} label={`Go to ${label}`}>
+              <Kbd>G</Kbd>
+              <Kbd>{key}</Kbd>
+            </ShortcutRow>
           ))}
+          <ShortcutRow label="Close dialogs">
+            <Kbd>Esc</Kbd>
+          </ShortcutRow>
         </div>
         <Separator />
-        <div className="p-4">
-          <div className="text-xs text-muted-foreground text-center">
-            <p>Need more help?</p>
-            <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0 text-xs text-orange-500 hover:text-orange-600"
-              onClick={() => window.open("https://docs.example.com", "_blank")}
-            >
-              Visit our documentation →
-            </Button>
-          </div>
+        <div className="p-1.5">
+          <a
+            href="https://docs.example.com"
+            target="_blank"
+            rel="noreferrer"
+            className="flex h-8 items-center gap-2 rounded-md px-2.5 text-[13px] hover:bg-accent"
+          >
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+            Documentation
+          </a>
+          <a
+            href="mailto:support@example.com"
+            className="flex h-8 items-center gap-2 rounded-md px-2.5 text-[13px] hover:bg-accent"
+          >
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            Contact support
+          </a>
         </div>
       </PopoverContent>
     </Popover>
-  )
+  );
+}
+
+function ShortcutRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-1">{children}</span>
+    </div>
+  );
 }

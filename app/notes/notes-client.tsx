@@ -17,24 +17,10 @@ import { getNotes, deleteNote, type Note } from "@/lib/notesData";
 import { getOrganizations } from "@/lib/organizationData";
 import type { Organization } from "@/types/organization";
 import { AddNoteModal } from "@/components/add-note-modal";
+import { formatRelative } from "@/lib/format";
+import { PageHeader } from "@/components/page-header";
+import { useCreateIntent } from "@/lib/create-intent";
 
-function timeAgo(dateString: string): string {
-  const now = Date.now();
-  const date = new Date(dateString).getTime();
-  const seconds = Math.floor((now - date) / 1000);
-
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months} month${months === 1 ? "" : "s"} ago`;
-  const years = Math.floor(months / 12);
-  return `${years} year${years === 1 ? "" : "s"} ago`;
-}
 
 export function NotesClient() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -42,6 +28,7 @@ export function NotesClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [orgFilter, setOrgFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  useCreateIntent("note", () => setIsModalOpen(true));
 
   useEffect(() => {
     setNotes(getNotes());
@@ -104,35 +91,28 @@ export function NotesClient() {
   };
 
   return (
-    <main className="container py-8 max-w-[1000px] mx-auto px-6">
+    <main className="mx-auto w-full max-w-[880px] px-8 py-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Notes
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {notes.length} total note{notes.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
-        >
-          <Plus className="w-4 h-4" />
-          Add Note
-        </Button>
-      </div>
+      <PageHeader
+        title="Notes"
+        description={`${notes.length} note${notes.length !== 1 ? "s" : ""}`}
+        actions={
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus />
+            Add Note
+          </Button>
+        }
+      />
 
       {/* Search and Filter */}
-      <div className="mb-6 flex items-center gap-4">
-        <div className="relative flex-grow max-w-md">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search notes..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 bg-gray-50 dark:bg-gray-800 border-transparent"
+            className="pl-8"
           />
         </div>
         <Select value={orgFilter} onValueChange={setOrgFilter}>
@@ -193,7 +173,7 @@ export function NotesClient() {
                       {org ? (
                         <Link
                           href={`/organizations/${org.id}`}
-                          className="text-sm font-medium text-gray-900 dark:text-white hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
+                          className="text-sm font-medium text-gray-900 dark:text-white hover:underline underline-offset-2 transition-colors"
                         >
                           {org.name}
                         </Link>
@@ -204,7 +184,7 @@ export function NotesClient() {
                       )}
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         {note.authorName} &middot;{" "}
-                        {timeAgo(note.createdAt)}
+                        {formatRelative(note.createdAt)}
                       </p>
                     </div>
                   </div>

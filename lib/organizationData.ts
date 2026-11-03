@@ -1,4 +1,5 @@
 import type { Organization, Collection } from "@/types/organization";
+import { seedDate } from "@/lib/demo-data";
 
 const defaultOrganizations: Organization[] = [
   {
@@ -14,7 +15,7 @@ const defaultOrganizations: Organization[] = [
     dealStage: "Customer",
     annualRevenue: "$14.4B",
     owner: "Sarah Johnson",
-    lastContacted: "2026-02-20",
+    lastContacted: seedDate("2026-02-20"),
     collections: [],
   },
   {
@@ -30,7 +31,7 @@ const defaultOrganizations: Organization[] = [
     dealStage: "Customer",
     annualRevenue: "$1.2B",
     owner: "Michael Chen",
-    lastContacted: "2026-02-15",
+    lastContacted: seedDate("2026-02-15"),
     collections: [],
   },
   {
@@ -45,7 +46,7 @@ const defaultOrganizations: Organization[] = [
       "QA.tech is an AI-driven platform that automates end-to-end (E2E) testing for web applications, particularly benefiting B2B SaaS companies. Its AI agent, Jarvis, scans web apps to learn their structure, generates tests based on user interactions, and continuously adapts to changes.",
     dealStage: "Lead",
     owner: "Emma Wilson",
-    lastContacted: "2026-02-22",
+    lastContacted: seedDate("2026-02-22"),
     collections: [],
   },
   {
@@ -61,7 +62,7 @@ const defaultOrganizations: Organization[] = [
     dealStage: "Qualified",
     annualRevenue: "$100M",
     owner: "David Martinez",
-    lastContacted: "2026-02-18",
+    lastContacted: seedDate("2026-02-18"),
     collections: [],
   },
   {
@@ -76,7 +77,7 @@ const defaultOrganizations: Organization[] = [
       "Netlify is a web development platform that multiplies productivity. By unifying the elements of the modern decoupled web, from local development to advanced edge logic, Netlify enables a 10x faster path to much more performant, secure, and scalable websites and apps.",
     dealStage: "Lead",
     owner: "Sarah Johnson",
-    lastContacted: "2026-02-10",
+    lastContacted: seedDate("2026-02-10"),
     collections: [],
   },
   {
@@ -92,7 +93,7 @@ const defaultOrganizations: Organization[] = [
     dealStage: "Customer",
     annualRevenue: "$50M",
     owner: "Michael Chen",
-    lastContacted: "2026-01-28",
+    lastContacted: seedDate("2026-01-28"),
     collections: [],
   },
   {
@@ -108,7 +109,7 @@ const defaultOrganizations: Organization[] = [
     dealStage: "Customer",
     annualRevenue: "$200M",
     owner: "Emma Wilson",
-    lastContacted: "2026-02-05",
+    lastContacted: seedDate("2026-02-05"),
     collections: [],
   },
   {
@@ -124,7 +125,7 @@ const defaultOrganizations: Organization[] = [
     dealStage: "Customer",
     annualRevenue: "$2.5B",
     owner: "David Martinez",
-    lastContacted: "2026-02-24",
+    lastContacted: seedDate("2026-02-24"),
     collections: [],
   },
   {
@@ -140,7 +141,7 @@ const defaultOrganizations: Organization[] = [
     dealStage: "Qualified",
     annualRevenue: "$15M",
     owner: "Sarah Johnson",
-    lastContacted: "2026-02-19",
+    lastContacted: seedDate("2026-02-19"),
     collections: [],
   },
   {
@@ -155,7 +156,7 @@ const defaultOrganizations: Organization[] = [
       "lovable.dev is your superhuman full stack engineer, helping developers turn ideas into fully functional applications in seconds using AI. The platform streamlines the development process by automating routine tasks and providing intelligent coding assistance.",
     dealStage: "Lead",
     owner: "Emma Wilson",
-    lastContacted: "2026-02-21",
+    lastContacted: seedDate("2026-02-21"),
     collections: [],
   },
   {
@@ -170,7 +171,7 @@ const defaultOrganizations: Organization[] = [
       "Steep is a modern analytics platform powered by metrics that changes how companies use data together. It provides powerful insights and visualization tools to help businesses make data-driven decisions more effectively.",
     dealStage: "Lead",
     owner: "Michael Chen",
-    lastContacted: "2026-02-12",
+    lastContacted: seedDate("2026-02-12"),
     collections: [],
   },
   {
@@ -186,7 +187,7 @@ const defaultOrganizations: Organization[] = [
     dealStage: "Proposal",
     annualRevenue: "$850M",
     owner: "David Martinez",
-    lastContacted: "2026-02-23",
+    lastContacted: seedDate("2026-02-23"),
     collections: [],
   },
   {
@@ -201,7 +202,7 @@ const defaultOrganizations: Organization[] = [
       "depict.ai provides AI-powered product recommendations for e-commerce websites. Their technology helps online retailers increase sales by showing relevant products to shoppers through advanced machine learning algorithms.",
     dealStage: "Lead",
     owner: "Sarah Johnson",
-    lastContacted: "2026-01-30",
+    lastContacted: seedDate("2026-01-30"),
     collections: [],
   },
   {
@@ -217,7 +218,7 @@ const defaultOrganizations: Organization[] = [
     dealStage: "Customer",
     annualRevenue: "$30M",
     owner: "Emma Wilson",
-    lastContacted: "2026-02-14",
+    lastContacted: seedDate("2026-02-14"),
     collections: [],
   },
   {
@@ -233,7 +234,7 @@ const defaultOrganizations: Organization[] = [
     dealStage: "Customer",
     annualRevenue: "$600M",
     owner: "Michael Chen",
-    lastContacted: "2026-02-25",
+    lastContacted: seedDate("2026-02-25"),
     collections: [],
   },
   {
@@ -248,7 +249,7 @@ const defaultOrganizations: Organization[] = [
       "Hugging Face is the leading platform for machine learning, providing tools and resources for building, training, and deploying ML models. They're known for their transformers library and commitment to open-source AI development.",
     dealStage: "Qualified",
     owner: "David Martinez",
-    lastContacted: "2026-02-17",
+    lastContacted: seedDate("2026-02-17"),
     collections: [],
   },
   {
@@ -263,7 +264,7 @@ const defaultOrganizations: Organization[] = [
       "Jasper is an AI content platform that helps individuals and teams create high-quality content faster. Using advanced language models, Jasper assists with writing blog posts, social media content, marketing copy, and more.",
     dealStage: "Closed Lost",
     owner: "Sarah Johnson",
-    lastContacted: "2026-01-15",
+    lastContacted: seedDate("2026-01-15"),
     collections: [],
   },
   {
@@ -278,7 +279,7 @@ const defaultOrganizations: Organization[] = [
       "Overstory uses AI to monitor vegetation and prevent power outages by analyzing satellite imagery, helping utility companies save millions.",
     dealStage: "Lead",
     owner: "Emma Wilson",
-    lastContacted: "2026-02-08",
+    lastContacted: seedDate("2026-02-08"),
     collections: [],
   },
   {
@@ -293,7 +294,7 @@ const defaultOrganizations: Organization[] = [
       "Cradle provides an AI platform that aids in protein design for bioplastics, enabling sustainable material development.",
     dealStage: "Lead",
     owner: "Michael Chen",
-    lastContacted: "2026-02-03",
+    lastContacted: seedDate("2026-02-03"),
     collections: [],
   },
   {
@@ -308,7 +309,7 @@ const defaultOrganizations: Organization[] = [
       "Atlar offers a platform for automating bank-to-bank payments, streamlining financial operations for businesses.",
     dealStage: "New",
     owner: "David Martinez",
-    lastContacted: "2026-02-01",
+    lastContacted: seedDate("2026-02-01"),
     collections: [],
   },
   {
@@ -323,7 +324,7 @@ const defaultOrganizations: Organization[] = [
       "Legora leverages AI to assist lawyers by automating document analysis and legal research, enhancing efficiency in legal practices.",
     dealStage: "Qualified",
     owner: "Sarah Johnson",
-    lastContacted: "2026-02-20",
+    lastContacted: seedDate("2026-02-20"),
     collections: [],
   },
   {
@@ -339,7 +340,7 @@ const defaultOrganizations: Organization[] = [
     dealStage: "Customer",
     annualRevenue: "$25M",
     owner: "Michael Chen",
-    lastContacted: "2026-02-11",
+    lastContacted: seedDate("2026-02-11"),
     collections: [],
   },
   {
@@ -354,7 +355,7 @@ const defaultOrganizations: Organization[] = [
       "Cursor is an AI-powered code editor built for pair-programming with AI. It helps developers write code faster and more efficiently through intelligent suggestions and automation.",
     dealStage: "Negotiation",
     owner: "Emma Wilson",
-    lastContacted: "2026-02-24",
+    lastContacted: seedDate("2026-02-24"),
     collections: [],
   },
   {
@@ -369,7 +370,7 @@ const defaultOrganizations: Organization[] = [
       "Perplexity is an AI-powered search engine that provides accurate, real-time answers with citations. It combines the power of large language models with up-to-date information from the web.",
     dealStage: "Proposal",
     owner: "David Martinez",
-    lastContacted: "2026-02-22",
+    lastContacted: seedDate("2026-02-22"),
     collections: [],
   },
   {
@@ -384,7 +385,7 @@ const defaultOrganizations: Organization[] = [
       "Listen Labs is an AI-powered customer research platform that automates voice-based customer interviews, enabling businesses to gain actionable insights rapidly. Founded in 2023, the platform handles the entire research process from interview design to analyzing responses.",
     dealStage: "Lead",
     owner: "Sarah Johnson",
-    lastContacted: "2026-02-16",
+    lastContacted: seedDate("2026-02-16"),
     collections: [],
   },
 ];

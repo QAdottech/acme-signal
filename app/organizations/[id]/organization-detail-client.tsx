@@ -55,6 +55,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { formatDate, formatRelative } from "@/lib/format";
 
 const dealStages = [
   "New",
@@ -96,18 +97,6 @@ const activityColors: Record<string, string> = {
   email_sent: "text-teal-500 bg-teal-50 dark:bg-teal-950",
 };
 
-function getTimeAgo(timestamp: string) {
-  const now = new Date();
-  const time = new Date(timestamp);
-  const diffMs = now.getTime() - time.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${diffDays}d ago`;
-}
 
 export function OrganizationDetailClient({
   params,
@@ -249,7 +238,7 @@ export function OrganizationDetailClient({
     <>
       {/* Header */}
       <div className="border-b bg-white dark:bg-gray-950">
-        <div className="container max-w-[1400px] mx-auto px-6 py-6">
+        <div className="mx-auto w-full max-w-[1400px] px-8 py-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-4">
               <div className="w-14 h-14 relative flex-shrink-0 bg-gray-100 rounded-xl overflow-hidden">
@@ -281,7 +270,7 @@ export function OrganizationDetailClient({
                     href={organization.website_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-orange-600 hover:underline"
+                    className="flex items-center gap-1 text-link hover:underline"
                   >
                     <Globe className="w-3.5 h-3.5" />
                     Website
@@ -301,7 +290,7 @@ export function OrganizationDetailClient({
       </div>
 
       {/* Content */}
-      <div className="container max-w-[1400px] mx-auto px-6 py-6">
+      <div className="mx-auto w-full max-w-[1400px] px-8 py-6">
         <div className="flex gap-8">
           {/* Left panel with tabs */}
           <div className="flex-1 min-w-0">
@@ -452,7 +441,7 @@ export function OrganizationDetailClient({
                         </p>
                         <p className="text-xs text-gray-400 mt-2">
                           {notes[0].authorName} &middot;{" "}
-                          {getTimeAgo(notes[0].createdAt)}
+                          {formatRelative(notes[0].createdAt)}
                         </p>
                       </CardContent>
                     </Card>
@@ -489,7 +478,7 @@ export function OrganizationDetailClient({
                             </p>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-xs text-gray-400">
-                                {getTimeAgo(activity.timestamp)}
+                                {formatRelative(activity.timestamp)}
                               </span>
                               {activity.userName && (
                                 <>
@@ -557,7 +546,7 @@ export function OrganizationDetailClient({
                           <div className="flex items-center justify-between mt-3">
                             <p className="text-xs text-gray-400">
                               {note.authorName} &middot;{" "}
-                              {getTimeAgo(note.createdAt)}
+                              {formatRelative(note.createdAt)}
                             </p>
                             <Button
                               variant="ghost"
@@ -688,7 +677,7 @@ export function OrganizationDetailClient({
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-500">Last Contacted</span>
                   <span className="text-sm font-medium">
-                    {organization.lastContacted || "-"}
+                    {formatDate(organization.lastContacted)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">

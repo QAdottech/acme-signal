@@ -27,6 +27,9 @@ import { AddTaskModal } from "@/components/add-task-modal";
 import { cn } from "@/lib/utils";
 import type { Person } from "@/types/person";
 import { useAuth } from "@/lib/auth-context";
+import { formatDate } from "@/lib/format";
+import { PageHeader } from "@/components/page-header";
+import { useCreateIntent } from "@/lib/create-intent";
 
 const statusConfig: Record<TaskStatus, { label: string; className: string }> = {
   todo: {
@@ -77,10 +80,6 @@ function isOverdue(task: Task): boolean {
   return task.dueDate < today;
 }
 
-function formatDueDate(dateStr: string): string {
-  const date = new Date(dateStr + "T00:00:00");
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 
 export function TasksClient() {
   const { user } = useAuth();
@@ -90,6 +89,7 @@ export function TasksClient() {
   const [people, setPeople] = useState<Person[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  useCreateIntent("task", () => setIsModalOpen(true));
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
 
@@ -250,7 +250,7 @@ export function TasksClient() {
             <button
               onClick={() => toggleExpanded(task.id)}
               className={cn(
-                "flex items-center gap-1.5 text-left font-medium hover:text-orange-600 transition-colors",
+                "flex items-center gap-1.5 text-left font-medium hover:underline underline-offset-2",
                 task.status === "done" && "line-through text-muted-foreground"
               )}
             >
@@ -300,7 +300,7 @@ export function TasksClient() {
                 overdue && "text-red-600 dark:text-red-400 font-medium"
               )}
             >
-              {formatDueDate(task.dueDate)}
+              {formatDate(task.dueDate)}
               {overdue && (
                 <span className="ml-1 text-xs text-red-500 dark:text-red-400">
                   (overdue)
@@ -315,7 +315,7 @@ export function TasksClient() {
           {related ? (
             <Link
               href={related.href}
-              className="text-sm hover:text-orange-600 transition-colors"
+              className="text-sm hover:underline underline-offset-2"
             >
               <span className="text-xs text-muted-foreground mr-1">
                 {related.type}:
@@ -344,22 +344,17 @@ export function TasksClient() {
   };
 
   return (
-    <main className="container py-8 max-w-[1400px] mx-auto px-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Tasks</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {tasks.length} {tasks.length === 1 ? "task" : "tasks"}
-          </p>
-        </div>
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
-        >
-          <Plus className="w-4 h-4" />
-          Add Task
-        </Button>
-      </div>
+    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
+      <PageHeader
+        title="Tasks"
+        description={`${tasks.length} ${tasks.length === 1 ? "task" : "tasks"}`}
+        actions={
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus />
+            Add Task
+          </Button>
+        }
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
@@ -376,7 +371,7 @@ export function TasksClient() {
           <TabsTrigger value="due_soon" title="Due today or in the next seven days">
             Due Soon
             {dueSoonCount > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 text-xs font-medium">
+              <span className="ml-1.5 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-muted text-muted-foreground text-xs font-medium">
                 {dueSoonCount}
               </span>
             )}
@@ -385,12 +380,12 @@ export function TasksClient() {
 
         <div className="mt-4 mb-4">
           <div className="relative max-w-md">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search tasks..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 bg-gray-50 dark:bg-gray-800 border-transparent focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+              className="pl-8"
             />
           </div>
         </div>

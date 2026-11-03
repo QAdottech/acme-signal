@@ -129,7 +129,7 @@ export function SendForSignatureModal({
                 type="email"
                 value={recipientEmail}
                 onChange={(e) => setRecipientEmail(e.target.value)}
-                className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                
                 placeholder="customer@company.com"
                 required
               />
@@ -148,7 +148,7 @@ export function SendForSignatureModal({
                     id="sig-term"
                     value={termLength}
                     onChange={(e) => setTermLength(e.target.value)}
-                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    
                     placeholder="12 months"
                   />
                 </div>
@@ -160,7 +160,7 @@ export function SendForSignatureModal({
                     id="sig-billing"
                     value={billingFrequency}
                     onChange={(e) => setBillingFrequency(e.target.value)}
-                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    
                     placeholder="Annual"
                   />
                 </div>
@@ -172,7 +172,7 @@ export function SendForSignatureModal({
                     id="sig-payment"
                     value={paymentTerms}
                     onChange={(e) => setPaymentTerms(e.target.value)}
-                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    
                     placeholder="Net 30"
                   />
                 </div>
@@ -184,7 +184,7 @@ export function SendForSignatureModal({
                     id="sig-seats"
                     value={seats}
                     onChange={(e) => setSeats(e.target.value)}
-                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    
                     placeholder="10 seats"
                   />
                 </div>
@@ -196,7 +196,7 @@ export function SendForSignatureModal({
                     id="sig-sla"
                     value={slaTier}
                     onChange={(e) => setSlaTier(e.target.value)}
-                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    
                     placeholder="Standard"
                   />
                 </div>
@@ -208,7 +208,7 @@ export function SendForSignatureModal({
                     id="sig-renewal"
                     value={renewalBehavior}
                     onChange={(e) => setRenewalBehavior(e.target.value)}
-                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    
                     placeholder="Auto-renew"
                   />
                 </div>
@@ -220,7 +220,7 @@ export function SendForSignatureModal({
                     id="sig-cancel"
                     value={cancellationWindow}
                     onChange={(e) => setCancellationWindow(e.target.value)}
-                    className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                    
                     placeholder="30 days"
                   />
                 </div>
@@ -233,7 +233,7 @@ export function SendForSignatureModal({
                 id="sig-message"
                 value={personalMessage}
                 onChange={(e) => setPersonalMessage(e.target.value)}
-                className="focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:ring-offset-0"
+                
                 placeholder="Add a note to include in the email..."
                 rows={3}
               />
@@ -255,7 +255,7 @@ export function SendForSignatureModal({
             </Button>
             <Button
               type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white gap-1.5"
+              className=" gap-1.5"
               disabled={!recipientEmail || sending}
             >
               {sending ? (

@@ -9,8 +9,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Edit, MapPin, Users, Building2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { EditCollectionModal } from "@/components/edit-collection-modal";
+import { StageBadge } from "@/components/stage-badge";
 
 export function CollectionDetailClient({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -60,8 +60,8 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
 
   if (!collection) {
     return (
-      <main className="container py-16 max-w-[1400px] mx-auto px-6">
-        <p>Collection not found</p>
+      <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
+        <p>List not found</p>
       </main>
     );
   }
@@ -74,7 +74,7 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
   );
 
   return (
-      <main className="container py-8 max-w-[1400px] mx-auto px-6">
+      <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
         {/* Header */}
         <div className="mb-8">
           <Button
@@ -83,7 +83,7 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
             className="mb-4 -ml-2"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Collections
+            Back to Lists
           </Button>
 
           <div className="bg-[#2D1A45] rounded-lg p-8 text-white">
@@ -188,9 +188,7 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
                       </div>
                     </div>
                     <div className="mt-3">
-                      <Badge variant="secondary" className="text-xs">
-                        {org.dealStage}
-                      </Badge>
+                      <StageBadge stage={org.dealStage} />
                     </div>
                   </CardContent>
                 </Card>
