@@ -27,6 +27,7 @@ import { getCollections } from "@/lib/organizationData";
 import { getUnreadCount } from "@/lib/activityData";
 import { getTasks, isDueSoon } from "@/lib/taskData";
 import { dispatchCreateIntent } from "@/lib/create-intent";
+import { listSwatch } from "@/lib/lists";
 import { openCommandMenu, Kbd } from "@/components/command-menu";
 import { HelpPopover } from "@/components/help-popover";
 import {
@@ -58,22 +59,6 @@ const WORKSPACE: NavEntry[] = [
   { href: "/notes", label: "Notes", icon: StickyNote },
   { href: "/reports", label: "Reports", icon: FileBarChart },
 ];
-
-/** Stable colour per list, so each list keeps its swatch across renders. */
-const LIST_SWATCHES = [
-  "bg-sky-500",
-  "bg-violet-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-indigo-500",
-];
-
-function swatchFor(id: string) {
-  let hash = 0;
-  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return LIST_SWATCHES[hash % LIST_SWATCHES.length];
-}
 
 function countOpenTasksDue(): number {
   const today = new Date().toISOString().split("T")[0];
@@ -261,7 +246,7 @@ export function Sidebar() {
               className={navItemClass(isActive(`/collections/${collection.id}`))}
             >
               <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-                <span className={cn("h-2.5 w-2.5 rounded-[3px]", swatchFor(collection.id))} />
+                <span className={cn("h-2.5 w-2.5 rounded-[3px]", listSwatch(collection.id))} />
               </span>
               <span className="truncate">{collection.name}</span>
             </Link>

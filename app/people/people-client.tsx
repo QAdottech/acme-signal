@@ -1,237 +1,285 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import {
-  Search,
-  Plus,
-  Mail,
-  Phone,
-  Linkedin,
-  X,
-  Download,
-  ChevronUp,
-  ChevronDown,
-} from "lucide-react";
-import { AddPersonModal } from "@/components/add-person-modal";
-import { EditPersonModal } from "@/components/edit-person-modal";
-import { BulkActionsBar } from "@/components/bulk-actions-bar";
-import type { Person } from "@/types/person";
-import { getPeople, savePeople } from "@/lib/personData";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { toast } from "sonner";
+import {
+  Activity,
+  AtSign,
+  Briefcase,
+  Building2,
+  CalendarDays,
+  Download,
+  Linkedin,
+  Phone,
+  Plus,
+  UserRound,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AddPersonModal } from "@/components/add-person-modal";
+import {
+  RecordTable,
+  useRecordTableState,
+  type Column,
+} from "@/components/record-table/record-table";
+import {
+  Avatar,
+  CompanyChip,
+  Empty,
+  InlineSelect,
+  StatusDot,
+} from "@/components/record-table/cells";
+import {
+  FilterMenu,
+  SearchField,
+  countFilters,
+  facetOptions,
+  type FilterFacet,
+  type FilterValues,
+} from "@/components/record-table/toolbar";
+import { RecordListLayout } from "@/components/record-table/layout";
+import { PersonPeek } from "@/components/records/peeks";
+import { SelectionBar } from "@/components/record-table/selection-bar";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { getPeople, savePeople } from "@/lib/personData";
+import { getOrganizations } from "@/lib/organizationData";
 import { exportPeopleToCSV } from "@/lib/exportUtils";
 import { formatDate } from "@/lib/format";
-import { PageHeader } from "@/components/page-header";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useCreateIntent } from "@/lib/create-intent";
+import type { Person } from "@/types/person";
+import type { Organization } from "@/types/organization";
 
-type SortField = "name" | "role" | "organization" | "status" | "lastContact";
-type SortDirection = "asc" | "desc";
+const STATUSES = ["Active", "Inactive"] as const;
+type StatusFilter = "all" | Person["status"];
 
 export function PeopleClient() {
   const [people, setPeople] = useState<Person[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  // Pre-fill search from ?q= (used by the ⌘K menu to jump to a person).
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("q");
-    if (q) setSearchTerm(q);
-    const onSearch = (event: Event) =>
-      setSearchTerm((event as CustomEvent<string>).detail);
-    window.addEventListener("acme:people-search", onSearch);
-    return () => window.removeEventListener("acme:people-search", onSearch);
-  }, []);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [filters, setFilters] = useState<FilterValues>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [peekId, setPeekId] = useState<string | null>(null);
   useCreateIntent("person", () => setIsModalOpen(true));
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [sortField, setSortField] = useState<SortField>("name");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  const [editingPerson, setEditingPerson] = useState<Person | null>(null);
+  const { sort, setSort, selectedIds, setSelectedIds } = useRecordTableState({
+    columnId: "name",
+    direction: "asc",
+  });
 
   useEffect(() => {
     setPeople(getPeople());
+    setOrganizations(getOrganizations());
   }, []);
 
-  const addPerson = (newPerson: Omit<Person, "id">) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    const updatedPeople = [...people, { ...newPerson, id }];
-    setPeople(updatedPeople);
-    savePeople(updatedPeople);
-    setIsModalOpen(false);
-  };
-
-  const updatePerson = (updatedPerson: Person) => {
-    const updatedPeople = people.map((p) =>
-      p.id === updatedPerson.id ? updatedPerson : p
-    );
-    setPeople(updatedPeople);
-    savePeople(updatedPeople);
-    setEditingPerson(null);
-  };
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
-    }
-  };
-
-  const sortPeople = (items: Person[]) => {
-    return [...items].sort((a, b) => {
-      let aValue: string;
-      let bValue: string;
-
-      switch (sortField) {
-        case "name":
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
-        case "role":
-          aValue = a.role.toLowerCase();
-          bValue = b.role.toLowerCase();
-          break;
-        case "organization":
-          aValue = a.organization.toLowerCase();
-          bValue = b.organization.toLowerCase();
-          break;
-        case "status":
-          aValue = a.status.toLowerCase();
-          bValue = b.status.toLowerCase();
-          break;
-        case "lastContact":
-          aValue = a.lastContact || "";
-          bValue = b.lastContact || "";
-          break;
-        default:
-          return 0;
-      }
-
-      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
-      return 0;
-    });
-  };
-
-  const filteredPeople = sortPeople(
-    people.filter((person) => {
-      const matchesSearch =
-        person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        person.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        person.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        person.role.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesStatus =
-        statusFilter === "all" || person.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    })
+  /** People store their company as a name; match it to a company record. */
+  const orgByName = useMemo(
+    () => new Map(organizations.map((org) => [org.name.toLowerCase(), org])),
+    [organizations]
   );
 
-  const toggleSelection = (id: string) => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedIds(newSelected);
+  const persist = (next: Person[]) => {
+    setPeople(next);
+    savePeople(next);
   };
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredPeople.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(filteredPeople.map((person) => person.id)));
-    }
+  const facets: FilterFacet[] = useMemo(
+    () => [
+      { key: "organization", label: "Company", options: facetOptions(people.map((p) => p.organization)) },
+      { key: "role", label: "Role", options: facetOptions(people.map((p) => p.role)) },
+    ],
+    [people]
+  );
+
+  const visiblePeople = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    const matches = (key: string, value: string | undefined) =>
+      !filters[key]?.length || (!!value && filters[key].includes(value));
+    return people.filter((person) => {
+      const matchesSearch =
+        !term ||
+        [person.name, person.email, person.organization, person.role].some((field) =>
+          field.toLowerCase().includes(term)
+        );
+      return (
+        matchesSearch &&
+        (statusFilter === "all" || person.status === statusFilter) &&
+        matches("organization", person.organization) &&
+        matches("role", person.role)
+      );
+    });
+  }, [people, filters, searchTerm, statusFilter]);
+
+  const columns: Column<Person>[] = [
+    {
+      id: "name",
+      header: "Name",
+      icon: UserRound,
+      width: 190,
+      sortValue: (p) => p.name.toLowerCase(),
+      cell: (p) => (
+        <Link href={`/people/${p.id}`} className="flex min-w-0 items-center gap-2 underline-offset-2 hover:underline">
+          {p.avatar ? (
+            <Image src={p.avatar} alt="" width={20} height={20} className="h-5 w-5 shrink-0 rounded-full" />
+          ) : (
+            <Avatar name={p.name} />
+          )}
+          <span className="truncate font-medium">{p.name}</span>
+        </Link>
+      ),
+      footer: (rows) => `${rows.length} ${rows.length === 1 ? "person" : "people"}`,
+    },
+    {
+      id: "role",
+      header: "Role",
+      icon: Briefcase,
+      width: 160,
+      sortValue: (p) => p.role.toLowerCase(),
+      cell: (p) => <span className="block truncate">{p.role || <Empty />}</span>,
+    },
+    {
+      id: "organization",
+      header: "Company",
+      icon: Building2,
+      width: 160,
+      sortValue: (p) => p.organization.toLowerCase(),
+      cell: (p) => {
+        if (!p.organization) return <Empty />;
+        const org = orgByName.get(p.organization.toLowerCase());
+        return (
+          <CompanyChip
+            name={p.organization}
+            logo={org?.logo}
+            href={org ? `/organizations/${org.id}` : undefined}
+          />
+        );
+      },
+    },
+    {
+      id: "email",
+      header: "Email",
+      icon: AtSign,
+      width: 210,
+      sortValue: (p) => p.email.toLowerCase(),
+      cell: (p) => (
+        <a
+          href={`mailto:${p.email}`}
+          className="block truncate underline-offset-2 hover:text-link hover:underline"
+        >
+          {p.email}
+        </a>
+      ),
+    },
+    {
+      id: "phone",
+      header: "Phone",
+      icon: Phone,
+      width: 140,
+      cell: (p) =>
+        p.phone ? (
+          <a href={`tel:${p.phone}`} className="block truncate tabular-nums hover:text-link">
+            {p.phone}
+          </a>
+        ) : (
+          <Empty />
+        ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      icon: Activity,
+      width: 104,
+      sortValue: (p) => p.status,
+      cell: (p) => (
+        <InlineSelect
+          label="Status"
+          value={p.status}
+          options={STATUSES}
+          onChange={(status) => {
+            persist(people.map((person) => (person.id === p.id ? { ...person, status } : person)));
+            toast.success(`${p.name} marked ${status.toLowerCase()}`);
+          }}
+          renderValue={(status) => <StatusDot active={status === "Active"} label={status ?? "—"} />}
+          renderOption={(status) => <StatusDot active={status === "Active"} label={status} />}
+        />
+      ),
+    },
+    {
+      id: "lastContact",
+      header: "Last contact",
+      icon: CalendarDays,
+      width: 112,
+      firstSortDirection: "desc",
+      sortValue: (p) => p.lastContact ?? "",
+      cell: (p) => (p.lastContact ? formatDate(p.lastContact) : <Empty />),
+    },
+    {
+      id: "linkedin",
+      header: "LinkedIn",
+      icon: Linkedin,
+      width: 72,
+      cell: (p) =>
+        p.linkedIn ? (
+          <a
+            href={p.linkedIn}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${p.name} on LinkedIn`}
+            className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <Linkedin className="h-3.5 w-3.5" />
+          </a>
+        ) : (
+          <Empty />
+        ),
+    },
+  ];
+
+  const addPerson = (newPerson: Omit<Person, "id">) => {
+    const id = Math.random().toString(36).slice(2, 11);
+    persist([...people, { ...newPerson, id }]);
+    setIsModalOpen(false);
+    toast.success(`Added ${newPerson.name}`);
   };
 
-  const handleBulkStatusChange = (status: string) => {
-    const updatedPeople = people.map((person) =>
-      selectedIds.has(person.id)
-        ? { ...person, status: status as Person["status"] }
-        : person
-    );
-    setPeople(updatedPeople);
-    savePeople(updatedPeople);
+  const handleBulkStatus = (status: Person["status"]) => {
+    const count = selectedIds.size;
+    persist(people.map((p) => (selectedIds.has(p.id) ? { ...p, status } : p)));
     setSelectedIds(new Set());
-  };
-
-  const handleBulkExport = () => {
-    const selectedPeople = people.filter((person) =>
-      selectedIds.has(person.id)
-    );
-    exportPeopleToCSV(selectedPeople);
+    toast.success(`Marked ${count} ${count === 1 ? "person" : "people"} ${status.toLowerCase()}`);
   };
 
   const handleBulkDelete = () => {
-    if (
-      confirm(
-        `Are you sure you want to delete ${selectedIds.size} contacts?`
-      )
-    ) {
-      const updatedPeople = people.filter(
-        (person) => !selectedIds.has(person.id)
-      );
-      setPeople(updatedPeople);
-      savePeople(updatedPeople);
-      setSelectedIds(new Set());
-    }
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} contacts?`)) return;
+    const count = selectedIds.size;
+    persist(people.filter((p) => !selectedIds.has(p.id)));
+    setSelectedIds(new Set());
+    toast.success(`Deleted ${count} ${count === 1 ? "contact" : "contacts"}`);
   };
 
-  const handleExportAll = () => {
-    exportPeopleToCSV(filteredPeople);
-  };
-
-  const isFiltered = searchTerm !== "" || statusFilter !== "all";
+  const isFiltered = searchTerm !== "" || statusFilter !== "all" || countFilters(filters) > 0;
 
   return (
-      <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
-        <PageHeader
-          title="People"
-          description={
-            isFiltered
-              ? `${filteredPeople.length} of ${people.length} contacts`
-              : `${people.length} contacts`
-          }
-          actions={
-            <>
-              <Button onClick={handleExportAll} variant="outline">
-                <Download />
-                Export CSV
-              </Button>
-              <Button onClick={() => setIsModalOpen(true)}>
-                <Plus />
-                Add Person
-              </Button>
-            </>
-          }
-        />
-
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <div className="relative w-full max-w-xs">
-            <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search people..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-            />
-          </div>
-
+    <RecordListLayout
+      title="People"
+      description={
+        isFiltered ? `${visiblePeople.length} of ${people.length} contacts` : `${people.length} contacts`
+      }
+      actions={
+        <>
+          <Button variant="outline" onClick={() => exportPeopleToCSV(visiblePeople)}>
+            <Download />
+            Export CSV
+          </Button>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus />
+            Add Person
+          </Button>
+        </>
+      }
+      toolbar={
+        <>
+          <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="Search people..." />
           <SegmentedControl
             aria-label="Filter by status"
             value={statusFilter}
@@ -242,235 +290,47 @@ export function PeopleClient() {
               { value: "Inactive", label: "Inactive" },
             ]}
           />
+          <FilterMenu facets={facets} values={filters} onChange={setFilters} />
+        </>
+      }
+    >
+      <RecordTable
+        rows={visiblePeople}
+        columns={columns}
+        getRowId={(p) => p.id}
+        rowLabel={(p) => p.name}
+        sort={sort}
+        onSortChange={setSort}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+        onRowClick={(p) => setPeekId(p.id)}
+        emptyState={
+          isFiltered
+            ? "No people found matching your criteria."
+            : "No people added yet. Click 'Add Person' to get started."
+        }
+      />
 
-          {searchTerm && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSearchTerm("")}
-              className="text-muted-foreground"
-            >
-              <X className="w-4 h-4" />
-              Clear search
-            </Button>
-          )}
-        </div>
+      <SelectionBar
+        count={selectedIds.size}
+        nouns={["person", "people"]}
+        setField={{
+          label: "Set status",
+          options: STATUSES,
+          renderOption: (status) => <StatusDot active={status === "Active"} label={status} />,
+          onSelect: handleBulkStatus,
+        }}
+        onExport={() => exportPeopleToCSV(people.filter((p) => selectedIds.has(p.id)))}
+        onDelete={handleBulkDelete}
+        onClear={() => setSelectedIds(new Set())}
+      />
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">
-                <Checkbox
-                  checked={
-                    selectedIds.size === filteredPeople.length &&
-                    filteredPeople.length > 0
-                  }
-                  onCheckedChange={toggleSelectAll}
-                />
-              </TableHead>
-              <TableHead
-                className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-                onClick={() => handleSort("name")}
-              >
-                <div className="flex items-center gap-2">
-                  Name
-                  {sortField === "name" &&
-                    (sortDirection === "asc" ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    ))}
-                </div>
-              </TableHead>
-              <TableHead
-                className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-                onClick={() => handleSort("role")}
-              >
-                <div className="flex items-center gap-2">
-                  Role
-                  {sortField === "role" &&
-                    (sortDirection === "asc" ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    ))}
-                </div>
-              </TableHead>
-              <TableHead
-                className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-                onClick={() => handleSort("organization")}
-              >
-                <div className="flex items-center gap-2">
-                  Organization
-                  {sortField === "organization" &&
-                    (sortDirection === "asc" ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    ))}
-                </div>
-              </TableHead>
-              <TableHead className="whitespace-nowrap">Email</TableHead>
-              <TableHead className="whitespace-nowrap">Phone</TableHead>
-              <TableHead
-                className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-                onClick={() => handleSort("status")}
-              >
-                <div className="flex items-center gap-2">
-                  Status
-                  {sortField === "status" &&
-                    (sortDirection === "asc" ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    ))}
-                </div>
-              </TableHead>
-              <TableHead
-                className="cursor-pointer whitespace-nowrap hover:text-foreground select-none"
-                onClick={() => handleSort("lastContact")}
-              >
-                <div className="flex items-center gap-2">
-                  Last Contact
-                  {sortField === "lastContact" &&
-                    (sortDirection === "asc" ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    ))}
-                </div>
-              </TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredPeople.map((person) => (
-              <TableRow
-                key={person.id}
-                className="cursor-pointer"
-                onClick={() => setEditingPerson(person)}
-              >
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <Checkbox
-                    checked={selectedIds.has(person.id)}
-                    onCheckedChange={() => toggleSelection(person.id)}
-                  />
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 relative shrink-0 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                      {person.avatar ? (
-                        <Image
-                          src={person.avatar}
-                          alt={person.name}
-                          width={24}
-                          height={24}
-                          className="rounded-full"
-                        />
-                      ) : (
-                        <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-300">
-                          {person.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </span>
-                      )}
-                    </div>
-                    <span className="font-medium whitespace-nowrap">{person.name}</span>
-                  </div>
-                </TableCell>
-                <TableCell>{person.role}</TableCell>
-                <TableCell>{person.organization}</TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <a
-                    href={`mailto:${person.email}`}
-                    className="flex items-center gap-1.5 whitespace-nowrap text-foreground hover:text-link"
-                  >
-                    <Mail className="w-3.5 h-3.5 text-muted-foreground" />
-                    {person.email}
-                  </a>
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  {person.phone && (
-                    <a
-                      href={`tel:${person.phone}`}
-                      className="flex items-center gap-1.5 whitespace-nowrap text-muted-foreground hover:text-foreground"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      {person.phone}
-                    </a>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={
-                      person.status === "Active"
-                        ? "inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
-                        : "inline-flex items-center gap-1.5 rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground"
-                    }
-                  >
-                    <span
-                      aria-hidden
-                      className={`h-1.5 w-1.5 rounded-full ${person.status === "Active" ? "bg-emerald-500" : "bg-gray-400"}`}
-                    />
-                    {person.status}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  {person.lastContact
-                    ? formatDate(person.lastContact)
-                    : "\u2014"}
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  {person.linkedIn && (
-                    <a
-                      href={person.linkedIn}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center w-7 h-7 rounded-md hover:bg-muted transition-colors"
-                      title="View LinkedIn Profile"
-                    >
-                      <Linkedin className="w-4 h-4 text-muted-foreground" />
-                    </a>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        {filteredPeople.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">
-              {searchTerm || statusFilter !== "all"
-                ? "No people found matching your criteria."
-                : "No people added yet. Click 'Add Person' to get started."}
-            </p>
-          </div>
-        )}
-
-        <AddPersonModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onAdd={addPerson}
-        />
-
-        <EditPersonModal
-          isOpen={editingPerson !== null}
-          person={editingPerson}
-          onClose={() => setEditingPerson(null)}
-          onSave={updatePerson}
-        />
-
-        <BulkActionsBar
-          selectedCount={selectedIds.size}
-          onClearSelection={() => setSelectedIds(new Set())}
-          onChangeStatus={handleBulkStatusChange}
-          onExport={handleBulkExport}
-          onDelete={handleBulkDelete}
-        />
-      </main>
+      <AddPersonModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onAdd={addPerson} />
+      <PersonPeek
+        personId={peekId}
+        onClose={() => setPeekId(null)}
+        onChanged={(updated) => setPeople((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))}
+      />
+    </RecordListLayout>
   );
 }

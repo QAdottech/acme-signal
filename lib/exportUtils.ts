@@ -1,5 +1,6 @@
 import { Organization } from "@/types/organization";
 import { Person } from "@/types/person";
+import type { Deal } from "@/types/deal";
 
 export function exportToCSV(data: any[], filename: string) {
   if (data.length === 0) {
@@ -83,4 +84,20 @@ function downloadFile(content: string, filename: string, mimeType: string) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+export function exportDealsToCSV(
+  deals: Deal[],
+  organizationName: (id: string) => string
+) {
+  const data = deals.map((deal) => ({
+    title: deal.title,
+    company: organizationName(deal.organizationId),
+    value: deal.value,
+    stage: deal.stage,
+    owner: deal.owner,
+    expectedCloseDate: deal.expectedCloseDate,
+    probability: deal.probability,
+  }));
+  exportToCSV(data, `deals-${new Date().toISOString().split("T")[0]}.csv`);
 }

@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { OrganizationDetailClient } from "./organization-detail-client";
 
 export const metadata: Metadata = {
-  title: "Organization",
+  title: "Company",
 };
 
 export default function OrganizationPage({

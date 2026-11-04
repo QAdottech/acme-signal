@@ -18,13 +18,17 @@ test("PEOPLE-01: create, edit, search, and delete a contact; changes survive rel
   await expect(row).toHaveCount(1);
   await expect(row).toContainText("QA Contact");
   await expect(row).toContainText("Engineer");
-  await row.getByText("QA Contact", { exact: true }).click();
+  // The name opens the person's page, where the full edit form lives.
+  await row.getByRole("link", { name: "QA Contact" }).click();
+  await expect(page.getByRole("heading", { name: "QA Contact", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   const edit = page.getByRole("dialog", { name: "Edit Person" });
   await edit.getByLabel("Role", { exact: true }).fill("Engineering Manager");
   await edit.getByRole("button", { name: "Save Changes" }).click();
   await expect(edit).toBeHidden();
+  await expect(page.getByText("Engineering Manager at Test Company")).toBeVisible();
 
-  await page.reload();
+  await page.goto("/people");
   await page.getByPlaceholder("Search people...").fill("contact@example.test");
   await expect(row).toContainText("Engineering Manager");
   await row.getByRole("checkbox").check();

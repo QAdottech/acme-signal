@@ -1,718 +1,308 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Globe, MapPin, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EditOrganizationModal } from "@/components/edit-organization-modal";
+import { StageBadge } from "@/components/stage-badge";
+import { Avatar } from "@/components/record-table/cells";
+import {
+  RecordList,
+  RecordListItem,
+  RecordPageLayout,
+  RecordSection,
+} from "@/components/record-page/layout";
+import { InlineText } from "@/components/record-page/attributes";
+import { NoteComposer, Timeline } from "@/components/record-page/timeline";
+import {
+  NoteList,
+  RecordAvatar,
+  RecordNotFound,
+  StatGrid,
+  StatTile,
+  TaskList,
+} from "@/components/record-page/blocks";
+import { CompanyFields } from "@/components/records/company-fields";
+import { useAuth } from "@/lib/auth-context";
+import {
+  deleteOrganization,
+  getOrganization,
+  setOrganizationLists,
+  updateOrganization,
+} from "@/lib/organizationData";
+import { getPeople } from "@/lib/personData";
+import { formatDealValue, getDealsForOrganization } from "@/lib/dealData";
+import { addNote, deleteNote, getNotesForOrganization, type Note } from "@/lib/notesData";
+import { getTasksForOrganization, toggleTaskDone } from "@/lib/taskData";
+import { getEmailsForOrganization } from "@/lib/emailData";
+import { getActivities } from "@/lib/activityData";
+import { buildTimeline } from "@/lib/timeline";
+import { formatDate } from "@/lib/format";
 import type { Organization } from "@/types/organization";
 import type { Person } from "@/types/person";
-import type { Activity } from "@/types/activity";
-import type { Note } from "@/lib/notesData";
 import type { Deal } from "@/types/deal";
-import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Globe,
-  Users,
-  MapPin,
-  ChevronsUpDown,
-  Check,
-  Mail,
-  Phone,
-  Linkedin,
-  Building2,
-  ArrowRight,
-  StickyNote,
-  Calendar,
-  FolderKanban,
-  Trash2,
-  Send,
-  TrendingUp,
-} from "lucide-react";
-import { CollectionManager } from "@/components/collection-manager";
-import { deduplicateCollectionOrganizationIds } from "@/lib/organizationData";
-import { OrganizationImage } from "@/components/organization-image";
-import { getPeople } from "@/lib/personData";
-import { getActivities } from "@/lib/activityData";
-import {
-  getNotesForOrganization,
-  addNote,
-  deleteNote,
-} from "@/lib/notesData";
-import { getDealsForOrganization, formatDealValue } from "@/lib/dealData";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { formatDate, formatRelative } from "@/lib/format";
+import type { Task } from "@/types/task";
+import type { EmailRecord } from "@/types/email";
+import type { Activity } from "@/types/activity";
 
-const dealStages = [
-  "New",
-  "Lead",
-  "Qualified",
-  "Proposal",
-  "Negotiation",
-  "Customer",
-  "Churned",
-  "Closed Lost",
-] as const;
+const CLOSED_STAGES = new Set(["Customer", "Closed Lost", "Churned"]);
 
-const owners = [
-  "Sarah Johnson",
-  "Michael Chen",
-  "Emma Wilson",
-  "David Martinez",
-];
-
-const activityIcons: Record<string, typeof Building2> = {
-  organization_added: Building2,
-  person_added: Users,
-  collection_created: FolderKanban,
-  stage_changed: ArrowRight,
-  note_added: StickyNote,
-  meeting_scheduled: Calendar,
-  deal_updated: TrendingUp,
-  email_sent: Mail,
-};
-
-const activityColors: Record<string, string> = {
-  organization_added: "text-blue-500 bg-blue-50 dark:bg-blue-950",
-  person_added: "text-green-500 bg-green-50 dark:bg-green-950",
-  collection_created: "text-purple-500 bg-purple-50 dark:bg-purple-950",
-  stage_changed: "text-orange-500 bg-orange-50 dark:bg-orange-950",
-  note_added: "text-yellow-500 bg-yellow-50 dark:bg-yellow-950",
-  meeting_scheduled: "text-pink-500 bg-pink-50 dark:bg-pink-950",
-  deal_updated: "text-amber-500 bg-amber-50 dark:bg-amber-950",
-  email_sent: "text-teal-500 bg-teal-50 dark:bg-teal-950",
-};
-
-
-export function OrganizationDetailClient({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const [organization, setOrganization] = useState<Organization | null>(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [ownerOpen, setOwnerOpen] = useState(false);
-  const [contacts, setContacts] = useState<Person[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [deals, setDeals] = useState<Deal[]>([]);
-  const [newNote, setNewNote] = useState("");
+export function OrganizationDetailClient({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const [organization, setOrganization] = useState<Organization | null | undefined>(undefined);
+  const [contacts, setContacts] = useState<Person[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [emails, setEmails] = useState<EmailRecord[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
-  useEffect(() => {
-    deduplicateCollectionOrganizationIds();
-    const storedOrganizations = localStorage.getItem("organizations");
-    if (storedOrganizations) {
-      const organizations: Organization[] = JSON.parse(storedOrganizations);
-      const org = organizations.find((o) => o.id === params.id);
-      if (org) {
-        setOrganization(org);
-        // Load related contacts
-        const allPeople = getPeople();
-        setContacts(
-          allPeople.filter((p) => p.organization === org.name)
-        );
-        // Load activities related to this org
-        const allActivities = getActivities();
-        setActivities(
-          allActivities.filter(
-            (a) =>
-              a.relatedEntityId === params.id ||
-              a.description?.toLowerCase().includes(org.name.toLowerCase())
-          )
-        );
-        // Load notes
-        setNotes(getNotesForOrganization(params.id));
-        setDeals(getDealsForOrganization(params.id));
-      } else {
-        router.push("/organizations");
-      }
-    }
-  }, [params.id, router]);
+  const load = useCallback(() => {
+    const org = getOrganization(params.id) ?? null;
+    setOrganization(org);
+    if (!org) return;
+    const name = org.name.toLowerCase();
+    setContacts(getPeople().filter((p) => p.organization.toLowerCase() === name));
+    setDeals(getDealsForOrganization(org.id));
+    setNotes(getNotesForOrganization(org.id));
+    setTasks(getTasksForOrganization(org.id));
+    setEmails(getEmailsForOrganization(org.id));
+    setActivities(
+      getActivities().filter(
+        (a) =>
+          (a.relatedEntityType === "organization" && a.relatedEntityId === org.id) ||
+          a.description?.toLowerCase().includes(name)
+      )
+    );
+  }, [params.id]);
 
-  const handleEdit = (updatedOrg: Organization) => {
-    const storedOrganizations = localStorage.getItem("organizations");
-    if (storedOrganizations) {
-      const organizations: Organization[] = JSON.parse(storedOrganizations);
-      const updatedOrganizations = organizations.map((org) =>
-        org.id === updatedOrg.id ? updatedOrg : org
-      );
-      localStorage.setItem(
-        "organizations",
-        JSON.stringify(updatedOrganizations)
-      );
-      setOrganization(updatedOrg);
-    }
-    setIsEditModalOpen(false);
-  };
+  useEffect(load, [load]);
 
-  const handleDelete = (organizationId: string) => {
-    const storedOrganizationsString = localStorage.getItem("organizations");
-    if (storedOrganizationsString) {
-      const organizations: Organization[] = JSON.parse(
-        storedOrganizationsString
-      );
-      const updatedOrganizations = organizations.filter(
-        (org) => org.id !== organizationId
-      );
-      localStorage.setItem(
-        "organizations",
-        JSON.stringify(updatedOrganizations)
-      );
-      router.push("/organizations");
-    }
-  };
-
-  const handleDealStageChange = (value: string) => {
-    if (organization) {
-      const updatedOrg = {
-        ...organization,
-        dealStage: value as Organization["dealStage"],
-      };
-      handleEdit(updatedOrg);
-      setStatusOpen(false);
-    }
-  };
-
-  const handleOwnerChange = (value: string) => {
-    if (organization) {
-      const updatedOrg = {
-        ...organization,
-        owner: value,
-      };
-      handleEdit(updatedOrg);
-      setOwnerOpen(false);
-    }
-  };
-
-  const handleCollectionsChange = useCallback(
-    (updatedCollections: string[]) => {
-      const storedOrganizations = localStorage.getItem("organizations");
-      if (storedOrganizations) {
-        const organizations: Organization[] = JSON.parse(storedOrganizations);
-        const updatedOrg = organizations.find((o) => o.id === params.id);
-        if (updatedOrg) {
-          setOrganization(updatedOrg);
-        }
-      }
-    },
-    [params.id]
+  const timeline = useMemo(
+    () => buildTimeline({ notes, tasks, emails, activities }),
+    [notes, tasks, emails, activities]
   );
 
-  const handleAddNote = () => {
-    if (!newNote.trim() || !organization) return;
+  if (organization === undefined) return null;
+  if (organization === null) {
+    return <RecordNotFound noun="company" href="/organizations" label="Back to Companies" />;
+  }
+
+  const update = (changes: Partial<Organization>, message: string) => {
+    const updated = updateOrganization(organization.id, changes);
+    if (updated) setOrganization(updated);
+    toast.success(message);
+  };
+
+  const handleDelete = () => {
+    if (!confirm(`Delete ${organization.name}? This can't be undone.`)) return;
+    deleteOrganization(organization.id);
+    toast.success(`Deleted ${organization.name}`);
+    router.push("/organizations");
+  };
+
+  const handleAddNote = (content: string) => {
     const note = addNote({
       organizationId: organization.id,
-      content: newNote.trim(),
-      authorName: "You",
+      content,
+      authorName: user?.fullName ?? "You",
     });
-    setNotes([note, ...notes]);
-    setNewNote("");
+    setNotes((prev) => [note, ...prev]);
+    toast.success("Note added");
   };
 
-  const handleDeleteNote = (noteId: string) => {
-    deleteNote(noteId);
-    setNotes(notes.filter((n) => n.id !== noteId));
+  const handleDeleteNote = (id: string) => {
+    deleteNote(id);
+    setNotes((prev) => prev.filter((n) => n.id !== id));
+    toast.success("Note deleted");
   };
 
-  if (!organization) {
-    return <div>Loading...</div>;
-  }
+  const handleToggleTask = (task: Task) => {
+    const updated = toggleTaskDone(task);
+    if (updated) setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+  };
+
+  const openDeals = deals.filter((d) => !CLOSED_STAGES.has(d.stage));
+  const openValue = openDeals.reduce((sum, d) => sum + d.value, 0);
+  const website = organization.website_url?.replace(/^https?:\/\//, "").replace(/\/$/, "");
+
+  const dealList = (
+    <RecordList empty="No deals with this company yet.">
+      {deals.map((deal) => (
+        <RecordListItem
+          key={deal.id}
+          href={`/deals/${deal.id}`}
+          title={deal.title}
+          meta={`${deal.owner} · closes ${formatDate(deal.expectedCloseDate)}`}
+          trailing={
+            <span className="flex items-center gap-3">
+              <StageBadge stage={deal.stage} />
+              <span className="w-14 font-medium tabular-nums">{formatDealValue(deal.value)}</span>
+            </span>
+          }
+        />
+      ))}
+    </RecordList>
+  );
+
+  const peopleList = (
+    <RecordList empty="No people at this company yet.">
+      {contacts.map((person) => (
+        <RecordListItem
+          key={person.id}
+          href={`/people/${person.id}`}
+          leading={<Avatar name={person.name} size={24} />}
+          title={person.name}
+          meta={person.role}
+          trailing={<span className="text-muted-foreground">{person.email}</span>}
+        />
+      ))}
+    </RecordList>
+  );
 
   return (
     <>
-      {/* Header */}
-      <div className="border-b bg-white dark:bg-gray-950">
-        <div className="mx-auto w-full max-w-[1400px] px-8 py-6">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-4">
-              <div className="w-14 h-14 relative flex-shrink-0 bg-gray-100 rounded-xl overflow-hidden">
-                <OrganizationImage
-                  src={organization.logo || "/placeholder.svg"}
-                  alt={`${organization.name} logo`}
-                  fill
-                  objectFit="cover"
-                />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {organization.name}
-                </h1>
-                <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <Building2 className="w-3.5 h-3.5" />
-                    {organization.industry}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5" />
-                    {organization.location}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Users className="w-3.5 h-3.5" />
-                    {organization.employees} employees
-                  </span>
-                  <Link
-                    href={organization.website_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-link hover:underline"
-                  >
-                    <Globe className="w-3.5 h-3.5" />
-                    Website
-                  </Link>
-                </div>
-              </div>
-            </div>
-            <Button
-              onClick={() => setIsEditModalOpen(true)}
-              variant="outline"
-              size="sm"
-            >
+      <RecordPageLayout
+        parent={{ label: "Companies", href: "/organizations" }}
+        title={organization.name}
+        avatar={<RecordAvatar name={organization.name} logo={organization.logo} />}
+        subtitle={
+          <>
+            <StageBadge stage={organization.dealStage} />
+            {organization.location && (
+              <span className="flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5" />
+                {organization.location}
+              </span>
+            )}
+            {website && (
+              <a
+                href={organization.website_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-foreground"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                {website}
+              </a>
+            )}
+          </>
+        }
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setIsEditOpen(true)}>
+              <Pencil />
               Edit
             </Button>
-          </div>
-        </div>
-      </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="More actions">
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={handleDelete} className="text-[13px] text-red-600 focus:text-red-600">
+                  <Trash2 />
+                  Delete company
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        }
+        tabs={[
+          {
+            id: "overview",
+            label: "Overview",
+            content: (
+              <>
+                <StatGrid>
+                  <StatTile label="Open pipeline" value={formatDealValue(openValue)} hint={`${openDeals.length} open deals`} />
+                  <StatTile label="Deals" value={deals.length} />
+                  <StatTile label="People" value={contacts.length} />
+                  <StatTile
+                    label="Last contacted"
+                    value={organization.lastContacted ? formatDate(organization.lastContacted) : "—"}
+                  />
+                </StatGrid>
+                <RecordSection title="About">
+                  <InlineText
+                    label="About"
+                    multiline
+                    value={organization.description ?? ""}
+                    placeholder="Add a description…"
+                    onSave={(description) => update({ description }, "Description updated")}
+                    className="text-[13px] leading-relaxed"
+                  />
+                </RecordSection>
+                <RecordSection title="Deals">{dealList}</RecordSection>
+                <RecordSection title="Open tasks">
+                  <TaskList tasks={tasks.filter((t) => t.status !== "done")} onToggle={handleToggleTask} />
+                </RecordSection>
+                <RecordSection title="Recent activity">
+                  <Timeline items={timeline} limit={5} />
+                </RecordSection>
+              </>
+            ),
+          },
+          { id: "activity", label: "Activity", count: timeline.length, content: <Timeline items={timeline} /> },
+          {
+            id: "notes",
+            label: "Notes",
+            count: notes.length,
+            content: (
+              <>
+                <NoteComposer onSave={handleAddNote} placeholder={`Write a note about ${organization.name}…`} />
+                <NoteList notes={notes} onDelete={handleDeleteNote} />
+              </>
+            ),
+          },
+          { id: "deals", label: "Deals", count: deals.length, content: dealList },
+          { id: "people", label: "People", count: contacts.length, content: peopleList },
+          {
+            id: "tasks",
+            label: "Tasks",
+            count: tasks.filter((t) => t.status !== "done").length,
+            content: <TaskList tasks={tasks} onToggle={handleToggleTask} />,
+          },
+        ]}
+        sidebar={
+          <CompanyFields
+            org={organization}
+            onChange={update}
+            onListsChange={(listIds) => {
+              const updated = setOrganizationLists(organization.id, listIds);
+              if (updated) setOrganization(updated);
+              toast.success("Lists updated");
+            }}
+          />
+        }
+      />
 
-      {/* Content */}
-      <div className="mx-auto w-full max-w-[1400px] px-8 py-6">
-        <div className="flex gap-8">
-          {/* Left panel with tabs */}
-          <div className="flex-1 min-w-0">
-            <Tabs defaultValue="overview">
-              <TabsList>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="activity">Activity</TabsTrigger>
-                <TabsTrigger value="notes">
-                  Notes{notes.length > 0 && ` (${notes.length})`}
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Overview Tab */}
-              <TabsContent value="overview">
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">About</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                        {organization.description}
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Contacts at this organization */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">
-                        Contacts ({contacts.length})
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {contacts.length > 0 ? (
-                        <div className="space-y-3">
-                          {contacts.map((person) => (
-                            <div
-                              key={person.id}
-                              className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                  <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                                    {person.name.charAt(0)}
-                                  </span>
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium">
-                                    {person.name}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    {person.role}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {person.email && (
-                                  <a
-                                    href={`mailto:${person.email}`}
-                                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600"
-                                  >
-                                    <Mail className="w-3.5 h-3.5" />
-                                  </a>
-                                )}
-                                {person.phone && (
-                                  <a
-                                    href={`tel:${person.phone}`}
-                                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600"
-                                  >
-                                    <Phone className="w-3.5 h-3.5" />
-                                  </a>
-                                )}
-                                {person.linkedIn && (
-                                  <a
-                                    href={person.linkedIn}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600"
-                                  >
-                                    <Linkedin className="w-3.5 h-3.5" />
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-500 text-center py-4">
-                          No contacts linked to this organization
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Deals */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">
-                        Deals ({deals.length})
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {deals.length > 0 ? (
-                        <div className="space-y-3">
-                          {deals.map((deal) => (
-                            <Link
-                              key={deal.id}
-                              href={`/deals/${deal.id}`}
-                              className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                            >
-                              <div>
-                                <p className="text-sm font-medium">{deal.title}</p>
-                                <p className="text-xs text-gray-500">
-                                  {deal.stage} &middot; {deal.owner}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm font-semibold">
-                                  {formatDealValue(deal.value)}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {deal.probability}% probability
-                                </p>
-                              </div>
-                            </Link>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-500 text-center py-4">
-                          No deals linked to this organization
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Recent Notes preview */}
-                  {notes.length > 0 && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">
-                          Latest Note
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                          {notes[0].content}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-2">
-                          {notes[0].authorName} &middot;{" "}
-                          {formatRelative(notes[0].createdAt)}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              </TabsContent>
-
-              {/* Activity Tab */}
-              <TabsContent value="activity">
-                <div className="space-y-3">
-                  {activities.length > 0 ? (
-                    activities.map((activity) => {
-                      const Icon = activityIcons[activity.type] || ArrowRight;
-                      const colorClass =
-                        activityColors[activity.type] ||
-                        "text-gray-500 bg-gray-50";
-
-                      return (
-                        <div
-                          key={activity.id}
-                          className="flex items-start gap-3 p-3 rounded-lg border"
-                        >
-                          <div
-                            className={`p-2 rounded-lg flex-shrink-0 ${colorClass}`}
-                          >
-                            <Icon className="h-4 w-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium">
-                              {activity.title}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {activity.description}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-gray-400">
-                                {formatRelative(activity.timestamp)}
-                              </span>
-                              {activity.userName && (
-                                <>
-                                  <span className="text-xs text-gray-300">
-                                    &middot;
-                                  </span>
-                                  <span className="text-xs text-gray-400">
-                                    {activity.userName}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="text-center py-12 text-sm text-gray-500">
-                      No activity recorded for this organization
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              {/* Notes Tab */}
-              <TabsContent value="notes">
-                <div className="space-y-4">
-                  {/* Add note form */}
-                  <div className="flex gap-2">
-                    <Textarea
-                      placeholder="Write a note..."
-                      value={newNote}
-                      onChange={(e) => setNewNote(e.target.value)}
-                      className="min-h-[80px] resize-none text-sm"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && e.metaKey) {
-                          handleAddNote();
-                        }
-                      }}
-                    />
-                  </div>
-                  <div className="flex justify-end">
-                    <Button
-                      onClick={handleAddNote}
-                      disabled={!newNote.trim()}
-                      size="sm"
-                      className="gap-1.5"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      Add Note
-                    </Button>
-                  </div>
-
-                  {/* Notes list */}
-                  {notes.length > 0 ? (
-                    <div className="space-y-3">
-                      {notes.map((note) => (
-                        <div
-                          key={note.id}
-                          className="p-4 rounded-lg border group"
-                        >
-                          <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                            {note.content}
-                          </p>
-                          <div className="flex items-center justify-between mt-3">
-                            <p className="text-xs text-gray-400">
-                              {note.authorName} &middot;{" "}
-                              {formatRelative(note.createdAt)}
-                            </p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0 text-gray-400 hover:text-red-500"
-                              onClick={() => handleDeleteNote(note.id)}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 text-sm text-gray-500">
-                      No notes yet. Add one above.
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          {/* Right sidebar */}
-          <div className="w-80 space-y-4 flex-shrink-0">
-            {/* Deal Stage */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-500">
-                  Deal Stage
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Popover open={statusOpen} onOpenChange={setStatusOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={statusOpen}
-                      className="w-full justify-between text-sm"
-                    >
-                      {organization.dealStage || "Select stage"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[250px] p-0">
-                    <Command>
-                      <CommandInput placeholder="Search stage..." />
-                      <CommandEmpty>No stage found.</CommandEmpty>
-                      <CommandGroup>
-                        {dealStages.map((stage) => (
-                          <CommandItem
-                            key={stage}
-                            onSelect={() => handleDealStageChange(stage)}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                organization.dealStage === stage
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                            {stage}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </CardContent>
-            </Card>
-
-            {/* Details */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-500">
-                  Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Owner</span>
-                  <Popover open={ownerOpen} onOpenChange={setOwnerOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        role="combobox"
-                        aria-expanded={ownerOpen}
-                        className="h-auto p-1 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
-                      >
-                        {organization.owner || "Select owner"}
-                        <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search owner..." />
-                        <CommandEmpty>No owner found.</CommandEmpty>
-                        <CommandGroup>
-                          {owners.map((o) => (
-                            <CommandItem
-                              key={o}
-                              onSelect={() => handleOwnerChange(o)}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  organization.owner === o
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              {o}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Revenue</span>
-                  <span className="text-sm font-medium">
-                    {organization.annualRevenue || "-"}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Last Contacted</span>
-                  <span className="text-sm font-medium">
-                    {formatDate(organization.lastContacted)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Employees</span>
-                  <span className="text-sm font-medium">
-                    {organization.employees.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Industry</span>
-                  <span className="text-sm font-medium">
-                    {organization.industry}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Collections */}
-            <CollectionManager
-              organization={organization}
-              onCollectionsChange={handleCollectionsChange}
-            />
-          </div>
-        </div>
-      </div>
-
-      {organization && (
-        <EditOrganizationModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          organization={organization}
-        />
-      )}
+      <EditOrganizationModal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        organization={organization}
+        onEdit={(updatedOrg) => {
+          update(updatedOrg, `Saved ${updatedOrg.name}`);
+          setIsEditOpen(false);
+          load();
+        }}
+        onDelete={() => {
+          deleteOrganization(organization.id);
+          toast.success(`Deleted ${organization.name}`);
+          router.push("/organizations");
+        }}
+      />
     </>
   );
 }
