@@ -32,12 +32,10 @@ test("PEOPLE-01: create, edit, search, and delete a contact; changes survive rel
   await page.getByPlaceholder("Search people...").fill("contact@example.test");
   await expect(row).toContainText("Engineering Manager");
   await row.getByRole("checkbox").check();
-  const confirmation = page.waitForEvent("dialog");
-  const deleting = page.getByRole("button", { name: "Delete", exact: true }).click();
-  const dialog = await confirmation;
-  expect(dialog.message()).toBe("Are you sure you want to delete 1 contacts?");
-  await dialog.accept();
-  await deleting;
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  const confirmation = page.getByRole("alertdialog", { name: "Delete 1 contact?" });
+  await expect(confirmation).toBeVisible();
+  await confirmation.getByRole("button", { name: "Delete contact" }).click();
   await expect(row).toHaveCount(0);
 
   await page.reload();

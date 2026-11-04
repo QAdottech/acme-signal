@@ -1,3 +1,5 @@
+import { isDemoBugEnabled } from "@/lib/demo-bugs";
+
 export interface Note {
   id: string;
   /** Company the note belongs to. Empty when it's about a person with no company record. */
@@ -145,7 +147,10 @@ export function addNote(note: Omit<Note, "id" | "createdAt" | "updatedAt">): Not
     updatedAt: new Date().toISOString(),
   };
   const updated = [newNote, ...notes];
-  localStorage.setItem("notes", JSON.stringify(updated));
+  // DEMO BUG: notes-not-saved — the note is returned (and shown) but never stored.
+  if (!isDemoBugEnabled("notes-not-saved")) {
+    localStorage.setItem("notes", JSON.stringify(updated));
+  }
   return newNote;
 }
 

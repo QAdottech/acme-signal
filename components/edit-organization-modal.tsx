@@ -37,6 +37,7 @@ import {
   saveFileToLocalStorage,
   getFileFromLocalStorage,
 } from "@/lib/fileUtils";
+import { useConfirm } from "@/components/confirm-dialog";
 
 interface EditOrganizationModalProps {
   isOpen: boolean;
@@ -53,6 +54,7 @@ export function EditOrganizationModal({
   onDelete,
   organization,
 }: EditOrganizationModalProps) {
+  const confirm = useConfirm();
   const [name, setName] = useState(organization.name);
   const [industry, setIndustry] = useState(organization.industry);
   const [location, setLocation] = useState(organization.location);
@@ -399,17 +401,15 @@ export function EditOrganizationModal({
             <Button
               type="button"
               variant="destructive"
-              onClick={() => {
-                if (
-                  window.confirm(
-                    "Are you sure you want to delete this organization?"
-                  )
-                ) {
-                  onDelete(organization.id);
-                }
+              onClick={async () => {
+                const ok = await confirm({
+                  title: `Delete ${organization.name}?`,
+                  confirmLabel: "Delete company",
+                });
+                if (ok) onDelete(organization.id);
               }}
             >
-              Delete Organization
+              Delete Company
             </Button>
             <Button
               type="submit"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
+import { useConfirm } from "@/components/confirm-dialog"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/select"
 
 export function TeamMemberList() {
+  const confirm = useConfirm();
   const { users, updateUserRole, removeUser } = useAuth()
   const [teamMembers, setTeamMembers] = useState(users)
 
@@ -35,7 +37,7 @@ export function TeamMemberList() {
   }
 
   const handleRemoveUser = async (userId: string) => {
-    if (window.confirm("Are you sure you want to remove this user from the team?")) {
+    if (await confirm({ title: "Remove this user from the team?", description: "They will lose access to the workspace.", confirmLabel: "Remove user" })) {
       await removeUser(userId)
       setTeamMembers(teamMembers.filter(member => member.id !== userId))
     }

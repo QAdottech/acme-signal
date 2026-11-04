@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_SHORTCUTS: [string, string][] = [
   ["H", "Pipeline"],
-  ["I", "Notifications"],
+  ["I", "Inbox"],
   ["T", "Tasks"],
   ["C", "Companies"],
   ["P", "People"],

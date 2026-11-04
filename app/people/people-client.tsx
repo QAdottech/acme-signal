@@ -49,12 +49,15 @@ import { formatDate } from "@/lib/format";
 import { useCreateIntent } from "@/lib/create-intent";
 import type { Person } from "@/types/person";
 import type { Organization } from "@/types/organization";
+import { applySearchBug } from "@/lib/demo-bugs";
+import { useConfirm } from "@/components/confirm-dialog";
 
 const STATUSES = ["Active", "Inactive"] as const;
 type StatusFilter = "all" | Person["status"];
 
 export function PeopleClient() {
   const [people, setPeople] = useState<Person[]>([]);
+  const confirm = useConfirm();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -91,7 +94,7 @@ export function PeopleClient() {
     [people]
   );
 
-  const visiblePeople = useMemo(() => {
+  const matching = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     const matches = (key: string, value: string | undefined) =>
       !filters[key]?.length || (!!value && filters[key].includes(value));
@@ -109,6 +112,7 @@ export function PeopleClient() {
       );
     });
   }, [people, filters, searchTerm, statusFilter]);
+  const visiblePeople = useMemo(() => applySearchBug(matching, searchTerm), [matching, searchTerm]);
 
   const columns: Column<Person>[] = [
     {
@@ -249,9 +253,13 @@ export function PeopleClient() {
     toast.success(`Marked ${count} ${count === 1 ? "person" : "people"} ${status.toLowerCase()}`);
   };
 
-  const handleBulkDelete = () => {
-    if (!confirm(`Are you sure you want to delete ${selectedIds.size} contacts?`)) return;
+  const handleBulkDelete = async () => {
     const count = selectedIds.size;
+    const ok = await confirm({
+      title: `Delete ${count} ${count === 1 ? "contact" : "contacts"}?`,
+      confirmLabel: `Delete ${count === 1 ? "contact" : "contacts"}`,
+    });
+    if (!ok) return;
     persist(people.filter((p) => !selectedIds.has(p.id)));
     setSelectedIds(new Set());
     toast.success(`Deleted ${count} ${count === 1 ? "contact" : "contacts"}`);

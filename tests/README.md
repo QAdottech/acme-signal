@@ -24,7 +24,11 @@ pnpm test:e2e            # build, start server, run Chromium, stop server
 pnpm test:e2e:ui         # interactive Playwright runner
 pnpm test:e2e:report     # open the last HTML report
 pnpm test:all            # test typecheck + unit coverage + browser journeys
+pnpm test:visual         # screenshot comparisons (tests/visual), opt-in and not run in CI
+pnpm test:visual:update  # re-record baselines after an intentional design change
 ```
+
+Visual tests pin the clock to 2026-11-04 10:00 UTC so relative seed dates render identically. Baselines are recorded on Linux Chromium (`*-visual-linux.png`); a 0.1% pixel tolerance absorbs anti-aliasing but still catches changed text.
 
 Targeted runs and repeatability checks:
 
@@ -71,13 +75,16 @@ Unless marked public, start in a fresh browser and log in with the seeded demo a
 | --- | --- |
 | AUTH-01 | **Anonymous:** open People; get redirected to login with `/people` preserved. Submit an unknown account; see invalid-credentials feedback and remain on login. |
 | AUTH-02 | Log in with a demo user, log out, open People, log in again; return to People. Reload retains the session. Log out again; People is protected. |
-| PEOPLE-01 | Create a contact with name, email, role, company. Reload, find by email, open their page from the name and edit the role there; back on People it shows the new role. Delete with confirmation, reload and verify absence; existing contacts remain. |
+| PEOPLE-01 | Create a contact with name, email, role, company. Reload, find by email, open their page from the name and edit the role there; back on People it shows the new role. Select and delete it through the confirmation dialog, reload and verify absence; existing contacts remain. |
 | PEOPLE-02 | Search for Daniel Ek and export CSV. The downloaded file has the expected headers and only that contact, not other contacts. |
 | DEALS-01 | Create a $12,000 Lead deal for Spotify owned by Emma Wilson. Filter to it, drag to Qualified, reload. It remains Qualified; the Deals table shows Spotify, $12K, and 30% probability. |
 | RECORDS-01 | On Deals, change Platform Integration's stage to Negotiation and its owner to Michael Chen from the table cells; it stays on the list, probability becomes 75%, and both survive a reload. Filter Stage = Negotiation (2 deals, removable chip), select all, Set stage → Proposal (50%). Board shows it under Proposal; Table returns to Deals. |
 | RECORDS-02 | On Companies, click Hugging Face's row (not its name): a side preview opens without navigating. Change the owner to Emma Wilson there; the table row updates. Open the full page from the preview, add a note and add the company to Developer Tools from the sidebar; after reload both remain and the list shows the company. |
 | RECORDS-03 | ⌘K → "Dario" opens Dario Amodei's person page (CEO at Anthropic). Their Deals tab links to AI Research Partnership. |
 | RECORDS-04 | Opening `/deals/does-not-exist` shows a "This deal doesn't exist" state with a link back to Deals. |
+| DEMO-01 | Values are exact by default (Biotech Research License shows $45K). `/deals?demoBugs=value-rounding` makes it $40K; Settings shows that switch on (1 of 8) and turning it off restores $45K. |
+| DEMO-02 | Delete Startup Plan, then Settings → Reset demo data → Reset data. The app reloads on the pipeline with a "Demo data reset" toast and Startup Plan is back. |
+| INBOX-01 | `/notifications` and `/emails` land in the Inbox. Opening "Proposal: Enterprise License" shows it with a link to Dario Amodei. Opening an unread notification reduces the unread count by one; Mark all as read empties Unread. |
 | REPORTS-01 | Create a named custom report from Pipeline by Stage. Reload; its three widgets and active-deal summary render. Delete it, reload; it is absent while Pipeline Overview remains. |
 | TASKS-01 | At a fixed date of 2026-06-01 UTC, create a task due 2026-05-31. It appears under Overdue. Complete it; it disappears from Overdue and remains checked/Done after reload. |
 | SIGN-01 | **Public:** open a proposal, submit without name/consent and verify all errors. Name plus terms consent alone still fails. With both consents, signing shows confirmation. |

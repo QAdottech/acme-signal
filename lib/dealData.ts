@@ -1,6 +1,7 @@
 import type { Deal } from "@/types/deal";
 import type { DealStage } from "@/types/organization";
 import { seedDate } from "@/lib/demo-data";
+import { isDemoBugEnabled } from "@/lib/demo-bugs";
 
 const defaultDeals: Deal[] = [
   {
@@ -351,6 +352,10 @@ export function saveDeals(deals: Deal[]): void {
 }
 
 export function formatDealValue(value: number, currency: string = "USD"): string {
+  // DEMO BUG: value-rounding
+  if (value < 1000000 && value >= 10000 && isDemoBugEnabled("value-rounding")) {
+    value = Math.floor(value / 10000) * 10000;
+  }
   if (value >= 1000000) {
     return `$${(value / 1000000).toFixed(1)}M`;
   }
@@ -392,6 +397,8 @@ export function withStage(deal: Deal, stage: DealStage): Deal {
   return {
     ...deal,
     stage,
-    probability: STAGE_PROBABILITIES[stage] ?? deal.probability,
+    probability: isDemoBugEnabled("stale-probability") // DEMO BUG: stale-probability
+      ? deal.probability
+      : STAGE_PROBABILITIES[stage] ?? deal.probability,
   };
 }

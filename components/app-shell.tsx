@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { toast } from "sonner";
 import { Sidebar } from "@/components/sidebar";
 import { CommandMenu } from "@/components/command-menu";
 
@@ -9,6 +11,15 @@ import { CommandMenu } from "@/components/command-menu";
  * sidebar, and each page owns its own header.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
+  // Confirm a demo-data reset after the full reload that follows it.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("reset") !== "1") return;
+    toast.success("Demo data reset");
+    url.searchParams.delete("reset");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  }, []);
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />

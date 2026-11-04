@@ -18,6 +18,7 @@ import { AddDealModal } from "@/components/add-deal-modal";
 import { StageBadge } from "@/components/stage-badge";
 import {
   RecordTable,
+  sortRows,
   useRecordTableState,
   type Column,
 } from "@/components/record-table/record-table";
@@ -49,11 +50,14 @@ import { formatDate } from "@/lib/format";
 import { useCreateIntent } from "@/lib/create-intent";
 import type { Deal } from "@/types/deal";
 import type { DealStage, Organization } from "@/types/organization";
+import { applySearchBug, isDemoBugEnabled } from "@/lib/demo-bugs";
+import { useConfirm } from "@/components/confirm-dialog";
 
 const STAGES = Object.keys(STAGE_STYLES) as DealStage[];
 
 export function DealsClient() {
   const [deals, setDeals] = useState<Deal[]>([]);
+  const confirm = useConfirm();
   const [peekId, setPeekId] = useState<string | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -86,7 +90,7 @@ export function DealsClient() {
   );
   const [filters, setFilters] = useState<FilterValues>(() => emptyFilters([]));
 
-  const visibleDeals = useMemo(() => {
+  const matching = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     const matches = (key: string, value: string | undefined) =>
       !filters[key]?.length || (!!value && filters[key].includes(value));
@@ -106,6 +110,7 @@ export function DealsClient() {
       );
     });
   }, [deals, filters, orgById, searchTerm]);
+  const visibleDeals = useMemo(() => applySearchBug(matching, searchTerm), [matching, searchTerm]);
 
   const persist = (next: Deal[]) => {
     setDeals(next);
@@ -227,10 +232,22 @@ export function DealsClient() {
     toast.success(`Moved ${count} ${count === 1 ? "deal" : "deals"} to ${stage}`);
   };
 
-  const handleBulkDelete = () => {
-    if (!confirm(`Are you sure you want to delete ${selectedIds.size} deals?`)) return;
+  const handleBulkDelete = async () => {
     const count = selectedIds.size;
-    persist(deals.filter((deal) => !selectedIds.has(deal.id)));
+    const ok = await confirm({
+      title: `Delete ${count} ${count === 1 ? "deal" : "deals"}?`,
+      confirmLabel: `Delete ${count === 1 ? "deal" : "deals"}`,
+    });
+    if (!ok) return;
+    let doomed = selectedIds;
+    // DEMO BUG: bulk-delete-wrong-row — deletes the row below each selected one.
+    if (isDemoBugEnabled("bulk-delete-wrong-row")) {
+      const order = sortRows(visibleDeals, columns, sort).map((d) => d.id);
+      doomed = new Set(
+        Array.from(selectedIds).map((id) => order[order.indexOf(id) + 1] ?? id)
+      );
+    }
+    persist(deals.filter((deal) => !doomed.has(deal.id)));
     setSelectedIds(new Set());
     toast.success(`Deleted ${count} ${count === 1 ? "deal" : "deals"}`);
   };

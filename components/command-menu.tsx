@@ -4,15 +4,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Command as CommandPrimitive } from "cmdk";
 import {
-  Bell,
+  Bug,
   Building2,
   CheckSquare,
   CircleDollarSign,
   FileBarChart,
   FolderKanban,
+  Inbox,
   Kanban,
-  Mail,
   Plus,
+  RotateCcw,
   Search,
   Settings,
   StickyNote,
@@ -38,6 +39,8 @@ import type { Organization, Collection } from "@/types/organization";
 import type { Person } from "@/types/person";
 import type { Deal } from "@/types/deal";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/components/confirm-dialog";
+import { resetDemoData } from "@/lib/demo-data";
 
 const OPEN_EVENT = "acme:open-command-menu";
 
@@ -45,8 +48,9 @@ const OPEN_EVENT = "acme:open-command-menu";
  * Plain "every word appears" matching. cmdk's default fuzzy scorer matches
  * scattered letters ("anthro" → "QA.tech"), which looks broken in a demo.
  */
-function matchAllWords(value: string, search: string) {
-  const haystack = value.toLowerCase();
+function matchAllWords(value: string, search: string, keywords?: string[]) {
+  // Records match on their visible text (keywords); their value is just a unique id.
+  const haystack = (keywords?.length ? keywords.join(" ") : value).toLowerCase();
   const words = search.toLowerCase().split(/\s+/).filter(Boolean);
   return words.every((word) => haystack.includes(word)) ? 1 : 0;
 }
@@ -66,16 +70,15 @@ type NavItem = {
 
 export const NAV_SHORTCUTS: NavItem[] = [
   { label: "Pipeline", href: "/", icon: Kanban, key: "h" },
-  { label: "Notifications", href: "/notifications", icon: Bell, key: "i" },
+  { label: "Inbox", href: "/inbox", icon: Inbox, key: "i" },
   { label: "Tasks", href: "/tasks", icon: CheckSquare, key: "t" },
   { label: "Companies", href: "/organizations", icon: Building2, key: "c" },
   { label: "People", href: "/people", icon: Users, key: "p" },
   { label: "Deals", href: "/deals", icon: CircleDollarSign, key: "d" },
-  { label: "Emails", href: "/emails", icon: Mail, key: "e" },
   { label: "Notes", href: "/notes", icon: StickyNote, key: "n" },
   { label: "Reports", href: "/reports", icon: FileBarChart, key: "r" },
   { label: "Lists", href: "/collections", icon: FolderKanban, key: "l" },
-  { label: "Settings", href: "/profile/edit", icon: Settings },
+  { label: "Settings", href: "/settings", icon: Settings },
 ];
 
 const CREATE_ACTIONS: { kind: CreateKind; label: string }[] = [
@@ -129,6 +132,7 @@ export function CommandMenu() {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const confirm = useConfirm();
   const [query, setQuery] = useState("");
   const [records, setRecords] = useState<{
     organizations: Organization[];
@@ -258,7 +262,8 @@ export function CommandMenu() {
                   {records.organizations.map((org) => (
                     <MenuItem
                       key={`org-${org.id}`}
-                      value={`company ${org.name} ${org.industry} ${org.location}`}
+                      value={`company-${org.id}`}
+                      keywords={[org.name, org.industry, org.location]}
                       onSelect={() => run(() => router.push(`/organizations/${org.id}`))}
                     >
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
@@ -279,7 +284,8 @@ export function CommandMenu() {
                   {records.people.map((person) => (
                     <MenuItem
                       key={`person-${person.id}`}
-                      value={`person ${person.name} ${person.email} ${person.organization}`}
+                      value={`person-${person.id}`}
+                      keywords={[person.name, person.email, person.organization]}
                       onSelect={() => run(() => router.push(`/people/${person.id}`))}
                     >
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-semibold text-muted-foreground">
@@ -296,7 +302,8 @@ export function CommandMenu() {
                   {records.deals.map((deal) => (
                     <MenuItem
                       key={`deal-${deal.id}`}
-                      value={`deal ${deal.title} ${orgById.get(deal.organizationId)?.name ?? ""}`}
+                      value={`deal-${deal.id}`}
+                      keywords={[deal.title, orgById.get(deal.organizationId)?.name ?? ""]}
                       onSelect={() => run(() => router.push(`/deals/${deal.id}`))}
                     >
                       <CircleDollarSign className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -311,7 +318,8 @@ export function CommandMenu() {
                   {records.collections.map((collection) => (
                     <MenuItem
                       key={`list-${collection.id}`}
-                      value={`list ${collection.name}`}
+                      value={`list-${collection.id}`}
+                      keywords={[collection.name]}
                       onSelect={() => run(() => router.push(`/collections/${collection.id}`))}
                     >
                       <FolderKanban className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -335,6 +343,34 @@ export function CommandMenu() {
               ))}
             </MenuGroup>
 
+            <MenuGroup heading="Demo">
+              <MenuItem
+                value="reset demo data seed restore"
+                onSelect={() =>
+                  run(async () => {
+                    const ok = await confirm({
+                      title: "Reset demo data?",
+                      description: "Companies, people, deals and activity go back to the seeded demo data.",
+                      confirmLabel: "Reset data",
+                    });
+                    if (!ok) return;
+                    resetDemoData();
+                    window.location.assign("/?reset=1");
+                  })
+                }
+              >
+                <RotateCcw className="h-4 w-4 shrink-0 text-muted-foreground" />
+                Reset demo data
+              </MenuItem>
+              <MenuItem
+                value="demo bugs switches defects"
+                onSelect={() => run(() => router.push("/settings#demo-bugs"))}
+              >
+                <Bug className="h-4 w-4 shrink-0 text-muted-foreground" />
+                Demo bugs…
+              </MenuItem>
+            </MenuGroup>
+
             <MenuGroup heading="Go to">
               {NAV_SHORTCUTS.map((item) => (
                 <MenuItem
@@ -354,7 +390,7 @@ export function CommandMenu() {
               ))}
               <MenuItem
                 value="go to navigate profile account"
-                onSelect={() => run(() => router.push("/profile/edit"))}
+                onSelect={() => run(() => router.push("/settings"))}
               >
                 <User className="h-4 w-4 shrink-0 text-muted-foreground" />
                 Profile
@@ -394,15 +430,18 @@ function MenuGroup({ heading, children }: { heading: string; children: React.Rea
 function MenuItem({
   children,
   value,
+  keywords,
   onSelect,
 }: {
   children: React.ReactNode;
   value: string;
+  keywords?: string[];
   onSelect: () => void;
 }) {
   return (
     <CommandPrimitive.Item
       value={value}
+      keywords={keywords}
       onSelect={onSelect}
       className="flex h-9 cursor-pointer select-none items-center gap-2.5 rounded-md px-2 text-sm text-foreground outline-none data-[selected=true]:bg-accent"
     >

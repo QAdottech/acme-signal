@@ -28,6 +28,13 @@ export default defineConfig({
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 1000 } } },
+    {
+      // Screenshot comparisons. Opt-in: `pnpm test:visual` (see tests/visual).
+      name: "visual",
+      testDir: "./tests/visual",
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 1000 } },
+      expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.001, animations: "disabled" } },
+    },
   ],
   webServer: {
     command: "pnpm build && pnpm start --hostname localhost --port 3100",

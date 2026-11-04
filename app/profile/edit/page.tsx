@@ -1,10 +1,6 @@
-import { Metadata } from "next";
-import { EditProfileClient } from "./edit-profile-client";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Edit Profile",
-};
-
+/** Profile editing moved into Settings. */
 export default function EditProfilePage() {
-  return <EditProfileClient />;
+  redirect("/settings");
 }

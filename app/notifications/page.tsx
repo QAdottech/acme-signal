@@ -1,10 +1,6 @@
-import { Metadata } from "next";
-import { NotificationsClient } from "./notifications-client";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Notifications",
-};
-
+/** Notifications now live in the Inbox. */
 export default function NotificationsPage() {
-  return <NotificationsClient />;
+  redirect("/inbox");
 }

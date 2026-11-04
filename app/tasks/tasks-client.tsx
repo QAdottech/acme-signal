@@ -30,6 +30,7 @@ import { useAuth } from "@/lib/auth-context";
 import { formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/page-header";
 import { useCreateIntent } from "@/lib/create-intent";
+import { isDemoBugEnabled } from "@/lib/demo-bugs";
 
 const statusConfig: Record<TaskStatus, { label: string; className: string }> = {
   todo: {
@@ -77,6 +78,8 @@ const priorityConfig: Record<
 function isOverdue(task: Task): boolean {
   if (task.status === "done" || !task.dueDate) return false;
   const today = new Date().toISOString().split("T")[0];
+  // DEMO BUG: due-today-overdue
+  if (isDemoBugEnabled("due-today-overdue")) return task.dueDate <= today;
   return task.dueDate < today;
 }
 

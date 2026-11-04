@@ -37,11 +37,14 @@ import { exportOrganizationsToCSV } from "@/lib/exportUtils";
 import { STAGE_STYLES } from "@/lib/stages";
 import { useCreateIntent } from "@/lib/create-intent";
 import type { DealStage, Organization } from "@/types/organization";
+import { applySearchBug } from "@/lib/demo-bugs";
+import { useConfirm } from "@/components/confirm-dialog";
 
 const STAGES = Object.keys(STAGE_STYLES) as DealStage[];
 
 export function OrganizationsClient() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const confirm = useConfirm();
   const [peekId, setPeekId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,7 +79,7 @@ export function OrganizationsClient() {
     [organizations]
   );
 
-  const visibleOrganizations = useMemo(() => {
+  const matching = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     const matches = (key: string, value: string | undefined) =>
       !filters[key]?.length || (!!value && filters[key].includes(value));
@@ -95,6 +98,7 @@ export function OrganizationsClient() {
       );
     });
   }, [organizations, filters, searchTerm]);
+  const visibleOrganizations = useMemo(() => applySearchBug(matching, searchTerm), [matching, searchTerm]);
 
   const columns: Column<Organization>[] = [
     {
@@ -171,9 +175,13 @@ export function OrganizationsClient() {
     toast.success(`Moved ${count} ${count === 1 ? "company" : "companies"} to ${stage}`);
   };
 
-  const handleBulkDelete = () => {
-    if (!confirm(`Are you sure you want to delete ${selectedIds.size} companies?`)) return;
+  const handleBulkDelete = async () => {
     const count = selectedIds.size;
+    const ok = await confirm({
+      title: `Delete ${count} ${count === 1 ? "company" : "companies"}?`,
+      confirmLabel: `Delete ${count === 1 ? "company" : "companies"}`,
+    });
+    if (!ok) return;
     persist(organizations.filter((org) => !selectedIds.has(org.id)));
     setSelectedIds(new Set());
     toast.success(`Deleted ${count} ${count === 1 ? "company" : "companies"}`);

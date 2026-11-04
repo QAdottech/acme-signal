@@ -27,7 +27,7 @@ export const CREATE_TARGETS: Record<CreateKind, string> = {
   person: "/people",
   task: "/tasks",
   note: "/notes",
-  email: "/emails",
+  email: "/inbox",
   list: "/collections",
 };
 

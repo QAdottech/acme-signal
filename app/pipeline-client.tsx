@@ -27,6 +27,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 import { getStageStyle } from "@/lib/stages";
 import { useCreateIntent } from "@/lib/create-intent";
+import { isDemoBugEnabled } from "@/lib/demo-bugs";
 
 const pipelineStages: { id: string; name: DealStage }[] = [
   { id: "new", name: "New" },
@@ -257,10 +258,10 @@ export function PipelineClient() {
     ? deals.find((d) => d.id === activeId)
     : null;
 
-  const totalPipelineValue = filteredDeals.reduce(
-    (sum, d) => sum + d.value,
-    0
-  );
+  const totalPipelineValue = filteredDeals
+    // DEMO BUG: pipeline-total-mismatch
+    .filter((d) => !(isDemoBugEnabled("pipeline-total-mismatch") && d.stage === "New"))
+    .reduce((sum, d) => sum + d.value, 0);
 
   return (
     <DndContext

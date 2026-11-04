@@ -52,12 +52,14 @@ import type { Deal } from "@/types/deal";
 import type { Task } from "@/types/task";
 import type { EmailRecord } from "@/types/email";
 import type { Activity } from "@/types/activity";
+import { useConfirm } from "@/components/confirm-dialog";
 
 const CLOSED_STAGES = new Set(["Customer", "Closed Lost", "Churned"]);
 
 export function OrganizationDetailClient({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { user } = useAuth();
+  const confirm = useConfirm();
   const [organization, setOrganization] = useState<Organization | null | undefined>(undefined);
   const [contacts, setContacts] = useState<Person[]>([]);
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -104,8 +106,13 @@ export function OrganizationDetailClient({ params }: { params: { id: string } })
     toast.success(message);
   };
 
-  const handleDelete = () => {
-    if (!confirm(`Delete ${organization.name}? This can't be undone.`)) return;
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: `Delete ${organization.name}?`,
+      description: "The company is removed from every list. Its deals and notes stay.",
+      confirmLabel: "Delete company",
+    });
+    if (!ok) return;
     deleteOrganization(organization.id);
     toast.success(`Deleted ${organization.name}`);
     router.push("/organizations");
