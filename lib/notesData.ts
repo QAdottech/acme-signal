@@ -1,6 +1,11 @@
 export interface Note {
   id: string;
+  /** Company the note belongs to. Empty when it's about a person with no company record. */
   organizationId: string;
+  /** Set when the note was written on a person's page. */
+  personId?: string;
+  /** Set when the note was written on a deal's page. */
+  dealId?: string;
   content: string;
   createdAt: string;
   updatedAt: string;
@@ -125,6 +130,10 @@ export function getNotes(): Note[] {
 
 export function getNotesForOrganization(organizationId: string): Note[] {
   return getNotes().filter((note) => note.organizationId === organizationId);
+}
+
+export function getNotesForPerson(personId: string): Note[] {
+  return getNotes().filter((note) => note.personId === personId);
 }
 
 export function addNote(note: Omit<Note, "id" | "createdAt" | "updatedAt">): Note {

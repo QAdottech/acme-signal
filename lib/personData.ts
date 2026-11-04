@@ -241,3 +241,19 @@ export function savePeople(people: Person[]): void {
   if (typeof window === "undefined") return;
   localStorage.setItem("people", JSON.stringify(people));
 }
+
+export function getPerson(id: string): Person | undefined {
+  return getPeople().find((person) => person.id === id);
+}
+
+/** Merge changes into one person and save. Returns the updated record. */
+export function updatePerson(id: string, changes: Partial<Person>): Person | undefined {
+  let updated: Person | undefined;
+  const people = getPeople().map((person) => {
+    if (person.id !== id) return person;
+    updated = { ...person, ...changes, id };
+    return updated;
+  });
+  savePeople(people);
+  return updated;
+}

@@ -31,6 +31,7 @@ import {
   CommandItem,
 } from "@/components/ui/command";
 import { OWNERS } from "@/lib/team";
+import { DEAL_TAGS } from "@/lib/tags";
 
 interface AddDealModalProps {
   isOpen: boolean;
@@ -49,18 +50,7 @@ const dealStages: DealStage[] = [
 
 const owners = OWNERS;
 
-const AVAILABLE_TAGS = [
-  "Pre POC",
-  "POC",
-  "POC Complete",
-  "Enterprise",
-  "Startup",
-  "Expansion",
-  "Renewal",
-  "At Risk",
-  "Champion Identified",
-  "Technical Eval",
-];
+const AVAILABLE_TAGS = DEAL_TAGS;
 
 export function AddDealModal({
   isOpen,

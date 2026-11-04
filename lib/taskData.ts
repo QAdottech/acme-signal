@@ -209,3 +209,12 @@ export function getOverdueTasks(): Task[] {
     (t) => t.status !== "done" && t.dueDate && t.dueDate < today
   );
 }
+
+/** Complete an open task, or reopen a completed one. */
+export function toggleTaskDone(task: Task): Task | undefined {
+  const done = task.status !== "done";
+  return updateTask(task.id, {
+    status: done ? "done" : "todo",
+    completedAt: done ? new Date().toISOString() : undefined,
+  });
+}

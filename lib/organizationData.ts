@@ -457,3 +457,53 @@ export function deduplicateCollectionOrganizationIds(): void {
   }));
   saveCollections(updatedCollections);
 }
+
+export function getOrganization(id: string): Organization | undefined {
+  return getOrganizations().find((org) => org.id === id);
+}
+
+/** Merge changes into one company and save. Returns the updated record. */
+export function updateOrganization(
+  id: string,
+  changes: Partial<Organization>
+): Organization | undefined {
+  let updated: Organization | undefined;
+  const organizations = getOrganizations().map((org) => {
+    if (org.id !== id) return org;
+    updated = { ...org, ...changes, id };
+    return updated;
+  });
+  saveOrganizations(organizations);
+  return updated;
+}
+
+/** Delete a company and remove it from every list. */
+export function deleteOrganization(id: string): void {
+  saveOrganizations(getOrganizations().filter((org) => org.id !== id));
+  saveCollections(
+    getCollections().map((collection) => ({
+      ...collection,
+      organizationIds: collection.organizationIds.filter((orgId) => orgId !== id),
+    }))
+  );
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("collections-updated"));
+}
+
+/**
+ * Set which lists a company belongs to. Lists are stored on both sides
+ * (company.collections and list.organizationIds), so both are updated.
+ */
+export function setOrganizationLists(id: string, listIds: string[]): Organization | undefined {
+  saveCollections(
+    getCollections().map((collection) => {
+      const others = collection.organizationIds.filter((orgId) => orgId !== id);
+      return {
+        ...collection,
+        organizationIds: listIds.includes(collection.id) ? [...others, id] : others,
+      };
+    })
+  );
+  const updated = updateOrganization(id, { collections: listIds });
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("collections-updated"));
+  return updated;
+}

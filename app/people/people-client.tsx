@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   Activity,
@@ -17,7 +18,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddPersonModal } from "@/components/add-person-modal";
-import { EditPersonModal } from "@/components/edit-person-modal";
 import {
   RecordTable,
   useRecordTableState,
@@ -39,6 +39,7 @@ import {
   type FilterValues,
 } from "@/components/record-table/toolbar";
 import { RecordListLayout } from "@/components/record-table/layout";
+import { PersonPeek } from "@/components/records/peeks";
 import { SelectionBar } from "@/components/record-table/selection-bar";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { getPeople, savePeople } from "@/lib/personData";
@@ -59,7 +60,7 @@ export function PeopleClient() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [filters, setFilters] = useState<FilterValues>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingPerson, setEditingPerson] = useState<Person | null>(null);
+  const [peekId, setPeekId] = useState<string | null>(null);
   useCreateIntent("person", () => setIsModalOpen(true));
   const { sort, setSort, selectedIds, setSelectedIds } = useRecordTableState({
     columnId: "name",
@@ -69,15 +70,6 @@ export function PeopleClient() {
   useEffect(() => {
     setPeople(getPeople());
     setOrganizations(getOrganizations());
-  }, []);
-
-  // Pre-fill search from ?q= (used by the ⌘K menu to jump to a person).
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("q");
-    if (q) setSearchTerm(q);
-    const onSearch = (event: Event) => setSearchTerm((event as CustomEvent<string>).detail);
-    window.addEventListener("acme:people-search", onSearch);
-    return () => window.removeEventListener("acme:people-search", onSearch);
   }, []);
 
   /** People store their company as a name; match it to a company record. */
@@ -126,14 +118,14 @@ export function PeopleClient() {
       width: 190,
       sortValue: (p) => p.name.toLowerCase(),
       cell: (p) => (
-        <span className="flex min-w-0 items-center gap-2">
+        <Link href={`/people/${p.id}`} className="flex min-w-0 items-center gap-2 underline-offset-2 hover:underline">
           {p.avatar ? (
             <Image src={p.avatar} alt="" width={20} height={20} className="h-5 w-5 shrink-0 rounded-full" />
           ) : (
             <Avatar name={p.name} />
           )}
           <span className="truncate font-medium">{p.name}</span>
-        </span>
+        </Link>
       ),
       footer: (rows) => `${rows.length} ${rows.length === 1 ? "person" : "people"}`,
     },
@@ -250,12 +242,6 @@ export function PeopleClient() {
     toast.success(`Added ${newPerson.name}`);
   };
 
-  const updatePerson = (updatedPerson: Person) => {
-    persist(people.map((p) => (p.id === updatedPerson.id ? updatedPerson : p)));
-    setEditingPerson(null);
-    toast.success(`Saved ${updatedPerson.name}`);
-  };
-
   const handleBulkStatus = (status: Person["status"]) => {
     const count = selectedIds.size;
     persist(people.map((p) => (selectedIds.has(p.id) ? { ...p, status } : p)));
@@ -317,7 +303,7 @@ export function PeopleClient() {
         onSortChange={setSort}
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
-        onRowClick={setEditingPerson}
+        onRowClick={(p) => setPeekId(p.id)}
         emptyState={
           isFiltered
             ? "No people found matching your criteria."
@@ -340,11 +326,10 @@ export function PeopleClient() {
       />
 
       <AddPersonModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onAdd={addPerson} />
-      <EditPersonModal
-        isOpen={editingPerson !== null}
-        person={editingPerson}
-        onClose={() => setEditingPerson(null)}
-        onSave={updatePerson}
+      <PersonPeek
+        personId={peekId}
+        onClose={() => setPeekId(null)}
+        onChanged={(updated) => setPeople((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))}
       />
     </RecordListLayout>
   );

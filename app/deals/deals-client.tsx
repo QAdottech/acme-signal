@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Building2,
@@ -40,6 +39,7 @@ import {
   type FilterValues,
 } from "@/components/record-table/toolbar";
 import { RecordListLayout } from "@/components/record-table/layout";
+import { DealPeek } from "@/components/records/peeks";
 import { SelectionBar } from "@/components/record-table/selection-bar";
 import { addDeal, formatDealValue, getDeals, saveDeals, withStage } from "@/lib/dealData";
 import { getOrganizations } from "@/lib/organizationData";
@@ -53,8 +53,8 @@ import type { DealStage, Organization } from "@/types/organization";
 const STAGES = Object.keys(STAGE_STYLES) as DealStage[];
 
 export function DealsClient() {
-  const router = useRouter();
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [peekId, setPeekId] = useState<string | null>(null);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -288,7 +288,7 @@ export function DealsClient() {
         onSortChange={setSort}
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
-        onRowClick={(d) => router.push(`/deals/${d.id}`)}
+        onRowClick={(d) => setPeekId(d.id)}
         emptyState={
           isFiltered
             ? "No deals found matching your criteria."
@@ -308,6 +308,12 @@ export function DealsClient() {
         onExport={() => exportDealsToCSV(selectedDeals, orgName)}
         onDelete={handleBulkDelete}
         onClear={() => setSelectedIds(new Set())}
+      />
+
+      <DealPeek
+        dealId={peekId}
+        onClose={() => setPeekId(null)}
+        onChanged={(updated) => setDeals((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))}
       />
 
       <AddDealModal

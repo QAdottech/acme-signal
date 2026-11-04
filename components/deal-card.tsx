@@ -9,24 +9,12 @@ import { formatDealValue } from "@/lib/dealData";
 import { getPeople } from "@/lib/personData";
 import { useMemo } from "react";
 import { formatDate } from "@/lib/format";
+import { tagStyle } from "@/lib/tags";
 
 interface DealCardProps {
   deal: Deal;
   organization?: Organization;
 }
-
-const TAG_COLORS: Record<string, string> = {
-  "Pre POC": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  POC: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  "POC Complete": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-  Enterprise: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  Startup: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300",
-  Expansion: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
-  Renewal: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300",
-  "At Risk": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  "Champion Identified": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  "Technical Eval": "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300",
-};
 
 const AVATAR_COLORS = [
   "bg-orange-500",
@@ -141,7 +129,7 @@ export function DealCard({ deal, organization }: DealCardProps) {
                 <span
                   key={tag}
                   className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium leading-tight ${
-                    TAG_COLORS[tag] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    tagStyle(tag)
                   }`}
                 >
                   {tag}

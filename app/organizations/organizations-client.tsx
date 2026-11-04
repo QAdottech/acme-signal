@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Building2,
@@ -31,6 +30,7 @@ import {
   type FilterValues,
 } from "@/components/record-table/toolbar";
 import { RecordListLayout } from "@/components/record-table/layout";
+import { CompanyPeek } from "@/components/records/peeks";
 import { SelectionBar } from "@/components/record-table/selection-bar";
 import { getOrganizations, saveOrganizations } from "@/lib/organizationData";
 import { exportOrganizationsToCSV } from "@/lib/exportUtils";
@@ -41,8 +41,8 @@ import type { DealStage, Organization } from "@/types/organization";
 const STAGES = Object.keys(STAGE_STYLES) as DealStage[];
 
 export function OrganizationsClient() {
-  const router = useRouter();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [peekId, setPeekId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   useCreateIntent("company", () => setIsModalOpen(true));
@@ -224,7 +224,7 @@ export function OrganizationsClient() {
         onSortChange={setSort}
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
-        onRowClick={(o) => router.push(`/organizations/${o.id}`)}
+        onRowClick={(o) => setPeekId(o.id)}
         emptyState={
           isFiltered
             ? "No companies found matching your criteria."
@@ -246,6 +246,14 @@ export function OrganizationsClient() {
         }
         onDelete={handleBulkDelete}
         onClear={() => setSelectedIds(new Set())}
+      />
+
+      <CompanyPeek
+        companyId={peekId}
+        onClose={() => setPeekId(null)}
+        onChanged={(updated) =>
+          setOrganizations((prev) => prev.map((o) => (o.id === updated.id ? updated : o)))
+        }
       />
 
       <AddOrganizationModal

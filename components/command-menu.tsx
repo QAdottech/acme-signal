@@ -280,18 +280,7 @@ export function CommandMenu() {
                     <MenuItem
                       key={`person-${person.id}`}
                       value={`person ${person.name} ${person.email} ${person.organization}`}
-                      onSelect={() =>
-                        run(() => {
-                          // No person page yet: open People filtered to them.
-                          if (pathname === "/people") {
-                            window.dispatchEvent(
-                              new CustomEvent("acme:people-search", { detail: person.name })
-                            );
-                          } else {
-                            router.push(`/people?q=${encodeURIComponent(person.name)}`);
-                          }
-                        })
-                      }
+                      onSelect={() => run(() => router.push(`/people/${person.id}`))}
                     >
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-semibold text-muted-foreground">
                         {initials(person.name)}
