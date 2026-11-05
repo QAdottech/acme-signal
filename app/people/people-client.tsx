@@ -122,7 +122,7 @@ export function PeopleClient() {
       width: 190,
       sortValue: (p) => p.name.toLowerCase(),
       cell: (p) => (
-        <Link href={`/people/${p.id}`} className="flex min-w-0 items-center gap-2 underline-offset-2 hover:underline">
+        <Link prefetch={false} href={`/people/${p.id}`} className="flex min-w-0 items-center gap-2 underline-offset-2 hover:underline">
           {p.avatar ? (
             <Image src={p.avatar} alt="" width={20} height={20} className="h-5 w-5 shrink-0 rounded-full" />
           ) : (

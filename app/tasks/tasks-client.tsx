@@ -294,6 +294,7 @@ export function TasksClient() {
         related={peekTask ? resolveRelated(peekTask, lookups) : null}
         onClose={() => setPeekId(null)}
         onChange={(changes, message) => peekTask && change(peekTask.id, changes, message)}
+        onToggleDone={() => peekTask && toggleDone(peekTask)}
         onDelete={async () => {
           if (!peekTask) return;
           const ok = await confirm({ title: `Delete “${peekTask.title}”?`, confirmLabel: "Delete task" });

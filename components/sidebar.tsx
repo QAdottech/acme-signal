@@ -240,6 +240,8 @@ export function Sidebar() {
           {collections.map((collection) => (
             <Link
               key={collection.id}
+              // Lists can grow; prefetch on hover only (see cells.tsx).
+              prefetch={false}
               href={`/collections/${collection.id}`}
               className={navItemClass(isActive(`/collections/${collection.id}`))}
             >

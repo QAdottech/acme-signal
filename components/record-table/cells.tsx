@@ -148,6 +148,11 @@ export function PersonChip({ name }: { name: string }) {
   );
 }
 
+/*
+ * Links inside tables and record lists use prefetch={false}: Next.js would
+ * otherwise prefetch every visible row's page and abort those requests on
+ * navigation. Links still prefetch on hover.
+ */
 export function CompanyChip({
   name,
   logo,
@@ -173,7 +178,7 @@ export function CompanyChip({
   );
   if (!href) return <span className="flex min-w-0 items-center gap-2">{content}</span>;
   return (
-    <Link
+    <Link prefetch={false}
       href={href}
       className="flex min-w-0 items-center gap-2 underline-offset-2 hover:underline"
     >
@@ -192,7 +197,7 @@ export function PrimaryCell({
 }) {
   if (!href) return <span className="block truncate font-medium">{children}</span>;
   return (
-    <Link
+    <Link prefetch={false}
       href={href}
       className="block truncate font-medium underline-offset-2 hover:underline"
     >

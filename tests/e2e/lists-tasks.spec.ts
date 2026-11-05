@@ -82,3 +82,30 @@ test("TASKS-03: tasks edit inline and in a preview, and completing one can be un
   await expect(row).toContainText("Urgent");
   await expect(row).toContainText("Sarah Johnson");
 });
+
+test("TASKS-04: completing from the task preview can be undone, and Undo works while the preview is open", async ({ signedInPage: page }) => {
+  await page.getByRole("link", { name: "Tasks", exact: true }).click();
+  const title = "Schedule technical demo for Cursor";
+  const row = page.getByRole("row").filter({ hasText: title });
+  const stored = () =>
+    page.evaluate((t) => JSON.parse(localStorage.getItem("tasks") ?? "[]").find((task: { title: string }) => task.title === t)?.status, title);
+
+  // Complete from inside the preview: the toast offers Undo, and Undo works
+  // even though the preview (a modal) is still open.
+  await row.getByRole("cell").first().click({ position: { x: 4, y: 4 } });
+  const preview = page.getByRole("dialog", { name: title });
+  await preview.getByRole("checkbox", { name: `Complete ${title}` }).click();
+  await expect(preview.getByRole("checkbox")).toBeChecked();
+  expect(await stored()).toBe("done");
+
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(preview.getByRole("checkbox")).not.toBeChecked();
+  expect(await stored()).toBe("todo");
+  // Clicking the toast must not have closed the preview.
+  await expect(preview).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(row.getByRole("checkbox")).not.toBeChecked();
+  await page.reload();
+  await expect(row.getByRole("checkbox")).not.toBeChecked();
+});

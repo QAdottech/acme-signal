@@ -138,7 +138,7 @@ export function RelatedChip({ related }: { related: RelatedRecord | null }) {
   if (!related) return <span className="text-muted-foreground/60">—</span>;
   const Icon = RELATED_ICONS[related.type];
   return (
-    <Link
+    <Link prefetch={false}
       href={related.href}
       title={`${related.type}: ${related.label}`}
       className="inline-flex max-w-full items-center gap-1.5 rounded-md border bg-background px-1.5 py-0.5 text-[13px] hover:bg-accent"

@@ -171,7 +171,7 @@ export function NotesClient() {
                     )}
                     <div className="min-w-0">
                       {org ? (
-                        <Link
+                        <Link prefetch={false}
                           href={`/organizations/${org.id}`}
                           className="text-sm font-medium text-gray-900 dark:text-white hover:underline underline-offset-2 transition-colors"
                         >

@@ -34,6 +34,11 @@ export function RecordPeek({
         <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/10 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
           aria-describedby={undefined}
+          // Toasts (e.g. "Undo") live outside the preview. Clicking one must
+          // act on the toast, not count as a click outside that closes this.
+          onInteractOutside={(event) => {
+            if ((event.target as HTMLElement | null)?.closest?.("[data-sonner-toaster]")) event.preventDefault();
+          }}
           className="fixed inset-y-0 right-0 z-50 flex w-[440px] max-w-full flex-col border-l bg-background shadow-2xl outline-none duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
         >
           <div className="flex h-12 shrink-0 items-center justify-end gap-1 border-b px-3">

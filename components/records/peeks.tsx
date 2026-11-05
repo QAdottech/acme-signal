@@ -238,12 +238,15 @@ export function TaskPeek({
   related,
   onClose,
   onChange,
+  onToggleDone,
   onDelete,
 }: {
   task: Task | null;
   related: RelatedRecord | null;
   onClose: () => void;
   onChange: (changes: Partial<Task>, message: string) => void;
+  /** Complete or reopen, with the same Undo toast as the table's circle. */
+  onToggleDone: () => void;
   onDelete: () => void;
 }) {
   if (!task) return null;
@@ -254,17 +257,7 @@ export function TaskPeek({
       title={task.title}
       avatar={
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-          <CompleteToggle
-            task={task}
-            onToggle={() =>
-              onChange(
-                task.status === "done"
-                  ? { status: "todo", completedAt: undefined }
-                  : { status: "done", completedAt: new Date().toISOString() },
-                task.status === "done" ? "Task reopened" : "Task completed"
-              )
-            }
-          />
+          <CompleteToggle task={task} onToggle={onToggleDone} />
         </span>
       }
       subtitle={

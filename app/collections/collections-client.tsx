@@ -90,7 +90,7 @@ export function CollectionsClient() {
       width: 280,
       sortValue: (l) => l.name.toLowerCase(),
       cell: (l) => (
-        <Link
+        <Link prefetch={false}
           href={`/collections/${l.id}`}
           className="flex min-w-0 items-center gap-2 font-medium underline-offset-2 hover:underline"
         >
