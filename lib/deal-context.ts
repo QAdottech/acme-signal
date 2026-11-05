@@ -1,5 +1,6 @@
 import { getEmails } from "@/lib/emailData";
 import { getActivities } from "@/lib/activityData";
+import { getNotesForOrganization, type Note } from "@/lib/notesData";
 import type { Deal } from "@/types/deal";
 import type { EmailRecord } from "@/types/email";
 import type { Activity } from "@/types/activity";
@@ -20,4 +21,12 @@ export function getDealContext(deal: Deal): { emails: EmailRecord[]; activities:
       (activity) => activity.relatedEntityType === "organization" && activity.relatedEntityId === deal.organizationId
     ),
   };
+}
+
+/**
+ * Notes shown on a deal: the company's general notes plus this deal's own,
+ * but not notes written about the company's other deals.
+ */
+export function getDealNotes(deal: Deal): Note[] {
+  return getNotesForOrganization(deal.organizationId).filter((note) => !note.dealId || note.dealId === deal.id);
 }

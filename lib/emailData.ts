@@ -103,7 +103,7 @@ const defaultEmails: EmailRecord[] = [
     type: "outreach",
     sentAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
     relatedPersonId: "13",
-    relatedOrganizationId: "13",
+    relatedOrganizationId: "14",
   },
   {
     id: "em10",

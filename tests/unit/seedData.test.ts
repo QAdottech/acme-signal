@@ -92,4 +92,35 @@ describe("seed data integrity", () => {
       }
     }
   });
+
+  it("emails and activity are filed under the company they are about", () => {
+    const problems: string[] = [];
+    for (const email of getEmails()) {
+      if (!email.relatedOrganizationId) continue;
+      const org = orgs.find((o) => o.id === email.relatedOrganizationId);
+      if (!org) {
+        problems.push(`email ${email.id}: unknown company ${email.relatedOrganizationId}`);
+        continue;
+      }
+      const person = email.relatedPersonId ? personById.get(email.relatedPersonId) : undefined;
+      if (email.relatedPersonId && person?.organization !== org.name) {
+        problems.push(`email ${email.id}: contact ${person?.name} is not at ${org.name}`);
+      }
+      // A subject naming another company means it was filed under the wrong one.
+      const named = orgs.find((o) => o.id !== org.id && email.subject.includes(o.name));
+      if (named) problems.push(`email ${email.id} "${email.subject}" is filed under ${org.name}`);
+    }
+    for (const activity of getActivities()) {
+      if (activity.relatedEntityType !== "organization" || !activity.relatedEntityId) continue;
+      const name = orgName(activity.relatedEntityId);
+      if (!name) {
+        problems.push(`activity ${activity.id}: unknown company ${activity.relatedEntityId}`);
+        continue;
+      }
+      const text = `${activity.title} ${activity.description}`;
+      const named = orgs.find((o) => o.id !== activity.relatedEntityId && text.includes(o.name) && !text.includes(name));
+      if (named) problems.push(`activity ${activity.id} "${activity.description}" is filed under ${name}`);
+    }
+    expect(problems).toEqual([]);
+  });
 });

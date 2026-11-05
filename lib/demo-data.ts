@@ -52,7 +52,7 @@ export const SEEDED_STORAGE_KEYS = [
  * Bump when the seed data changes shape or content, so browsers that cached
  * an older copy pick up the new one on their next visit.
  */
-export const SEED_VERSION = "3";
+export const SEED_VERSION = "4";
 const SEED_VERSION_KEY = "acme-seed-version";
 
 /** Clear cached CRM records so every getter re-seeds from defaults. */

@@ -34,10 +34,10 @@ import { useAuth } from "@/lib/auth-context";
 import { deleteDeal, formatDealValue, getDeal, saveDeal } from "@/lib/dealData";
 import { getOrganization } from "@/lib/organizationData";
 import { getPeople } from "@/lib/personData";
-import { addNote, deleteNote, getNotesForOrganization, type Note } from "@/lib/notesData";
+import { addNote, deleteNote, type Note } from "@/lib/notesData";
 import { getTasksForDeal, toggleTaskDone } from "@/lib/taskData";
 import { buildTimeline } from "@/lib/timeline";
-import { getDealContext } from "@/lib/deal-context";
+import { getDealContext, getDealNotes } from "@/lib/deal-context";
 import { formatDate } from "@/lib/format";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
@@ -62,8 +62,8 @@ export function DealDetailClient({ params }: { params: { id: string } }) {
     if (!found) return;
     const org = getOrganization(found.organizationId);
     setOrganization(org);
-    // Deal notes live on the company, so the deal shows the company's notes.
-    setNotes(org ? getNotesForOrganization(org.id) : []);
+    // Deal notes live on the company; show its general notes and this deal's.
+    setNotes(getDealNotes(found));
     setTasks(getTasksForDeal(found.id));
     const people = getPeople();
     setContacts(
