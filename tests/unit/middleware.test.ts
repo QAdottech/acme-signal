@@ -12,6 +12,13 @@ describe("page authentication middleware", () => {
     expect(response.headers.get("location")).toBe(`${origin}/login?from=%2Fdeals%2Fdeal-a`);
   });
 
+  it("keeps the query string in the return path, so demo links survive login", () => {
+    const response = middleware(new NextRequest(`${origin}/deals?resetDemo=1&demoBugs=all`));
+    const location = new URL(response.headers.get("location")!);
+    expect(location.pathname).toBe("/login");
+    expect(location.searchParams.get("from")).toBe("/deals?resetDemo=1&demoBugs=all");
+  });
+
   it.each(["/login", "/customer/sign", "/network-test", "/turnstile-test", "/bot-test/docs", "/robots.txt"])(
     "allows anonymous access to %s", (path) => {
       const response = middleware(new NextRequest(`${origin}${path}`));

@@ -23,7 +23,7 @@ pnpm test:typecheck      # test files, configs, and their imported TS dependenci
 pnpm test:e2e            # build, start server, run Chromium, stop server
 pnpm test:e2e:ui         # interactive Playwright runner
 pnpm test:e2e:report     # open the last HTML report
-pnpm test:all            # test typecheck + unit coverage + browser journeys
+pnpm test:all            # lint + test typecheck + unit coverage + browser journeys
 pnpm test:visual         # screenshot comparisons (tests/visual), opt-in and not run in CI
 pnpm test:visual:update  # re-record baselines after an intentional design change
 ```
@@ -84,6 +84,9 @@ Unless marked public, start in a fresh browser and log in with the seeded demo a
 | RECORDS-04 | Opening `/deals/does-not-exist` shows a "This deal doesn't exist" state with a link back to Deals. |
 | DEMO-01 | Values are exact by default (Biotech Research License shows $45K). `/deals?demoBugs=value-rounding` makes it $40K; Settings shows that switch on (1 of 8) and turning it off restores $45K. |
 | DEMO-02 | Delete Startup Plan, then Settings → Reset demo data → Reset data. The app reloads on the pipeline with a "Demo data reset" toast and Startup Plan is back. |
+| DEMO-03 | After deleting Startup Plan and logging out, open `/deals?resetDemo=1&demoBugs=value-rounding`, log in, and land on Deals with Startup Plan restored and Biotech Research License at $40K. Delete it again and reload: it stays deleted (no second reset). |
+| LISTS-01 | The Lists page has no link nested inside another link; a list card's title opens the list. |
+| AUTH-03 | Logging in from `/login?from=//example.com` or `?from=https://example.com/phish` lands on the Sales Pipeline, never off-site. |
 | INBOX-01 | `/notifications` and `/emails` land in the Inbox. Opening "Proposal: Enterprise License" shows it with a link to Dario Amodei. Opening an unread notification reduces the unread count by one; Mark all as read empties Unread. |
 | REPORTS-01 | Create a named custom report from Pipeline by Stage. Reload; its three widgets and active-deal summary render. Delete it, reload; it is absent while Pipeline Overview remains. |
 | TASKS-01 | At a fixed date of 2026-06-01 UTC, create a task due 2026-05-31. It appears under Overdue. Complete it; it disappears from Overdue and remains checked/Done after reload. |

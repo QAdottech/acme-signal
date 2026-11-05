@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { test, expect, account, logOut, signIn } from "./fixtures";
 
 test("DEMO-01: demo bugs switch on from a link and off from Settings", async ({ signedInPage: page }) => {
   // Off by default: values are exact.
@@ -68,4 +68,45 @@ test("INBOX-01: notifications and sent emails share one inbox", async ({ signedI
   await expect(unread).toHaveCount(before - 1);
   await page.getByRole("button", { name: "Mark all as read" }).click();
   await expect(page.getByText("No unread notifications.")).toBeVisible();
+});
+
+test("DEMO-03: one demo link resets data and sets bugs, even when it has to go through login", async ({ page }) => {
+  // Make a change that a reset should undo.
+  await signIn(page);
+  await page.goto("/deals");
+  const row = page.getByRole("row").filter({ hasText: "Startup Plan" });
+  await row.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete deal" }).click();
+  await expect(row).toHaveCount(0);
+  await logOut(page);
+
+  // The agent's start URL: logged out, so it goes through login first.
+  await page.goto("/deals?resetDemo=1&demoBugs=value-rounding");
+  await expect(page).toHaveURL(/\/login\?from=/);
+  await page.getByLabel("Email", { exact: true }).fill(account.email);
+  await page.getByLabel("Password", { exact: true }).fill(account.password);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+
+  await expect(page).toHaveURL(/\/deals(\?reset=1)?$/);
+  await expect(row).toHaveCount(1);
+  await expect(page.getByRole("row").filter({ hasText: "Biotech Research License" })).toContainText("$40K");
+
+  // Reloading must not reset again: a new edit survives.
+  await row.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete deal" }).click();
+  await expect(row).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("row").filter({ hasText: "Payment Platform Pilot" })).toHaveCount(1);
+  await expect(row).toHaveCount(0);
+});
+
+test("LISTS-01: list cards are single links with separate company links inside", async ({ signedInPage: page }) => {
+  await page.goto("/collections");
+  await expect(page.getByRole("heading", { name: "Lists", exact: true })).toBeVisible();
+  // Links nested in links are invalid HTML and break hydration.
+  await expect(page.locator("a a")).toHaveCount(0);
+  await page.getByRole("link", { name: "Stockholm Startups", exact: true }).first().click();
+  await expect(page).toHaveURL(/\/collections\/\w+$/);
 });

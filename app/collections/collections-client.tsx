@@ -97,14 +97,24 @@ export function CollectionsClient() {
             );
             const geoCount = geos.size;
             return (
-              <Link key={collection.id} href={`/collections/${collection.id}`}>
-                <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-0 cursor-pointer">
+              // The card is not itself a link: the title link stretches over it
+              // (after:inset-0), and inner links/buttons sit above it with z-10.
+              // Nesting <a> inside <a> is invalid HTML and breaks hydration.
+              <Card
+                key={collection.id}
+                className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-0 cursor-pointer"
+              >
                   {/* Purple header */}
                   <div className="relative bg-[#2D1A45] p-6 pb-8 h-48">
                     <div className="relative flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-xl font-bold mb-2 text-white">
-                          {collection.name}
+                          <Link
+                            href={`/collections/${collection.id}`}
+                            className="after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-white/60"
+                          >
+                            {collection.name}
+                          </Link>
                         </CardTitle>
                         <p className="text-sm text-white/80 leading-relaxed line-clamp-2">
                           {collection.description}
@@ -118,7 +128,8 @@ export function CollectionsClient() {
                           e.stopPropagation();
                           openEditModal(collection);
                         }}
-                        className="shrink-0 text-white hover:bg-white/20 transition-all"
+                        aria-label={`Edit ${collection.name}`}
+                        className="relative z-10 shrink-0 text-white hover:bg-white/20 transition-all"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -168,7 +179,7 @@ export function CollectionsClient() {
                         collection.organizationIds.map((orgId) => {
                           const org = organizations.find((o) => o.id === orgId);
                           return org ? (
-                            <div key={orgId} className="group/logo relative">
+                            <div key={orgId} className="group/logo relative z-10">
                               <Link
                                 href={`/organizations/${orgId}`}
                                 onClick={(e) => {
@@ -191,8 +202,7 @@ export function CollectionsClient() {
                         })}
                     </div>
                   </CardContent>
-                </Card>
-              </Link>
+              </Card>
             );
           })}
         </div>

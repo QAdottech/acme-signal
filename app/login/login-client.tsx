@@ -30,9 +30,11 @@ export function LoginForm() {
 
     const success = login(email, password);
     if (success) {
-      // Redirect to the page they were trying to access, or home
-      const from = searchParams.get("from") || "/";
-      router.push(from);
+      // Redirect to the page they were trying to access, or home.
+      // Only same-site paths: "//evil.com" or "https://…" would be an open redirect.
+      const from = searchParams.get("from") ?? "";
+      const safeFrom = from.startsWith("/") && !from.startsWith("//") ? from : "/";
+      router.push(safeFrom);
     } else {
       setError("Invalid email or password");
     }

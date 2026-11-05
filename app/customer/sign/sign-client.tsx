@@ -69,6 +69,8 @@ function SignPageHeader() {
             ACME CRM
           </span>
         ) : (
+          // Plain <img> so onError can fall back to the text wordmark.
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={LOGO_PATH}
             alt="ACME CRM"
