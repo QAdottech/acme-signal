@@ -1,236 +1,232 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collection, Organization } from "@/types/organization";
-import {
-  getCollections,
-  getOrganizations,
-  saveCollections,
-  deduplicateCollectionOrganizationIds,
-} from "@/lib/organizationData";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { AlignLeft, Building2, DollarSign, List, MapPin, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit } from "lucide-react";
-import { AddCollectionModal } from "@/components/add-collection-modal";
-import { EditCollectionModal } from "@/components/edit-collection-modal";
-import { PageHeader } from "@/components/page-header";
+import { RecordListLayout } from "@/components/record-table/layout";
+import {
+  RecordTable,
+  useRecordTableState,
+  type Column,
+} from "@/components/record-table/record-table";
+import { Empty } from "@/components/record-table/cells";
+import { SearchField } from "@/components/record-table/toolbar";
+import { SelectionBar } from "@/components/record-table/selection-bar";
+import { ListDialog } from "@/components/list-dialog";
+import { useConfirm } from "@/components/confirm-dialog";
+import { createList, deleteList, getCollections, getOrganizations } from "@/lib/organizationData";
+import { formatDealValue, getDeals } from "@/lib/dealData";
+import { exportToCSV } from "@/lib/exportUtils";
+import { listSwatch } from "@/lib/lists";
 import { useCreateIntent } from "@/lib/create-intent";
+import type { Collection, Organization } from "@/types/organization";
+import type { Deal } from "@/types/deal";
+import { cn } from "@/lib/utils";
 
+const CLOSED_STAGES = new Set(["Customer", "Closed Lost", "Churned"]);
+
+type ListRow = Collection & {
+  companies: Organization[];
+  openPipeline: number;
+  locations: number;
+};
+
+/** All lists as a table; each list opens as a filtered company table. */
 export function CollectionsClient() {
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const router = useRouter();
+  const confirm = useConfirm();
+  const [lists, setLists] = useState<Collection[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  useCreateIntent("list", () => setIsAddModalOpen(true));
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingCollection, setEditingCollection] = useState<Collection | null>(
-    null
-  );
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  useCreateIntent("list", () => setIsCreateOpen(true));
+  const { sort, setSort, selectedIds, setSelectedIds } = useRecordTableState({
+    columnId: "name",
+    direction: "asc",
+  });
 
-  useEffect(() => {
-    // Clean up any existing duplicates
-    deduplicateCollectionOrganizationIds();
-    setCollections(getCollections() || []);
-    setOrganizations(getOrganizations() || []);
+  const refresh = useCallback(() => {
+    setLists(getCollections());
+    setOrganizations(getOrganizations());
   }, []);
 
-  const handleAddCollection = (
-    newCollection: Omit<Collection, "id" | "organizationIds">
-  ) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    const collectionWithId = { ...newCollection, id, organizationIds: [] };
-    const updatedCollections = [...collections, collectionWithId];
-    setCollections(updatedCollections);
-    saveCollections(updatedCollections);
-    setIsAddModalOpen(false);
-    window.dispatchEvent(new Event("collections-updated"));
-  };
+  useEffect(() => {
+    refresh();
+    setDeals(getDeals());
+    window.addEventListener("collections-updated", refresh);
+    return () => window.removeEventListener("collections-updated", refresh);
+  }, [refresh]);
 
-  const handleEditCollection = (editedCollection: Collection) => {
-    const updatedCollections = collections.map((collection) =>
-      collection.id === editedCollection.id ? editedCollection : collection
-    );
-    setCollections(updatedCollections);
-    saveCollections(updatedCollections);
-    setIsEditModalOpen(false);
-    setEditingCollection(null);
-    window.dispatchEvent(new Event("collections-updated"));
-  };
+  const rows = useMemo<ListRow[]>(() => {
+    const orgById = new Map(organizations.map((org) => [org.id, org]));
+    const term = searchTerm.trim().toLowerCase();
+    return lists
+      .filter((list) => !term || `${list.name} ${list.description}`.toLowerCase().includes(term))
+      .map((list) => {
+        const companies = list.organizationIds
+          .map((id) => orgById.get(id))
+          .filter((org): org is Organization => !!org);
+        const memberIds = new Set(companies.map((org) => org.id));
+        return {
+          ...list,
+          companies,
+          openPipeline: deals
+            .filter((deal) => memberIds.has(deal.organizationId) && !CLOSED_STAGES.has(deal.stage))
+            .reduce((sum, deal) => sum + deal.value, 0),
+          locations: new Set(companies.map((org) => org.location).filter(Boolean)).size,
+        };
+      });
+  }, [lists, organizations, deals, searchTerm]);
 
-  const handleDeleteCollection = (collectionId: string) => {
-    const updatedCollections = collections.filter(
-      (collection) => collection.id !== collectionId
-    );
-    setCollections(updatedCollections);
-    saveCollections(updatedCollections);
-    setIsEditModalOpen(false);
-    setEditingCollection(null);
-    window.dispatchEvent(new Event("collections-updated"));
-  };
+  const columns: Column<ListRow>[] = [
+    {
+      id: "name",
+      header: "List",
+      icon: List,
+      width: 280,
+      sortValue: (l) => l.name.toLowerCase(),
+      cell: (l) => (
+        <Link
+          href={`/collections/${l.id}`}
+          className="flex min-w-0 items-center gap-2 font-medium underline-offset-2 hover:underline"
+        >
+          <span className={cn("h-2.5 w-2.5 shrink-0 rounded-[3px]", listSwatch(l.id))} />
+          <span className="truncate">{l.name}</span>
+        </Link>
+      ),
+      footer: (r) => `${r.length} ${r.length === 1 ? "list" : "lists"}`,
+    },
+    {
+      id: "companies",
+      header: "Companies",
+      icon: Building2,
+      width: 220,
+      sortValue: (l) => l.companies.length,
+      firstSortDirection: "desc",
+      cell: (l) =>
+        l.companies.length === 0 ? (
+          <Empty />
+        ) : (
+          <span className="flex items-center gap-2">
+            <span className="tabular-nums">{l.companies.length}</span>
+            <span className="flex -space-x-1">
+              {l.companies.slice(0, 5).map((org) => (
+                <span
+                  key={org.id}
+                  title={org.name}
+                  className="flex h-5 w-5 items-center justify-center overflow-hidden rounded border bg-background"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={org.logo} alt="" className="h-full w-full object-cover" />
+                </span>
+              ))}
+            </span>
+            {l.companies.length > 5 && (
+              <span className="text-xs text-muted-foreground">+{l.companies.length - 5}</span>
+            )}
+          </span>
+        ),
+    },
+    {
+      id: "pipeline",
+      header: "Open pipeline",
+      icon: DollarSign,
+      width: 150,
+      align: "right",
+      firstSortDirection: "desc",
+      sortValue: (l) => l.openPipeline,
+      cell: (l) => (l.openPipeline ? <span className="font-medium">{formatDealValue(l.openPipeline)}</span> : <Empty />),
+    },
+    {
+      id: "locations",
+      header: "Locations",
+      icon: MapPin,
+      width: 120,
+      align: "right",
+      sortValue: (l) => l.locations,
+      cell: (l) => l.locations || <Empty />,
+    },
+    {
+      id: "description",
+      header: "Description",
+      icon: AlignLeft,
+      width: 360,
+      cell: (l) => <span className="block truncate text-muted-foreground">{l.description || "—"}</span>,
+    },
+  ];
 
-  const openEditModal = (collection: Collection) => {
-    setEditingCollection(collection);
-    setIsEditModalOpen(true);
+  const handleDelete = async () => {
+    const count = selectedIds.size;
+    const ok = await confirm({
+      title: `Delete ${count} ${count === 1 ? "list" : "lists"}?`,
+      description: "The companies in them are not deleted.",
+      confirmLabel: `Delete ${count === 1 ? "list" : "lists"}`,
+    });
+    if (!ok) return;
+    selectedIds.forEach((id) => deleteList(id));
+    setSelectedIds(new Set());
+    toast.success(`Deleted ${count} ${count === 1 ? "list" : "lists"}`);
   };
 
   return (
-      <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
-        <PageHeader
-          title="Lists"
-          description={`${collections.length} ${collections.length === 1 ? "list" : "lists"}`}
-          actions={
-            <Button onClick={() => setIsAddModalOpen(true)}>
-              <Plus />
-              New List
-            </Button>
-          }
-        />
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {collections.map((collection) => {
-            const orgCount = collection.organizationIds?.length || 0;
-            const tagCount = collection.tags?.length || 0;
-            const geos = new Set(
-              collection.organizationIds
-                ?.map((id) => organizations.find((o) => o.id === id)?.location)
-                .filter(Boolean)
-            );
-            const geoCount = geos.size;
-            return (
-              // The card is not itself a link: the title link stretches over it
-              // (after:inset-0), and inner links/buttons sit above it with z-10.
-              // Nesting <a> inside <a> is invalid HTML and breaks hydration.
-              <Card
-                key={collection.id}
-                className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-0 cursor-pointer"
-              >
-                  {/* Purple header */}
-                  <div className="relative bg-[#2D1A45] p-6 pb-8 h-48">
-                    <div className="relative flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-xl font-bold mb-2 text-white">
-                          <Link
-                            href={`/collections/${collection.id}`}
-                            className="after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-white/60"
-                          >
-                            {collection.name}
-                          </Link>
-                        </CardTitle>
-                        <p className="text-sm text-white/80 leading-relaxed line-clamp-2">
-                          {collection.description}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          openEditModal(collection);
-                        }}
-                        aria-label={`Edit ${collection.name}`}
-                        className="relative z-10 shrink-0 text-white hover:bg-white/20 transition-all"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
+    <RecordListLayout
+      title="Lists"
+      description={`${lists.length} ${lists.length === 1 ? "list" : "lists"} · groups of companies to work through together`}
+      actions={
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus />
+          New List
+        </Button>
+      }
+      toolbar={<SearchField value={searchTerm} onChange={setSearchTerm} placeholder="Search lists..." />}
+    >
+      <RecordTable
+        rows={rows}
+        columns={columns}
+        getRowId={(l) => l.id}
+        rowLabel={(l) => l.name}
+        sort={sort}
+        onSortChange={setSort}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+        onRowClick={(l) => router.push(`/collections/${l.id}`)}
+        emptyState={searchTerm ? "No lists match your search." : "No lists yet. Click 'New List' to group your companies."}
+      />
 
-                    {/* Stats bar */}
-                    <div className="relative mt-4 flex gap-3">
-                      <div className="flex items-center gap-2 text-white/90">
-                        <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                          <span className="text-sm font-bold">{orgCount}</span>
-                        </div>
-                        <span className="text-xs font-medium">companies</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-white/90">
-                        <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                          <span className="text-sm font-bold">{geoCount}</span>
-                        </div>
-                        <span className="text-xs font-medium">geos</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-white/90">
-                        <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                          <span className="text-sm font-bold">{tagCount}</span>
-                        </div>
-                        <span className="text-xs font-medium">tags</span>
-                      </div>
-                    </div>
-                  </div>
+      <SelectionBar
+        count={selectedIds.size}
+        nouns={["list", "lists"]}
+        onExport={() =>
+          exportToCSV(
+            rows
+              .filter((l) => selectedIds.has(l.id))
+              .map((l) => ({
+                name: l.name,
+                description: l.description,
+                companies: l.companies.map((org) => org.name),
+                openPipeline: l.openPipeline,
+              })),
+            `lists-${new Date().toISOString().split("T")[0]}.csv`
+          )
+        }
+        onDelete={handleDelete}
+        onClear={() => setSelectedIds(new Set())}
+      />
 
-                  <CardContent className="relative pt-6 pb-6 bg-white dark:bg-gray-950">
-                    {/* Tags */}
-                    {collection.tags && collection.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-4">
-                        {collection.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-700"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Organizations */}
-                    <div className="flex flex-wrap gap-2">
-                      {collection.organizationIds &&
-                        collection.organizationIds.map((orgId) => {
-                          const org = organizations.find((o) => o.id === orgId);
-                          return org ? (
-                            <div key={orgId} className="group/logo relative z-10">
-                              <Link
-                                href={`/organizations/${orgId}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                }}
-                                className="block w-10 h-10 relative rounded-full overflow-hidden transition-all duration-200 ease-in-out transform hover:scale-110 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-[#2D1A45] hover:shadow-lg"
-                              >
-                                <Image
-                                  src={org.logo || "/placeholder.svg"}
-                                  alt={`${org.name} logo`}
-                                  layout="fill"
-                                  objectFit="cover"
-                                />
-                              </Link>
-                              <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded opacity-0 group-hover/logo:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-50 shadow-lg">
-                                {org.name}
-                              </div>
-                            </div>
-                          ) : null;
-                        })}
-                    </div>
-                  </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-        {collections.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-gray-500 dark:text-gray-400">
-              No lists yet. Click &apos;New List&apos; to group your companies.
-            </p>
-          </div>
-        )}
-        <AddCollectionModal
-          isOpen={isAddModalOpen}
-          onClose={() => setIsAddModalOpen(false)}
-          onAdd={handleAddCollection}
-        />
-        {editingCollection && (
-          <EditCollectionModal
-            isOpen={isEditModalOpen}
-            onClose={() => {
-              setIsEditModalOpen(false);
-              setEditingCollection(null);
-            }}
-            onEdit={handleEditCollection}
-            onDelete={handleDeleteCollection}
-            collection={editingCollection}
-            organizations={organizations}
-          />
-        )}
-      </main>
+      <ListDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSave={(details) => {
+          const list = createList({ ...details, tags: [] });
+          setIsCreateOpen(false);
+          toast.success(`Created “${list.name}”`);
+          router.push(`/collections/${list.id}`);
+        }}
+      />
+    </RecordListLayout>
   );
 }

@@ -507,3 +507,80 @@ export function setOrganizationLists(id: string, listIds: string[]): Organizatio
   if (typeof window !== "undefined") window.dispatchEvent(new Event("collections-updated"));
   return updated;
 }
+
+function notifyListsChanged() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("collections-updated"));
+}
+
+export function getList(id: string): Collection | undefined {
+  return getCollections().find((list) => list.id === id);
+}
+
+export function createList(details: Pick<Collection, "name" | "description" | "tags">): Collection {
+  const list: Collection = {
+    ...details,
+    id: Math.random().toString(36).slice(2, 11),
+    organizationIds: [],
+  };
+  saveCollections([...getCollections(), list]);
+  notifyListsChanged();
+  return list;
+}
+
+/** Rename or re-describe a list. Membership is changed with add/removeCompanies. */
+export function updateListDetails(
+  id: string,
+  details: Partial<Pick<Collection, "name" | "description" | "tags">>
+): Collection | undefined {
+  let updated: Collection | undefined;
+  saveCollections(
+    getCollections().map((list) => {
+      if (list.id !== id) return list;
+      updated = { ...list, ...details };
+      return updated;
+    })
+  );
+  notifyListsChanged();
+  return updated;
+}
+
+/** Delete a list and drop it from every company that referenced it. */
+export function deleteList(id: string): void {
+  saveCollections(getCollections().filter((list) => list.id !== id));
+  saveOrganizations(
+    getOrganizations().map((org) =>
+      org.collections?.includes(id)
+        ? { ...org, collections: org.collections.filter((listId) => listId !== id) }
+        : org
+    )
+  );
+  notifyListsChanged();
+}
+
+/** Add or remove companies from a list, keeping both sides of the membership in sync. */
+function changeMembership(listId: string, orgIds: string[], add: boolean): void {
+  const ids = new Set(orgIds);
+  saveCollections(
+    getCollections().map((list) => {
+      if (list.id !== listId) return list;
+      const others = list.organizationIds.filter((orgId) => !ids.has(orgId));
+      return { ...list, organizationIds: add ? [...others, ...orgIds] : others };
+    })
+  );
+  saveOrganizations(
+    getOrganizations().map((org) => {
+      if (!ids.has(org.id)) return org;
+      const others = (org.collections ?? []).filter((id) => id !== listId);
+      return { ...org, collections: add ? [...others, listId] : others };
+    })
+  );
+  notifyListsChanged();
+}
+
+export function addCompaniesToList(listId: string, orgIds: string[]): void {
+  changeMembership(listId, orgIds, true);
+}
+
+export function removeCompaniesFromList(listId: string, orgIds: string[]): void {
+  changeMembership(listId, orgIds, false);
+}

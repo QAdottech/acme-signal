@@ -28,6 +28,9 @@ const screens: [name: string, path: string, ready: string][] = [
   ["company-page", "/organizations/12", "Anthropic"],
   ["deal-page", "/deals/d7", "AI Research Partnership"],
   ["inbox", "/inbox", "Inbox"],
+  ["tasks-table", "/tasks", "Tasks"],
+  ["lists-table", "/collections", "Lists"],
+  ["list-page", "/collections/2", "Stockholm Startups"],
   ["settings", "/settings", "Settings"],
 ];
 

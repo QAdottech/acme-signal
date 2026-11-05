@@ -87,6 +87,8 @@ Unless marked public, start in a fresh browser and log in with the seeded demo a
 | DEMO-03 | After deleting Startup Plan and logging out, open `/deals?resetDemo=1&demoBugs=value-rounding`, log in, and land on Deals with Startup Plan restored and Biotech Research License at $40K. Delete it again and reload: it stays deleted (no second reset). |
 | LISTS-01 | The Lists page has no link nested inside another link; a list card's title opens the list. |
 | AUTH-03 | Logging in from `/login?from=//example.com` or `?from=https://example.com/phish` lands on the Sales Pipeline, never off-site. |
+| LISTS-02 | Create "QA Nordics" (it opens and appears in the sidebar), add Klarna and Spotify from "Add companies"; Klarna's page lists the membership. "Remove from list" takes Spotify out (it still exists under Companies). Deleting the list from Edit returns to Lists without it. |
+| TASKS-03 | On Tasks, set Draft Vercel partnership agreement to In Progress and Urgent inline, then reassign it to Sarah Johnson from its preview. Completing it and pressing Undo in the toast restores In Progress; all edits survive a reload. |
 | INBOX-01 | `/notifications` and `/emails` land in the Inbox. Opening "Proposal: Enterprise License" shows it with a link to Dario Amodei. Opening an unread notification reduces the unread count by one; Mark all as read empties Unread. |
 | REPORTS-01 | Create a named custom report from Pipeline by Stage. Reload; its three widgets and active-deal summary render. Delete it, reload; it is absent while Pipeline Overview remains. |
 | TASKS-01 | At a fixed date of 2026-06-01 UTC, create a task due 2026-05-31. It appears under Overdue. Complete it; it disappears from Overdue and remains checked/Done after reload. |

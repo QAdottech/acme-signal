@@ -67,3 +67,26 @@ describe("person helpers", () => {
     expect(getNotesForPerson("1").map((n) => n.content)).toEqual(["Met at conf"]);
   });
 });
+
+describe("list helpers", () => {
+  it("create, add, remove and delete keep both sides of membership in sync", async () => {
+    const { createList, addCompaniesToList, removeCompaniesFromList, deleteList, getList } = await import(
+      "@/lib/organizationData"
+    );
+    const list = createList({ name: "QA list", description: "", tags: [] });
+    addCompaniesToList(list.id, ["1", "2"]);
+    expect(getList(list.id)?.organizationIds.sort()).toEqual(["1", "2"]);
+    expect(getOrganization("1")?.collections).toContain(list.id);
+
+    addCompaniesToList(list.id, ["1"]); // no duplicates
+    expect(getList(list.id)?.organizationIds.filter((id) => id === "1")).toHaveLength(1);
+
+    removeCompaniesFromList(list.id, ["1"]);
+    expect(getList(list.id)?.organizationIds).toEqual(["2"]);
+    expect(getOrganization("1")?.collections).not.toContain(list.id);
+
+    deleteList(list.id);
+    expect(getList(list.id)).toBeUndefined();
+    expect(getOrganization("2")?.collections).not.toContain(list.id);
+  });
+});

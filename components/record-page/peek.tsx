@@ -22,7 +22,8 @@ export function RecordPeek({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  href: string;
+  /** Full-page link for the "Open" button. Omit for records without a page (tasks). */
+  href?: string;
   avatar: React.ReactNode;
   subtitle?: React.ReactNode;
   children: React.ReactNode;
@@ -36,12 +37,14 @@ export function RecordPeek({
           className="fixed inset-y-0 right-0 z-50 flex w-[440px] max-w-full flex-col border-l bg-background shadow-2xl outline-none duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
         >
           <div className="flex h-12 shrink-0 items-center justify-end gap-1 border-b px-3">
-            <Button asChild variant="outline" size="sm">
-              <Link href={href} onClick={() => onOpenChange(false)}>
-                Open
-                <ArrowUpRight />
-              </Link>
-            </Button>
+            {href && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={href} onClick={() => onOpenChange(false)}>
+                  Open
+                  <ArrowUpRight />
+                </Link>
+              </Button>
+            )}
             <DialogPrimitive.Close asChild>
               <Button variant="ghost" size="icon" aria-label="Close preview" className="h-7 w-7">
                 <X />

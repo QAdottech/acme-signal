@@ -44,6 +44,8 @@ export function sortRows<T>(rows: T[], columns: Column<T>[], sort: SortState): T
   });
 }
 
+const EMPTY_SET: Set<string> = new Set();
+
 /** Elements inside a row that handle their own clicks. */
 const INTERACTIVE = "a, button, input, select, textarea, [role=checkbox], [role=menu], [data-row-click=ignore]";
 
@@ -60,39 +62,47 @@ export function RecordTable<T>({
   getRowId,
   sort,
   onSortChange,
-  selectedIds,
+  selectedIds: selectedIdsProp,
   onSelectionChange,
   onRowClick,
   rowLabel,
   emptyState,
+  selectable = true,
+  rowClassName,
 }: {
   rows: T[];
   columns: Column<T>[];
   getRowId: (row: T) => string;
   sort: SortState;
   onSortChange: (sort: SortState) => void;
-  selectedIds: Set<string>;
-  onSelectionChange: (ids: Set<string>) => void;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (ids: Set<string>) => void;
   onRowClick?: (row: T) => void;
   /** Accessible name for a row's checkbox, e.g. the record's name. */
   rowLabel: (row: T) => string;
   emptyState: React.ReactNode;
+  /** Show the checkbox column for bulk actions. Defaults to true. */
+  selectable?: boolean;
+  /** Extra classes per row, e.g. to dim completed tasks. */
+  rowClassName?: (row: T) => string | undefined;
 }) {
+  const selectedIds = selectedIdsProp ?? EMPTY_SET;
   const sortedRows = useMemo(() => sortRows(rows, columns, sort), [rows, columns, sort]);
   const allSelected = rows.length > 0 && rows.every((row) => selectedIds.has(getRowId(row)));
   const someSelected = !allSelected && rows.some((row) => selectedIds.has(getRowId(row)));
   const hasFooter = columns.some((c) => c.footer);
-  const minWidth = 44 + columns.reduce((sum, c) => sum + (c.width ?? 160), 0);
+  const checkboxWidth = selectable ? 44 : 0;
+  const minWidth = checkboxWidth + columns.reduce((sum, c) => sum + (c.width ?? 160), 0);
 
   const toggleAll = () => {
-    onSelectionChange(allSelected ? new Set() : new Set(rows.map(getRowId)));
+    onSelectionChange?.(allSelected ? new Set() : new Set(rows.map(getRowId)));
   };
 
   const toggleRow = (id: string) => {
     const next = new Set(selectedIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
-    onSelectionChange(next);
+    onSelectionChange?.(next);
   };
 
   const handleSort = (column: Column<T>) => {
@@ -107,20 +117,22 @@ export function RecordTable<T>({
   return (
     <table className="w-full table-fixed border-separate border-spacing-0 text-[13px]" style={{ minWidth }}>
       <colgroup>
-        <col style={{ width: 44 }} />
+        {selectable && <col style={{ width: 44 }} />}
         {columns.map((column) => (
           <col key={column.id} style={column.width ? { width: column.width } : undefined} />
         ))}
       </colgroup>
       <thead>
         <tr>
-          <th className="sticky top-0 z-10 h-9 border-b bg-background pl-4 pr-1 text-left">
-            <Checkbox
-              aria-label="Select all"
-              checked={allSelected ? true : someSelected ? "indeterminate" : false}
-              onCheckedChange={toggleAll}
-            />
-          </th>
+          {selectable && (
+            <th className="sticky top-0 z-10 h-9 border-b bg-background pl-4 pr-1 text-left">
+              <Checkbox
+                aria-label="Select all"
+                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                onCheckedChange={toggleAll}
+              />
+            </th>
+          )}
           {columns.map((column) => {
             const sorted = sort.columnId === column.id;
             const Icon = column.icon;
@@ -147,7 +159,7 @@ export function RecordTable<T>({
                 scope="col"
                 aria-sort={sorted ? (sort.direction === "asc" ? "ascending" : "descending") : undefined}
                 className={cn(
-                  "sticky top-0 z-10 h-9 border-b border-l border-l-border/60 bg-background px-3 text-xs font-medium text-muted-foreground",
+                  "sticky top-0 z-10 h-9 border-b border-l border-l-border/60 bg-background px-3 text-xs font-medium text-muted-foreground first:border-l-0 first:pl-6",
                   column.align === "right" ? "text-right" : "text-left"
                 )}
               >
@@ -186,25 +198,28 @@ export function RecordTable<T>({
               className={cn(
                 "group transition-colors",
                 onRowClick && "cursor-pointer",
-                selected ? "bg-blue-50/70 dark:bg-blue-500/10" : "hover:bg-muted/50"
+                selected ? "bg-blue-50/70 dark:bg-blue-500/10" : "hover:bg-muted/50",
+                rowClassName?.(row)
               )}
             >
-              <td className="h-9 border-b border-border/70 pl-4 pr-1">
-                <Checkbox
-                  aria-label={`Select ${rowLabel(row)}`}
-                  checked={selected}
-                  onCheckedChange={() => toggleRow(id)}
-                  className={cn(
-                    "transition-opacity",
-                    !selected && selectedIds.size === 0 && "opacity-40 group-hover:opacity-100 focus-visible:opacity-100"
-                  )}
-                />
-              </td>
+              {selectable && (
+                <td className="h-9 border-b border-border/70 pl-4 pr-1">
+                  <Checkbox
+                    aria-label={`Select ${rowLabel(row)}`}
+                    checked={selected}
+                    onCheckedChange={() => toggleRow(id)}
+                    className={cn(
+                      "transition-opacity",
+                      !selected && selectedIds.size === 0 && "opacity-40 group-hover:opacity-100 focus-visible:opacity-100"
+                    )}
+                  />
+                </td>
+              )}
               {columns.map((column) => (
                 <td
                   key={column.id}
                   className={cn(
-                    "h-9 overflow-hidden whitespace-nowrap border-b border-l border-border/70 border-l-border/60 px-3",
+                    "h-9 overflow-hidden whitespace-nowrap border-b border-l border-border/70 border-l-border/60 px-3 first:border-l-0 first:pl-6",
                     column.align === "right" && "text-right tabular-nums"
                   )}
                 >
@@ -216,7 +231,7 @@ export function RecordTable<T>({
         })}
         {sortedRows.length === 0 && (
           <tr>
-            <td colSpan={columns.length + 1} className="py-16 text-center text-sm text-muted-foreground">
+            <td colSpan={columns.length + (selectable ? 1 : 0)} className="py-16 text-center text-sm text-muted-foreground">
               {emptyState}
             </td>
           </tr>
@@ -225,12 +240,12 @@ export function RecordTable<T>({
       {hasFooter && sortedRows.length > 0 && (
         <tfoot>
           <tr>
-            <td className="sticky bottom-0 h-9 border-t bg-background pl-4" />
+            {selectable && <td className="sticky bottom-0 h-9 border-t bg-background pl-4" />}
             {columns.map((column) => (
               <td
                 key={column.id}
                 className={cn(
-                  "sticky bottom-0 h-9 overflow-hidden whitespace-nowrap border-l border-t border-l-border/60 bg-background px-3 text-xs text-muted-foreground",
+                  "sticky bottom-0 h-9 overflow-hidden whitespace-nowrap border-l border-t border-l-border/60 bg-background px-3 text-xs text-muted-foreground first:border-l-0 first:pl-6",
                   column.align === "right" && "text-right tabular-nums"
                 )}
               >

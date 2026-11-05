@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 
 /**
@@ -6,6 +8,7 @@ import { PageHeader } from "@/components/page-header";
  * line underneath.
  */
 export function RecordListLayout({
+  parent,
   title,
   description,
   actions,
@@ -13,6 +16,8 @@ export function RecordListLayout({
   status,
   children,
 }: {
+  /** Breadcrumb back to a parent page, e.g. Lists. */
+  parent?: { label: string; href: string };
   title: string;
   description?: React.ReactNode;
   actions?: React.ReactNode;
@@ -23,6 +28,14 @@ export function RecordListLayout({
   return (
     <main className="flex h-full min-h-0 flex-col">
       <div className="px-8 pt-6">
+        {parent && (
+          <nav aria-label="Breadcrumb" className="mb-1.5 flex items-center gap-1 text-[13px] text-muted-foreground">
+            <Link href={parent.href} className="transition-colors hover:text-foreground">
+              {parent.label}
+            </Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </nav>
+        )}
         <PageHeader title={title} description={description} actions={actions} className="mb-4" />
         {toolbar && <div className="mb-3 flex flex-wrap items-center gap-2">{toolbar}</div>}
       </div>

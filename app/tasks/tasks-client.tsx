@@ -1,523 +1,323 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { CalendarDays, CircleDashed, Link2, Plus, Signal, Type, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Plus, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
-import type { Task, TaskStatus, TaskPriority } from "@/types/task";
-import type { Deal } from "@/types/deal";
-import type { Organization } from "@/types/organization";
-import { getTasks, saveTasks, addTask as addTaskToStore, deleteTask as deleteTaskFromStore, isDueSoon } from "@/lib/taskData";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AddTaskModal } from "@/components/add-task-modal";
+import { RecordListLayout } from "@/components/record-table/layout";
+import { RecordTable, useRecordTableState, type Column } from "@/components/record-table/record-table";
+import {
+  FilterMenu,
+  SearchField,
+  countFilters,
+  facetOptions,
+  type FilterFacet,
+  type FilterValues,
+} from "@/components/record-table/toolbar";
+import { TaskPeek } from "@/components/records/peeks";
+import {
+  AssigneeCell,
+  CompleteToggle,
+  PriorityCell,
+  RelatedChip,
+  StatusCell,
+  TASK_PRIORITIES,
+  resolveRelated,
+  statusLabel,
+} from "@/components/records/task-cells";
+import { useConfirm } from "@/components/confirm-dialog";
+import { useAuth } from "@/lib/auth-context";
+import {
+  addTask,
+  deleteTask,
+  getTasks,
+  isDueSoon,
+  isOverdue,
+  updateTask,
+} from "@/lib/taskData";
 import { getDeals } from "@/lib/dealData";
 import { getOrganizations } from "@/lib/organizationData";
 import { getPeople } from "@/lib/personData";
-import { AddTaskModal } from "@/components/add-task-modal";
-import { cn } from "@/lib/utils";
-import type { Person } from "@/types/person";
-import { useAuth } from "@/lib/auth-context";
 import { formatDate } from "@/lib/format";
-import { PageHeader } from "@/components/page-header";
 import { useCreateIntent } from "@/lib/create-intent";
-import { isDemoBugEnabled } from "@/lib/demo-bugs";
+import type { Task, TaskPriority } from "@/types/task";
+import type { Deal } from "@/types/deal";
+import type { Organization } from "@/types/organization";
+import type { Person } from "@/types/person";
+import { cn } from "@/lib/utils";
 
-const statusConfig: Record<TaskStatus, { label: string; className: string }> = {
-  todo: {
-    label: "To Do",
-    className:
-      "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
-  },
-  in_progress: {
-    label: "In Progress",
-    className:
-      "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  },
-  done: {
-    label: "Done",
-    className:
-      "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-  },
+type View = "all" | "my_tasks" | "overdue" | "due_soon";
+
+const EMPTY: Record<View, { searching: string; idle: string }> = {
+  all: { searching: "No tasks found matching your search.", idle: "No tasks yet. Click 'Add Task' to get started." },
+  my_tasks: { searching: "No tasks found matching your search.", idle: "No tasks assigned to you." },
+  overdue: { searching: "No overdue tasks found matching your search.", idle: "No overdue tasks. You're all caught up!" },
+  due_soon: { searching: "No due soon tasks found matching your search.", idle: "No tasks due in the next seven days." },
 };
 
-const priorityConfig: Record<
-  TaskPriority,
-  { label: string; className: string }
-> = {
-  low: {
-    label: "Low",
-    className:
-      "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400",
-  },
-  medium: {
-    label: "Medium",
-    className:
-      "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
-  },
-  high: {
-    label: "High",
-    className:
-      "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-  },
-  urgent: {
-    label: "Urgent",
-    className: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-  },
-};
-
-function isOverdue(task: Task): boolean {
-  if (task.status === "done" || !task.dueDate) return false;
-  const today = new Date().toISOString().split("T")[0];
-  // DEMO BUG: due-today-overdue
-  if (isDemoBugEnabled("due-today-overdue")) return task.dueDate <= today;
-  return task.dueDate < today;
-}
-
+const PRIORITY_RANK: Record<TaskPriority, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+const PRIORITY_LABELS: Record<TaskPriority, string> = { urgent: "Urgent", high: "High", medium: "Medium", low: "Low" };
 
 export function TasksClient() {
   const { user } = useAuth();
+  const confirm = useConfirm();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [deals, setDeals] = useState<Deal[]>([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [people, setPeople] = useState<Person[]>([]);
+  const [lookups, setLookups] = useState<{
+    deals: Map<string, Deal>;
+    orgs: Map<string, Organization>;
+    people: Map<string, Person>;
+  }>({ deals: new Map(), orgs: new Map(), people: new Map() });
   const [searchTerm, setSearchTerm] = useState("");
+  const [view, setView] = useState<View>("all");
+  const [filters, setFilters] = useState<FilterValues>({});
+  const [peekId, setPeekId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   useCreateIntent("task", () => setIsModalOpen(true));
-  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("all");
+  const { sort, setSort } = useRecordTableState({ columnId: "due", direction: "asc" });
 
   useEffect(() => {
     setTasks(getTasks());
-    setDeals(getDeals());
-    setOrganizations(getOrganizations());
-    setPeople(getPeople());
+    setLookups({
+      deals: new Map(getDeals().map((d) => [d.id, d])),
+      orgs: new Map(getOrganizations().map((o) => [o.id, o])),
+      people: new Map(getPeople().map((p) => [p.id, p])),
+    });
   }, []);
 
-  const orgMap = useMemo(() => {
-    const map: Record<string, Organization> = {};
-    organizations.forEach((org) => {
-      map[org.id] = org;
+  const change = useCallback((id: string, changes: Partial<Task>, message?: string) => {
+    updateTask(id, changes);
+    setTasks(getTasks());
+    if (message) toast.success(message);
+  }, []);
+
+  const toggleDone = (task: Task) => {
+    const done = task.status !== "done";
+    change(task.id, { status: done ? "done" : "todo", completedAt: done ? new Date().toISOString() : undefined });
+    toast.success(done ? `Completed “${task.title}”` : `Reopened “${task.title}”`, {
+      action: {
+        label: "Undo",
+        onClick: () => change(task.id, { status: task.status, completedAt: task.completedAt }),
+      },
     });
-    return map;
-  }, [organizations]);
-
-  const dealMap = useMemo(() => {
-    const map: Record<string, Deal> = {};
-    deals.forEach((deal) => {
-      map[deal.id] = deal;
-    });
-    return map;
-  }, [deals]);
-
-  const personMap = useMemo(() => {
-    const map: Record<string, Person> = {};
-    people.forEach((person) => {
-      map[person.id] = person;
-    });
-    return map;
-  }, [people]);
-
-  const toggleTaskStatus = (taskId: string) => {
-    const updated = tasks.map((t) => {
-      if (t.id !== taskId) return t;
-      const newStatus: TaskStatus = t.status === "done" ? "todo" : "done";
-      return {
-        ...t,
-        status: newStatus,
-        completedAt: newStatus === "done" ? new Date().toISOString() : undefined,
-      };
-    });
-    setTasks(updated);
-    saveTasks(updated);
   };
 
-  const toggleExpanded = (taskId: string) => {
-    setExpandedTaskId(expandedTaskId === taskId ? null : taskId);
-  };
-
-  const handleAddTask = (
-    taskData: Omit<Task, "id" | "createdAt">
-  ) => {
-    const newTask = addTaskToStore(taskData);
-    setTasks([...tasks, newTask]);
-    setIsModalOpen(false);
-  };
-
-  const handleDeleteTask = (taskId: string) => {
-    deleteTaskFromStore(taskId);
-    setTasks(tasks.filter((t) => t.id !== taskId));
-  };
-
-  const getRelatedEntity = (task: Task) => {
-    if (task.relatedDealId) {
-      const deal = dealMap[task.relatedDealId];
-      if (deal) {
-        return {
-          label: deal.title,
-          href: `/deals/${deal.id}`,
-          type: "Deal",
-        };
-      }
-    }
-    if (task.relatedOrganizationId) {
-      const org = orgMap[task.relatedOrganizationId];
-      if (org) {
-        return {
-          label: org.name,
-          href: `/organizations/${org.id}`,
-          type: "Company",
-        };
-      }
-    }
-    if (task.relatedPersonId) {
-      const person = personMap[task.relatedPersonId];
-      if (person) {
-        return {
-          label: person.name,
-          href: `/people/${person.id}`,
-          type: "Person",
-        };
-      }
-    }
-    return null;
-  };
-
-  const sortByDueDate = (a: Task, b: Task) => {
-    if (!a.dueDate && !b.dueDate) return 0;
-    if (!a.dueDate) return 1;
-    if (!b.dueDate) return -1;
-    return a.dueDate.localeCompare(b.dueDate);
-  };
-
-  const filteredTasks = useMemo(() => {
-    let filtered = tasks.filter((task) =>
-      task.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    if (activeTab === "overdue") {
-      filtered = filtered.filter(isOverdue);
-    } else if (activeTab === "due_soon") {
-      filtered = filtered.filter(isDueSoon);
-    } else if (activeTab === "my_tasks" && user) {
-      filtered = filtered.filter((task) => task.assignee === user.fullName);
-    }
-
-    return filtered.sort(sortByDueDate);
-  }, [tasks, searchTerm, activeTab, user]);
-
-  const overdueCount = useMemo(
-    () => tasks.filter(isOverdue).length,
-    [tasks]
-  );
-  const dueSoonCount = useMemo(
-    () => tasks.filter(isDueSoon).length,
+  const facets: FilterFacet[] = useMemo(
+    () => [
+      {
+        key: "priority",
+        label: "Priority",
+        options: TASK_PRIORITIES.filter((p) => tasks.some((t) => t.priority === p)).map((p) => PRIORITY_LABELS[p]),
+      },
+      { key: "assignee", label: "Assignee", options: facetOptions(tasks.map((t) => t.assignee)) },
+      { key: "status", label: "Status", options: (["todo", "in_progress", "done"] as const).filter((s) => tasks.some((t) => t.status === s)).map(statusLabel) },
+    ],
     [tasks]
   );
 
-  const renderTaskRow = (task: Task) => {
-    const overdue = isOverdue(task);
-    const related = getRelatedEntity(task);
-    const statusCfg = statusConfig[task.status];
-    const priorityCfg = priorityConfig[task.priority];
-    const isExpanded = expandedTaskId === task.id;
+  const counts = useMemo(
+    () => ({
+      overdue: tasks.filter(isOverdue).length,
+      dueSoon: tasks.filter(isDueSoon).length,
+      mine: user ? tasks.filter((t) => t.assignee === user.fullName && t.status !== "done").length : 0,
+    }),
+    [tasks, user]
+  );
 
-    return (
-      <TableRow
-        key={task.id}
-        className={cn(
-          "group transition-colors",
-          task.status === "done" && "opacity-60"
-        )}
-      >
-        <TableCell onClick={(e) => e.stopPropagation()} className="w-10">
-          <Checkbox
-            checked={task.status === "done"}
-            onCheckedChange={() => toggleTaskStatus(task.id)}
-            className={cn(
-              "data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500"
-            )}
-          />
-        </TableCell>
-        <TableCell className="min-w-[250px]">
-          <div>
-            <button
-              onClick={() => toggleExpanded(task.id)}
-              className={cn(
-                "flex items-center gap-1.5 text-left font-medium hover:underline underline-offset-2",
-                task.status === "done" && "line-through text-muted-foreground"
-              )}
-            >
-              {task.description ? (
-                isExpanded ? (
-                  <ChevronDown className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
-                )
-              ) : (
-                <span className="w-3.5" />
-              )}
-              {task.title}
-            </button>
-            {isExpanded && task.description && (
-              <p className="text-sm text-muted-foreground mt-1.5 ml-5 leading-relaxed">
-                {task.description}
-              </p>
-            )}
-          </div>
-        </TableCell>
-        <TableCell>
-          <Badge
-            className={cn(
-              "text-xs font-medium border-0",
-              statusCfg.className
-            )}
-          >
-            {statusCfg.label}
-          </Badge>
-        </TableCell>
-        <TableCell>
-          <Badge
-            className={cn(
-              "text-xs font-medium border-0",
-              priorityCfg.className
-            )}
-          >
-            {priorityCfg.label}
-          </Badge>
-        </TableCell>
-        <TableCell>
-          {task.dueDate ? (
-            <span
-              className={cn(
-                "text-sm",
-                overdue && "text-red-600 dark:text-red-400 font-medium"
-              )}
-            >
-              {formatDate(task.dueDate)}
-              {overdue && (
-                <span className="ml-1 text-xs text-red-500 dark:text-red-400">
-                  (overdue)
-                </span>
-              )}
-            </span>
-          ) : (
-            <span className="text-sm text-muted-foreground">--</span>
-          )}
-        </TableCell>
-        <TableCell>
-          {related ? (
-            <Link
-              href={related.href}
-              className="text-sm hover:underline underline-offset-2"
-            >
-              <span className="text-xs text-muted-foreground mr-1">
-                {related.type}:
-              </span>
-              {related.label}
-            </Link>
-          ) : (
-            <span className="text-sm text-muted-foreground">--</span>
-          )}
-        </TableCell>
-        <TableCell className="text-sm">{task.assignee}</TableCell>
-        <TableCell className="w-10">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDeleteTask(task.id);
-            }}
-            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-all"
-            aria-label="Delete task"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </TableCell>
-      </TableRow>
-    );
-  };
+  const visibleTasks = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    const matches = (key: string, value: string | undefined) =>
+      !filters[key]?.length || (!!value && filters[key].includes(value));
+    return tasks.filter((task) => {
+      if (term && !task.title.toLowerCase().includes(term)) return false;
+      if (view === "overdue" && !isOverdue(task)) return false;
+      if (view === "due_soon" && !isDueSoon(task)) return false;
+      if (view === "my_tasks" && (!user || task.assignee !== user.fullName)) return false;
+      return (
+        matches("priority", PRIORITY_LABELS[task.priority]) &&
+        matches("assignee", task.assignee) &&
+        matches("status", statusLabel(task.status))
+      );
+    });
+  }, [tasks, searchTerm, view, filters, user]);
+
+  const columns: Column<Task>[] = [
+    {
+      id: "title",
+      header: "Task",
+      icon: Type,
+      width: 360,
+      sortValue: (t) => t.title.toLowerCase(),
+      cell: (t) => (
+        <span className="flex min-w-0 items-center gap-2.5">
+          <CompleteToggle task={t} onToggle={() => toggleDone(t)} />
+          <span className={cn("truncate font-medium", t.status === "done" && "text-muted-foreground line-through")}>
+            {t.title}
+          </span>
+        </span>
+      ),
+      footer: (rows) => `${rows.length} ${rows.length === 1 ? "task" : "tasks"}`,
+    },
+    {
+      id: "status",
+      header: "Status",
+      icon: CircleDashed,
+      width: 140,
+      sortValue: (t) => ["todo", "in_progress", "done"].indexOf(t.status),
+      cell: (t) => (
+        <StatusCell
+          value={t.status}
+          onChange={(status) =>
+            change(
+              t.id,
+              { status, completedAt: status === "done" ? new Date().toISOString() : undefined },
+              `Marked “${t.title}” ${statusLabel(status).toLowerCase()}`
+            )
+          }
+        />
+      ),
+    },
+    {
+      id: "priority",
+      header: "Priority",
+      icon: Signal,
+      width: 130,
+      sortValue: (t) => PRIORITY_RANK[t.priority],
+      cell: (t) => (
+        <PriorityCell value={t.priority} onChange={(priority) => change(t.id, { priority }, "Priority updated")} />
+      ),
+    },
+    {
+      id: "due",
+      header: "Due date",
+      icon: CalendarDays,
+      width: 160,
+      sortValue: (t) => t.dueDate || "9999-12-31",
+      cell: (t) => {
+        if (!t.dueDate) return <span className="text-muted-foreground/60">—</span>;
+        const overdue = isOverdue(t);
+        return (
+          <span className={cn("tabular-nums", overdue && "font-medium text-red-600 dark:text-red-400")}>
+            {formatDate(t.dueDate)}
+            {overdue && <span className="ml-1 text-xs font-normal">(overdue)</span>}
+          </span>
+        );
+      },
+    },
+    {
+      id: "related",
+      header: "Related to",
+      icon: Link2,
+      width: 220,
+      cell: (t) => <RelatedChip related={resolveRelated(t, lookups)} />,
+    },
+    {
+      id: "assignee",
+      header: "Assignee",
+      icon: UserRound,
+      width: 180,
+      sortValue: (t) => (t.assignee ?? "").toLowerCase(),
+      cell: (t) => (
+        <AssigneeCell value={t.assignee} onChange={(assignee) => change(t.id, { assignee }, `Assigned to ${assignee}`)} />
+      ),
+    },
+  ];
+
+  const peekTask = tasks.find((t) => t.id === peekId) ?? null;
+  const isSearching = searchTerm !== "" || countFilters(filters) > 0;
+  const openCount = tasks.filter((t) => t.status !== "done").length;
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
-      <PageHeader
-        title="Tasks"
-        description={`${tasks.length} ${tasks.length === 1 ? "task" : "tasks"}`}
-        actions={
-          <Button onClick={() => setIsModalOpen(true)}>
-            <Plus />
-            Add Task
-          </Button>
-        }
+    <RecordListLayout
+      title="Tasks"
+      description={`${openCount} open · ${counts.overdue} overdue · ${tasks.length} ${tasks.length === 1 ? "task" : "tasks"} in total`}
+      actions={
+        <Button onClick={() => setIsModalOpen(true)}>
+          <Plus />
+          Add Task
+        </Button>
+      }
+      toolbar={
+        <>
+          <Tabs value={view} onValueChange={(value) => setView(value as View)}>
+            <TabsList className="h-8 w-auto gap-0.5 rounded-md border border-input bg-muted/60 p-0.5">
+              {(
+                [
+                  ["all", "All", undefined],
+                  ["my_tasks", "My Tasks", counts.mine],
+                  ["overdue", "Overdue", counts.overdue],
+                  ["due_soon", "Due Soon", counts.dueSoon],
+                ] as const
+              ).map(([value, label, count]) => (
+                <TabsTrigger
+                  key={value}
+                  value={value}
+                  className="mb-0 h-full gap-1.5 rounded-[5px] border-b-0 px-2.5 py-0 text-[13px] data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  {label}
+                  {!!count && (
+                    <span
+                      className={cn(
+                        "rounded px-1 text-[11px] tabular-nums",
+                        value === "overdue" ? "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300" : "bg-background/70 text-muted-foreground"
+                      )}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+          <span className="mx-1 h-5 w-px bg-border" />
+          <SearchField value={searchTerm} onChange={setSearchTerm} placeholder="Search tasks..." />
+          <FilterMenu facets={facets} values={filters} onChange={setFilters} />
+        </>
+      }
+    >
+      <RecordTable
+        rows={visibleTasks}
+        columns={columns}
+        getRowId={(t) => t.id}
+        rowLabel={(t) => t.title}
+        sort={sort}
+        onSortChange={setSort}
+        selectable={false}
+        onRowClick={(t) => setPeekId(t.id)}
+        rowClassName={(t) => (t.status === "done" ? "opacity-60" : undefined)}
+        emptyState={isSearching ? EMPTY[view].searching : EMPTY[view].idle}
       />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="my_tasks">My Tasks</TabsTrigger>
-          <TabsTrigger value="overdue">
-            Overdue
-            {overdueCount > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 text-xs font-medium">
-                {overdueCount}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="due_soon" title="Due today or in the next seven days">
-            Due Soon
-            {dueSoonCount > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-muted text-muted-foreground text-xs font-medium">
-                {dueSoonCount}
-              </span>
-            )}
-          </TabsTrigger>
-        </TabsList>
-
-        <div className="mt-4 mb-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search tasks..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-            />
-          </div>
-        </div>
-
-        <TabsContent value="all">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10" />
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Related</TableHead>
-                <TableHead>Assignee</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTasks.map(renderTaskRow)}
-            </TableBody>
-          </Table>
-          {filteredTasks.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 dark:text-gray-400">
-                {searchTerm
-                  ? "No tasks found matching your search."
-                  : "No tasks yet. Click 'Add Task' to get started."}
-              </p>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="my_tasks">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10" />
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Related</TableHead>
-                <TableHead>Assignee</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTasks.map(renderTaskRow)}
-            </TableBody>
-          </Table>
-          {filteredTasks.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 dark:text-gray-400">
-                {searchTerm
-                  ? "No tasks found matching your search."
-                  : "No tasks assigned to you."}
-              </p>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="overdue">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10" />
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Related</TableHead>
-                <TableHead>Assignee</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTasks.map(renderTaskRow)}
-            </TableBody>
-          </Table>
-          {filteredTasks.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 dark:text-gray-400">
-                {searchTerm
-                  ? "No overdue tasks found matching your search."
-                  : "No overdue tasks. You're all caught up!"}
-              </p>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="due_soon">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10" />
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Related</TableHead>
-                <TableHead>Assignee</TableHead>
-                <TableHead className="w-10" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTasks.map(renderTaskRow)}
-            </TableBody>
-          </Table>
-          {filteredTasks.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500 dark:text-gray-400">
-                {searchTerm
-                  ? "No due soon tasks found matching your search."
-                  : "No tasks due in the next seven days."}
-              </p>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      <TaskPeek
+        task={peekTask}
+        related={peekTask ? resolveRelated(peekTask, lookups) : null}
+        onClose={() => setPeekId(null)}
+        onChange={(changes, message) => peekTask && change(peekTask.id, changes, message)}
+        onDelete={async () => {
+          if (!peekTask) return;
+          const ok = await confirm({ title: `Delete “${peekTask.title}”?`, confirmLabel: "Delete task" });
+          if (!ok) return;
+          deleteTask(peekTask.id);
+          setTasks(getTasks());
+          setPeekId(null);
+          toast.success("Task deleted");
+        }}
+      />
 
       <AddTaskModal
+        deals={Array.from(lookups.deals.values())}
+        organizations={Array.from(lookups.orgs.values())}
+        people={Array.from(lookups.people.values())}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onAdd={handleAddTask}
-        deals={deals}
-        organizations={organizations}
-        people={people}
+        onAdd={(taskData: Omit<Task, "id" | "createdAt">) => {
+          const task = addTask(taskData);
+          setTasks(getTasks());
+          setIsModalOpen(false);
+          toast.success(`Created “${task.title}”`);
+        }}
       />
-    </main>
+    </RecordListLayout>
   );
 }

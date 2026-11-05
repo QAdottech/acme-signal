@@ -1,4 +1,5 @@
 import type { Task } from "@/types/task";
+import { isDemoBugEnabled } from "@/lib/demo-bugs";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -217,4 +218,13 @@ export function toggleTaskDone(task: Task): Task | undefined {
     status: done ? "done" : "todo",
     completedAt: done ? new Date().toISOString() : undefined,
   });
+}
+
+/** An unfinished task whose due date has passed (UTC calendar day). */
+export function isOverdue(task: Task): boolean {
+  if (task.status === "done" || !task.dueDate) return false;
+  const today = new Date().toISOString().split("T")[0];
+  // DEMO BUG: due-today-overdue
+  if (isDemoBugEnabled("due-today-overdue")) return task.dueDate <= today;
+  return task.dueDate < today;
 }
