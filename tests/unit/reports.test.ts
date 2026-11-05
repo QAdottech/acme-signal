@@ -45,7 +45,9 @@ describe("report metrics", () => {
       { ...deal, id: "won", stage: "Customer", value: 10000 },
       { ...deal, id: "lost", stage: "Closed Lost", value: 5000 },
     ]);
-    expect(queryDataSource("pipelineValueKpi")).toMatchObject({ value: "$2K", label: "1 active deals" });
+    expect(queryDataSource("pipelineValueKpi")).toMatchObject({ value: "$2K", label: "1 active deal" });
+    expect(queryDataSource("winRateKpi")).toEqual({ value: "50%", label: "1 won of 2 closed deals" });
+    expect(queryDataSource("topDeals")).toMatchObject({ rows: [["Pilot", "—", "Lead", "$2K", expect.any(String), "Test owner"]] });
     expect(queryDataSource("totalDealsKpi")).toEqual({ value: "3", label: "1 in pipeline" });
     expect(queryDataSource("dealsByStage")).toEqual([
       { name: "New", value: 0 }, { name: "Lead", value: 1 },
@@ -57,8 +59,22 @@ describe("report metrics", () => {
 
   it("handles an empty dataset without NaN averages", () => {
     saveDeals([]);
-    expect(queryDataSource("avgDealSizeKpi")).toMatchObject({ value: "$0", label: "Across 0 deals" });
+    expect(queryDataSource("avgDealSizeKpi")).toMatchObject({ value: "$0", label: "Across 0 won deals" });
     expect(queryDataSource("pipelineValueKpi")).toMatchObject({ value: "$0", label: "0 active deals" });
+  });
+
+  it("buckets monthly values by year and month, not month name alone", () => {
+    const now = new Date();
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1, 12).toISOString();
+    const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1, 12).toISOString();
+    saveDeals([
+      { ...deal, id: "now", createdAt: thisMonth, value: 3000 },
+      { ...deal, id: "old", createdAt: yearAgo, value: 9000 },
+    ]);
+    const trend = queryDataSource("dealValuesTrend") as { value: number }[];
+    expect(trend).toHaveLength(6);
+    expect(trend[5].value).toBe(3000);
+    expect(trend.reduce((s, p) => s + p.value, 0)).toBe(3000);
   });
 
   it("returns null for an unknown data source", () => {

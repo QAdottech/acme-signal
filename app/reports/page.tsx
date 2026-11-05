@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { BarChart3, PieChart, TrendingUp, Plus } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getAllReports, type ReportDefinition } from "@/lib/reports";
 import { CreateReportDialog } from "@/components/reports/create-report-dialog";
@@ -18,7 +17,6 @@ const reportIcons: Record<string, React.ElementType> = {
 export default function ReportsPage() {
   const [reports, setReports] = useState<ReportDefinition[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     setReports(getAllReports());
@@ -32,8 +30,7 @@ export default function ReportsPage() {
   }, [createOpen]);
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
-      {/* Header */}
+    <main className="mx-auto w-full max-w-[1200px] px-8 py-6">
       <PageHeader
         title="Reports"
         description="Analyze your CRM data with built-in and custom reports."
@@ -45,44 +42,30 @@ export default function ReportsPage() {
         }
       />
 
-      {/* Report cards grid */}
-      <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {reports.map((report) => {
           const Icon = reportIcons[report.type] ?? BarChart3;
           return (
-            <Card
+            <Link
               key={report.id}
-              className="cursor-pointer hover:bg-accent/50 transition-colors group"
-              onClick={() => router.push(`/reports/${report.id}`)}
+              href={`/reports/${report.id}`}
+              prefetch={false}
+              className="group flex flex-col rounded-lg border bg-background p-4 transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                    <Icon className="h-5 w-5 text-primary" />
-                  </div>
-                  {report.isBuiltIn ? (
-                    <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                      Built-in
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-medium uppercase tracking-wider text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-950 px-2 py-0.5 rounded-full">
-                      Custom
-                    </span>
-                  )}
-                </div>
-                <CardTitle className="text-base group-hover:text-primary transition-colors">
-                  {report.title}
-                </CardTitle>
-                <CardDescription className="text-sm line-clamp-2">
-                  {report.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-xs text-muted-foreground">
-                  {report.widgets.length} widget{report.widgets.length !== 1 ? "s" : ""}
-                </p>
-              </CardContent>
-            </Card>
+              <div className="mb-3 flex items-center justify-between">
+                <span className="flex h-8 w-8 items-center justify-center rounded-md border bg-muted/50">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                </span>
+                <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                  {report.isBuiltIn ? "Built-in" : "Custom"}
+                </span>
+              </div>
+              <h2 className="text-sm font-medium">{report.title}</h2>
+              <p className="mt-0.5 line-clamp-2 text-[13px] text-muted-foreground">{report.description}</p>
+              <p className="mt-auto pt-3 text-xs text-muted-foreground">
+                {report.widgets.length} widget{report.widgets.length !== 1 ? "s" : ""}
+              </p>
+            </Link>
           );
         })}
       </div>

@@ -32,6 +32,10 @@ const screens: [name: string, path: string, ready: string][] = [
   ["lists-table", "/collections", "Lists"],
   ["list-page", "/collections/2", "Stockholm Startups"],
   ["settings", "/settings", "Settings"],
+  ["reports", "/reports", "Reports"],
+  ["report-pipeline", "/reports/pipeline-overview", "Pipeline Overview"],
+  ["report-revenue", "/reports/revenue-deals", "Revenue & Deals"],
+  ["report-contacts", "/reports/contacts-companies", "Contacts & Companies"],
 ];
 
 for (const [name, path, heading] of screens) {

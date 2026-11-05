@@ -1,203 +1,263 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, RefreshCw, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { ChevronRight, RefreshCw, Trash2 } from "lucide-react";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
   Area,
   AreaChart,
-  Legend,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
+import { RecordNotFound } from "@/components/record-page/blocks";
+import { DeleteReportDialog } from "@/components/reports/delete-report-dialog";
 import {
+  CHART_OTHER,
+  CHART_PALETTE,
+  CHART_PRIMARY,
+  dataSourceFormat,
+  formatCurrency,
   getReportById,
   queryDataSource,
-  CHART_COLORS,
-  formatCurrency,
-  type ReportDefinition,
-  type WidgetConfig,
   type ChartDataPoint,
   type KpiData,
+  type ReportDefinition,
   type TableData,
+  type ValueFormat,
+  type WidgetConfig,
 } from "@/lib/reports";
-import { DeleteReportDialog } from "@/components/reports/delete-report-dialog";
+import { cn } from "@/lib/utils";
 
-// ── Custom tooltip ─────────────────────────────────────────────────────
+const AXIS_TICK = { fontSize: 12, fill: "hsl(var(--muted-foreground))" };
+const GRID_STROKE = "hsl(var(--border))";
 
-function CustomTooltip({
+function formatValue(value: number, format: ValueFormat) {
+  return format === "currency" ? formatCurrency(value) : value.toLocaleString("en-US");
+}
+
+// ── Tooltip ────────────────────────────────────────────────────────────
+
+function ChartTooltip({
   active,
   payload,
   label,
+  format,
 }: {
   active?: boolean;
-  payload?: { name: string; value: number; color: string }[];
+  payload?: { name: string; value: number; payload?: { fill?: string; name?: string } }[];
   label?: string;
+  format: ValueFormat;
 }) {
   if (!active || !payload?.length) return null;
+  const entry = payload[0];
   return (
-    <div className="rounded-lg border bg-background px-3 py-2 shadow-md text-sm">
-      <p className="font-medium mb-1">{label}</p>
-      {payload.map((entry, i) => (
-        <p key={i} className="text-muted-foreground" style={{ color: entry.color }}>
-          {entry.name}: {typeof entry.value === "number" && entry.value >= 1000
-            ? formatCurrency(entry.value)
-            : entry.value}
-        </p>
-      ))}
+    <div className="rounded-md border bg-popover px-3 py-2 text-xs shadow-md">
+      <p className="mb-0.5 font-medium text-foreground">{label ?? entry.payload?.name ?? entry.name}</p>
+      <p className="flex items-center gap-1.5 tabular-nums text-muted-foreground">
+        <span className="h-2 w-2 rounded-[2px]" style={{ background: entry.payload?.fill ?? CHART_PRIMARY }} />
+        {formatValue(entry.value, format)}
+      </p>
     </div>
   );
 }
 
-// ── Widget renderers ───────────────────────────────────────────────────
+// ── Widgets ────────────────────────────────────────────────────────────
 
-function BarChartWidget({ data }: { data: ChartDataPoint[] }) {
+/**
+ * One measure across categories: one hue, values labelled on the bars. Long
+ * or many category names switch to horizontal bars so labels never collide.
+ */
+function BarChartWidget({ data, format }: { data: ChartDataPoint[]; format: ValueFormat }) {
+  const horizontal = data.length > 7 || data.some((d) => d.name.length > 12);
+  const label = (
+    <LabelList
+      dataKey="value"
+      position={horizontal ? "right" : "top"}
+      style={{ fontSize: 12, fill: "hsl(var(--foreground))", fontVariantNumeric: "tabular-nums" }}
+      formatter={(v: number) => (v ? formatValue(v, format) : "")}
+    />
+  );
+  const tooltip = <Tooltip cursor={{ fill: "hsl(var(--muted))" }} content={<ChartTooltip format={format} />} />;
+
+  if (horizontal) {
+    return (
+      <ResponsiveContainer width="100%" height={Math.max(160, data.length * 32 + 16)}>
+        <BarChart data={data} layout="vertical" margin={{ top: 0, right: 48, left: 0, bottom: 0 }} barCategoryGap="22%">
+          <XAxis type="number" hide allowDecimals={false} />
+          <YAxis
+            type="category"
+            dataKey="name"
+            tick={AXIS_TICK}
+            tickLine={false}
+            axisLine={false}
+            width={150}
+            interval={0}
+          />
+          {tooltip}
+          <Bar dataKey="value" fill={CHART_PRIMARY} radius={[0, 4, 4, 0]} maxBarSize={22} isAnimationActive={false}>
+            {label}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }
+
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis dataKey="name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
-        <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
-        <Tooltip content={<CustomTooltip />} />
-        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-          {data.map((_, index) => (
-            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-          ))}
+    <ResponsiveContainer width="100%" height={260}>
+      <BarChart data={data} margin={{ top: 20, right: 8, left: 0, bottom: 0 }} barCategoryGap="24%">
+        <CartesianGrid vertical={false} stroke={GRID_STROKE} />
+        <XAxis dataKey="name" tick={AXIS_TICK} tickLine={false} axisLine={{ stroke: GRID_STROKE }} interval={0} />
+        <YAxis
+          tick={AXIS_TICK}
+          tickLine={false}
+          axisLine={false}
+          width={52}
+          allowDecimals={false}
+          tickFormatter={(v: number) => formatValue(v, format)}
+        />
+        {tooltip}
+        <Bar dataKey="value" fill={CHART_PRIMARY} radius={[4, 4, 0, 0]} maxBarSize={56} isAnimationActive={false}>
+          {label}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-function DonutChartWidget({ data }: { data: ChartDataPoint[] }) {
+/** Change over time: one 2px line with a soft fill and visible points. */
+function LineChartWidget({ data, format }: { data: ChartDataPoint[]; format: ValueFormat }) {
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="50%"
-          innerRadius={60}
-          outerRadius={100}
-          paddingAngle={3}
-          dataKey="value"
-          nameKey="name"
-          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-          labelLine={true}
-        >
-          {data.map((_, index) => (
-            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip content={<CustomTooltip />} />
-        <Legend
-          verticalAlign="bottom"
-          height={36}
-          formatter={(value: string) => (
-            <span className="text-xs text-muted-foreground">{value}</span>
-          )}
-        />
-      </PieChart>
-    </ResponsiveContainer>
-  );
-}
-
-function LineChartWidget({ data }: { data: ChartDataPoint[] }) {
-  const extraKeys = data.length > 0
-    ? Object.keys(data[0]).filter((k) => k !== "name" && k !== "value")
-    : [];
-  const hasExtraKeys = extraKeys.length > 0;
-
-  return (
-    <ResponsiveContainer width="100%" height={300}>
-      <AreaChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+    <ResponsiveContainer width="100%" height={260}>
+      <AreaChart data={data} margin={{ top: 20, right: 12, left: 0, bottom: 0 }}>
         <defs>
-          {hasExtraKeys ? (
-            extraKeys.map((key, i) => (
-              <linearGradient key={key} id={`gradient-${key}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={CHART_COLORS[i % CHART_COLORS.length]} stopOpacity={0.3} />
-                <stop offset="95%" stopColor={CHART_COLORS[i % CHART_COLORS.length]} stopOpacity={0} />
-              </linearGradient>
-            ))
-          ) : (
-            <linearGradient id="gradient-value" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={CHART_COLORS[0]} stopOpacity={0.3} />
-              <stop offset="95%" stopColor={CHART_COLORS[0]} stopOpacity={0} />
-            </linearGradient>
-          )}
+          <linearGradient id="report-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={CHART_PRIMARY} stopOpacity={0.18} />
+            <stop offset="100%" stopColor={CHART_PRIMARY} stopOpacity={0} />
+          </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis dataKey="name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
-        <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
-        <Tooltip content={<CustomTooltip />} />
-        {hasExtraKeys ? (
-          extraKeys.map((key, i) => (
-            <Area
-              key={key}
-              type="monotone"
-              dataKey={key}
-              stroke={CHART_COLORS[i % CHART_COLORS.length]}
-              fill={`url(#gradient-${key})`}
-              strokeWidth={2}
-              name={key.charAt(0).toUpperCase() + key.slice(1)}
-            />
-          ))
-        ) : (
-          <Area
-            type="monotone"
-            dataKey="value"
-            stroke={CHART_COLORS[0]}
-            fill="url(#gradient-value)"
-            strokeWidth={2}
-            name="Value"
-          />
-        )}
-        {hasExtraKeys && <Legend />}
+        <CartesianGrid vertical={false} stroke={GRID_STROKE} />
+        <XAxis dataKey="name" tick={AXIS_TICK} tickLine={false} axisLine={{ stroke: GRID_STROKE }} />
+        <YAxis
+          tick={AXIS_TICK}
+          tickLine={false}
+          axisLine={false}
+          width={52}
+          allowDecimals={false}
+          tickFormatter={(v: number) => formatValue(v, format)}
+        />
+        <Tooltip
+          cursor={{ stroke: "hsl(var(--muted-foreground))", strokeDasharray: "3 3" }}
+          content={<ChartTooltip format={format} />}
+        />
+        <Area
+          type="monotone"
+          dataKey="value"
+          stroke={CHART_PRIMARY}
+          strokeWidth={2}
+          fill="url(#report-area)"
+          dot={{ r: 4, fill: CHART_PRIMARY, stroke: "hsl(var(--background))", strokeWidth: 2 }}
+          activeDot={{ r: 5, stroke: "hsl(var(--background))", strokeWidth: 2 }}
+          isAnimationActive={false}
+        />
       </AreaChart>
     </ResponsiveContainer>
   );
 }
 
-function KpiCardWidget({ data }: { data: KpiData }) {
+/**
+ * Share of a whole: palette in fixed order, "Other" in grey, and a labelled
+ * legend with counts and percentages so identity never relies on colour.
+ */
+function DonutChartWidget({ data, format }: { data: ChartDataPoint[]; format: ValueFormat }) {
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+  let paletteIndex = 0;
+  const slices = data.map((d) => ({
+    ...d,
+    fill: d.name === "Other" ? CHART_OTHER : CHART_PALETTE[paletteIndex++ % CHART_PALETTE.length],
+  }));
   return (
-    <div className="flex flex-col items-start justify-center h-full min-h-[120px]">
-      <p className="text-4xl font-bold tracking-tight">{data.value}</p>
-      <p className="text-sm text-muted-foreground mt-1">{data.label}</p>
-      {data.trend && (
-        <p className={`text-xs mt-2 font-medium ${data.trend.isPositive ? "text-green-600" : "text-red-600"}`}>
-          {data.trend.isPositive ? "+" : "-"}{Math.abs(data.trend.value)}% from last month
-        </p>
-      )}
+    <div className="flex flex-col items-center gap-6 sm:flex-row">
+      <div className="relative h-[220px] w-[220px] shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={slices}
+              dataKey="value"
+              nameKey="name"
+              innerRadius={62}
+              outerRadius={100}
+              paddingAngle={0}
+              stroke="hsl(var(--background))"
+              strokeWidth={2}
+              isAnimationActive={false}
+            >
+              {slices.map((slice) => (
+                <Cell key={slice.name} fill={slice.fill} />
+              ))}
+            </Pie>
+            <Tooltip content={<ChartTooltip format={format} />} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-xl font-semibold tabular-nums tracking-tight">{formatValue(total, format)}</span>
+          <span className="text-xs text-muted-foreground">Total</span>
+        </div>
+      </div>
+      <ul className="w-full min-w-0 flex-1 space-y-1.5 text-[13px]">
+        {slices.map((slice) => (
+          <li key={slice.name} className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: slice.fill }} />
+            <span className="min-w-0 flex-1 truncate">{slice.name}</span>
+            <span className="tabular-nums text-foreground">{formatValue(slice.value, format)}</span>
+            <span className="w-10 text-right tabular-nums text-muted-foreground">
+              {total > 0 ? Math.round((slice.value / total) * 100) : 0}%
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 
 function DataTableWidget({ data }: { data: TableData }) {
+  if (data.rows.length === 0) return <EmptyWidget message="Nothing to show yet." />;
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+    <div className="-mx-4 overflow-x-auto">
+      <table className="w-full text-[13px]">
         <thead>
-          <tr className="border-b">
+          <tr className="border-y bg-muted/40">
             {data.headers.map((h) => (
-              <th key={h} className="text-left py-2.5 px-3 font-medium text-muted-foreground">{h}</th>
+              <th key={h} className="h-8 px-4 text-left text-xs font-medium text-muted-foreground">
+                {h}
+              </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {data.rows.map((row, rowIdx) => (
-            <tr key={rowIdx} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+            <tr key={rowIdx} className="border-b last:border-0 hover:bg-muted/40">
               {row.map((cell, cellIdx) => (
-                <td key={cellIdx} className="py-2.5 px-3">{cell}</td>
+                <td key={cellIdx} className={cn("h-10 px-4 tabular-nums", cellIdx > 0 && "text-muted-foreground")}>
+                  {cellIdx === 0 && data.rowHrefs?.[rowIdx] ? (
+                    <Link prefetch={false} href={data.rowHrefs[rowIdx]} className="font-medium text-foreground hover:underline">
+                      {cell}
+                    </Link>
+                  ) : (
+                    cell
+                  )}
+                </td>
               ))}
             </tr>
           ))}
@@ -207,118 +267,112 @@ function DataTableWidget({ data }: { data: TableData }) {
   );
 }
 
-// ── Widget renderer dispatcher ─────────────────────────────────────────
+function EmptyWidget({ message }: { message: string }) {
+  return <div className="flex h-[200px] items-center justify-center text-[13px] text-muted-foreground">{message}</div>;
+}
 
-function WidgetRenderer({ widget }: { widget: WidgetConfig }) {
+function ChartWidget({ widget }: { widget: WidgetConfig }) {
   const data = queryDataSource(widget.dataSource);
-
-  if (!data) {
-    return (
-      <div className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
-        No data available
-      </div>
-    );
+  if (!data) return <EmptyWidget message="No data available" />;
+  const format = dataSourceFormat(widget.dataSource);
+  const points = data as ChartDataPoint[];
+  const isChart = widget.type === "bar-chart" || widget.type === "line-chart" || widget.type === "donut-chart";
+  if (isChart && (!Array.isArray(data) || points.every((p) => !p.value))) {
+    return <EmptyWidget message="No data for this period yet." />;
   }
-
   switch (widget.type) {
     case "bar-chart":
-      return <BarChartWidget data={data as ChartDataPoint[]} />;
-    case "donut-chart":
-      return <DonutChartWidget data={data as ChartDataPoint[]} />;
+      return <BarChartWidget data={points} format={format} />;
     case "line-chart":
-      return <LineChartWidget data={data as ChartDataPoint[]} />;
-    case "kpi-card":
-      return <KpiCardWidget data={data as KpiData} />;
+      return <LineChartWidget data={points} format={format} />;
+    case "donut-chart":
+      return <DonutChartWidget data={points} format={format} />;
     case "data-table":
       return <DataTableWidget data={data as TableData} />;
     default:
-      return (
-        <div className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
-          Unknown widget type
-        </div>
-      );
+      return <EmptyWidget message="Unknown widget type" />;
   }
 }
 
-// ── Report detail page ─────────────────────────────────────────────────
+function KpiTile({ widget }: { widget: WidgetConfig }) {
+  const data = queryDataSource(widget.dataSource) as KpiData | null;
+  return (
+    <div className="rounded-lg border bg-background px-4 py-3">
+      <div className="text-xs text-muted-foreground">{widget.title}</div>
+      <div className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{data?.value ?? "—"}</div>
+      <div className="mt-0.5 text-xs text-muted-foreground">{data?.label ?? "No data available"}</div>
+    </div>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────
 
 export default function ReportDetailPage() {
   const params = useParams();
-  const router = useRouter();
-  const [report, setReport] = useState<ReportDefinition | null>(null);
+  const [report, setReport] = useState<ReportDefinition | null | undefined>(undefined);
   const [refreshKey, setRefreshKey] = useState(0);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const loadReport = useCallback(() => {
-    const id = params.id as string;
-    const found = getReportById(id);
-    setReport(found ?? null);
+    setReport(getReportById(params.id as string) ?? null);
   }, [params.id]);
 
   useEffect(() => {
     loadReport();
   }, [loadReport, refreshKey]);
 
-  if (!report) {
-    return (
-      <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
-        <div className="flex items-center gap-2 mb-8">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/reports")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-3xl font-bold">Report not found</h1>
-        </div>
-        <p className="text-muted-foreground">
-          The report you are looking for does not exist.
-        </p>
-      </main>
-    );
-  }
+  if (report === undefined) return null;
+  if (report === null) return <RecordNotFound noun="report" href="/reports" label="Back to Reports" />;
+
+  const kpis = report.widgets.filter((w) => w.type === "kpi-card");
+  const panels = report.widgets.filter((w) => w.type !== "kpi-card");
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/reports")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{report.title}</h1>
-            <p className="text-muted-foreground mt-1">{report.description}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {!report.isBuiltIn && (
-            <Button
-              variant="outline"
-              size="icon"
-              className="text-destructive hover:text-destructive"
-              aria-label="Delete report"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 className="h-4 w-4" />
+    <main className="mx-auto w-full max-w-[1200px] px-8 py-6">
+      <nav aria-label="Breadcrumb" className="mb-1.5 flex items-center gap-1 text-[13px] text-muted-foreground">
+        <Link href="/reports" className="transition-colors hover:text-foreground">
+          Reports
+        </Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+      </nav>
+      <PageHeader
+        title={report.title}
+        description={report.description}
+        actions={
+          <>
+            {!report.isBuiltIn && (
+              <Button variant="outline" size="icon" aria-label="Delete report" onClick={() => setDeleteOpen(true)}>
+                <Trash2 />
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setRefreshKey((k) => k + 1)}>
+              <RefreshCw />
+              Refresh data
             </Button>
-          )}
-          <Button variant="outline" onClick={() => setRefreshKey((k) => k + 1)}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh data
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
-      {/* Widget grid */}
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2" key={refreshKey}>
-        {report.widgets.map((widget) => (
-          <Card key={widget.id} className={widget.span === 2 ? "md:col-span-2" : ""}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-medium">{widget.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <WidgetRenderer widget={widget} />
-            </CardContent>
-          </Card>
-        ))}
+      <div key={refreshKey} className="space-y-4">
+        {kpis.length > 0 && (
+          <div className={cn("grid grid-cols-2 gap-3", kpis.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
+            {kpis.map((widget) => (
+              <KpiTile key={widget.id} widget={widget} />
+            ))}
+          </div>
+        )}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {panels.map((widget) => (
+            <section
+              key={widget.id}
+              aria-label={widget.title}
+              className={cn("rounded-lg border bg-background px-4 pb-4 pt-3", widget.span === 2 && "lg:col-span-2")}
+            >
+              <h2 className="mb-3 text-[13px] font-medium">{widget.title}</h2>
+              <ChartWidget widget={widget} />
+            </section>
+          ))}
+        </div>
       </div>
 
       {!report.isBuiltIn && (
