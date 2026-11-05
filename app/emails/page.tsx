@@ -1,10 +1,6 @@
-import { Metadata } from "next";
-import { EmailsClient } from "./emails-client";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Emails",
-};
-
-export default function EmailsPage() {
-  return <EmailsClient />;
+/** Sent emails now live in the Inbox. Keeps ?new=email working for compose. */
+export default function EmailsPage({ searchParams }: { searchParams: { new?: string } }) {
+  redirect(searchParams.new === "email" ? "/inbox?view=emails&new=email" : "/inbox?view=emails");
 }

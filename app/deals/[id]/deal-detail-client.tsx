@@ -42,10 +42,12 @@ import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
 import type { Person } from "@/types/person";
 import type { Task } from "@/types/task";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export function DealDetailClient({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { user } = useAuth();
+  const confirm = useConfirm();
   const [deal, setDeal] = useState<Deal | null | undefined>(undefined);
   const [organization, setOrganization] = useState<Organization | undefined>();
   const [contacts, setContacts] = useState<Person[]>([]);
@@ -93,8 +95,8 @@ export function DealDetailClient({ params }: { params: { id: string } }) {
     toast.success(message);
   };
 
-  const handleDelete = () => {
-    if (!confirm(`Delete “${deal.title}”? This can't be undone.`)) return;
+  const handleDelete = async () => {
+    if (!(await confirm({ title: `Delete “${deal.title}”?`, confirmLabel: "Delete deal" }))) return;
     deleteDeal(deal.id);
     toast.success(`Deleted “${deal.title}”`);
     router.push("/deals");

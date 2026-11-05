@@ -5,15 +5,14 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  Bell,
   Building2,
   CheckSquare,
   ChevronsUpDown,
   CircleDollarSign,
   FileBarChart,
+  Inbox,
   Kanban,
   LogOut,
-  Mail,
   Plus,
   Search,
   Settings,
@@ -55,7 +54,6 @@ const RECORDS: NavEntry[] = [
 
 const WORKSPACE: NavEntry[] = [
   { href: "/", label: "Pipeline", icon: Kanban },
-  { href: "/emails", label: "Emails", icon: Mail },
   { href: "/notes", label: "Notes", icon: StickyNote },
   { href: "/reports", label: "Reports", icon: FileBarChart },
 ];
@@ -151,7 +149,7 @@ export function Sidebar() {
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/profile/edit">
+              <Link href="/settings">
                 <User />
                 Profile settings
               </Link>
@@ -193,7 +191,7 @@ export function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto px-2 pb-3" aria-label="Main">
         <NavSection>
-          <NavLink href="/notifications" label="Notifications" icon={Bell} active={isActive("/notifications")}>
+          <NavLink href="/inbox" label="Inbox" icon={Inbox} active={isActive("/inbox")}>
             {unreadCount > 0 && (
               <span className="ml-auto min-w-[18px] rounded-full bg-blue-600 px-1.5 text-center text-[11px] font-medium leading-4 text-white">
                 {unreadCount}
@@ -262,7 +260,7 @@ export function Sidebar() {
         {isAdmin && (
           <NavLink href="/team" label="Team" icon={UsersRound} active={isActive("/team")} />
         )}
-        <NavLink href="/profile/edit" label="Settings" icon={Settings} active={isActive("/profile")} />
+        <NavLink href="/settings" label="Settings" icon={Settings} active={isActive("/settings")} />
       </div>
     </aside>
   );

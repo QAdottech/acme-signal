@@ -1,8 +1,13 @@
 import { Organization } from "@/types/organization";
 import { Person } from "@/types/person";
 import type { Deal } from "@/types/deal";
+import { isDemoBugEnabled } from "@/lib/demo-bugs";
 
 export function exportToCSV(data: any[], filename: string) {
+  // DEMO BUG: export-skips-first-row
+  if (isDemoBugEnabled("export-skips-first-row") && data.length > 1) {
+    data = data.slice(1);
+  }
   if (data.length === 0) {
     alert("No data to export");
     return;

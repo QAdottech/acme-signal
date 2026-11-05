@@ -27,6 +27,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useConfirm } from "@/components/confirm-dialog";
 
 interface EditCollectionModalProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ export function EditCollectionModal({
   collection,
   organizations,
 }: EditCollectionModalProps) {
+  const confirm = useConfirm();
   const [name, setName] = useState(collection.name);
   const [description, setDescription] = useState(collection.description);
   const [tags, setTags] = useState<string[]>(collection.tags || []);
@@ -94,8 +96,8 @@ export function EditCollectionModal({
     setOrganizationIds(organizationIds.filter((id) => id !== orgId));
   };
 
-  const handleDelete = () => {
-    if (window.confirm("Are you sure you want to delete this list?")) {
+  const handleDelete = async () => {
+    if (await confirm({ title: `Delete “${collection.name}”?`, description: "Companies in the list are not deleted.", confirmLabel: "Delete list" })) {
       onDelete(collection.id);
     }
   };
