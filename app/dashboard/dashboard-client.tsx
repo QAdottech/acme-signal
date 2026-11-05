@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { StatsCard } from "@/components/stats-card";
+import { CustomerCard } from "@/components/customer-card";
 import { ActivityFeed } from "@/components/activity-feed";
 import { ActiveDealsModal } from "@/components/active-deals-modal";
 import {
@@ -9,7 +10,6 @@ import {
   Users,
   FolderKanban,
   TrendingUp,
-  DollarSign,
   Target,
 } from "lucide-react";
 import { getOrganizations } from "@/lib/organizationData";
@@ -52,9 +52,9 @@ export function DashboardClient() {
   }, []);
 
   // Calculate stats
-  const activeCustomers = organizations.filter(
+  const customerOrganizations = organizations.filter(
     (org) => org.dealStage === "Customer"
-  ).length;
+  );
 
   const pipelineOrganizations = organizations.filter(
     (org) =>
@@ -147,11 +147,8 @@ export function DashboardClient() {
             trend={{ value: 8, isPositive: true }}
             onClick={() => setShowPipelineModal(true)}
           />
-          <StatsCard
-            title="Active Customers"
-            value={activeCustomers}
-            description="Current customers"
-            icon={DollarSign}
+          <CustomerCard
+            customers={customerOrganizations}
             trend={{ value: 5, isPositive: true }}
           />
           <StatsCard
