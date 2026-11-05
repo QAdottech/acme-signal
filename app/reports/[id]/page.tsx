@@ -77,10 +77,11 @@ function ChartTooltip({
 
 /**
  * One measure across categories: one hue, values labelled on the bars. Long
- * or many category names switch to horizontal bars so labels never collide.
+ * names or more than six categories switch to horizontal bars, so labels
+ * never clip or collide in a half-width panel.
  */
 function BarChartWidget({ data, format }: { data: ChartDataPoint[]; format: ValueFormat }) {
-  const horizontal = data.length > 7 || data.some((d) => d.name.length > 12);
+  const horizontal = data.length > 6 || data.some((d) => d.name.length > 12);
   const label = (
     <LabelList
       dataKey="value"

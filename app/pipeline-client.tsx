@@ -87,8 +87,9 @@ function DroppableColumn({
   });
 
   const columnTotal = deals.reduce((sum, d) => sum + d.value, 0);
+  // Each deal's own probability, as on the Deals table and deal pages.
   const columnWeighted = deals.reduce(
-    (sum, d) => sum + d.value * (probability / 100),
+    (sum, d) => sum + d.value * (d.probability / 100),
     0
   );
 

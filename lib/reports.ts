@@ -171,14 +171,16 @@ export interface TableData {
 export type ValueFormat = "currency" | "count";
 
 const OPEN_STAGES: DealStage[] = ["New", "Lead", "Qualified", "Proposal", "Negotiation"];
-const ALL_DEAL_STAGES: DealStage[] = [...OPEN_STAGES, "Customer", "Closed Lost"];
+const ALL_DEAL_STAGES: DealStage[] = [...OPEN_STAGES, "Customer", "Closed Lost", "Churned"];
+/** Deals that were won. A churned customer was still a won deal. */
+const WON_STAGES: DealStage[] = ["Customer", "Churned"];
 const MONTH_COUNT = 6;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
 const openDeals = (deals: Deal[]) => deals.filter((d) => OPEN_STAGES.includes(d.stage));
-const wonDeals = (deals: Deal[]) => deals.filter((d) => d.stage === "Customer");
+const wonDeals = (deals: Deal[]) => deals.filter((d) => WON_STAGES.includes(d.stage));
 
 /** The last six calendar months, oldest first, keyed by year and month. */
 function recentMonths(): { key: string; name: string }[] {
@@ -206,16 +208,23 @@ function sumByMonth<T>(items: T[], dateOf: (item: T) => string | undefined, valu
   return recentMonths().map(({ key, name }) => ({ name, value: totals.get(key) ?? 0 }));
 }
 
-/** Count by key, largest first, folding everything past `limit` into "Other". */
-function countBy(keys: string[], limit: number): ChartDataPoint[] {
-  const counts = new Map<string, number>();
-  keys.forEach((key) => counts.set(key, (counts.get(key) ?? 0) + 1));
-  const sorted = Array.from(counts, ([name, value]) => ({ name, value })).sort(
+/**
+ * Total a value per key, largest first, folding everything past `limit` into
+ * "Other" so the bars always add up to the whole.
+ */
+function totalBy<T>(items: T[], keyOf: (item: T) => string, valueOf: (item: T) => number, limit: number): ChartDataPoint[] {
+  const totals = new Map<string, number>();
+  items.forEach((item) => totals.set(keyOf(item), (totals.get(keyOf(item)) ?? 0) + valueOf(item)));
+  const sorted = Array.from(totals, ([name, value]) => ({ name, value })).sort(
     (a, b) => b.value - a.value || a.name.localeCompare(b.name)
   );
   if (sorted.length <= limit) return sorted;
   const rest = sum(sorted.slice(limit - 1).map((p) => p.value));
   return [...sorted.slice(0, limit - 1), { name: "Other", value: rest }];
+}
+
+function countBy(keys: string[], limit: number): ChartDataPoint[] {
+  return totalBy(keys, (key) => key, () => 1, limit);
 }
 
 // Pipeline ──────────────────────────────────────────────────────────────
@@ -228,7 +237,7 @@ function getPipelineValueKpi(): KpiData {
 function getWeightedPipelineKpi(): KpiData {
   const open = openDeals(getDeals());
   const weighted = sum(open.map((d) => (d.value * d.probability) / 100));
-  return { value: formatCurrency(Math.round(weighted)), label: "Value × stage probability" };
+  return { value: formatCurrency(Math.round(weighted)), label: "Value × each deal's win probability" };
 }
 
 function getWinRateKpi(): KpiData {
@@ -241,7 +250,10 @@ function getWinRateKpi(): KpiData {
 
 function getDealsByStage(): ChartDataPoint[] {
   const deals = getDeals();
-  return ALL_DEAL_STAGES.map((stage) => ({ name: stage, value: deals.filter((d) => d.stage === stage).length }));
+  // Every stage in board order; Churned only once a deal is in it.
+  return ALL_DEAL_STAGES.map((stage) => ({ name: stage, value: deals.filter((d) => d.stage === stage).length })).filter(
+    (point) => point.name !== "Churned" || point.value > 0
+  );
 }
 
 function getDealValueByStage(): ChartDataPoint[] {
@@ -304,16 +316,8 @@ function getDealsByOwner(): ChartDataPoint[] {
 }
 
 function getDealValueByIndustry(): ChartDataPoint[] {
-  const deals = getDeals();
   const industryOf = new Map(getOrganizations().map((o) => [o.id, o.industry]));
-  const totals = new Map<string, number>();
-  for (const deal of deals) {
-    const industry = industryOf.get(deal.organizationId) ?? "Unknown";
-    totals.set(industry, (totals.get(industry) ?? 0) + deal.value);
-  }
-  return Array.from(totals, ([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 8);
+  return totalBy(getDeals(), (d) => industryOf.get(d.organizationId) ?? "Unknown", (d) => d.value, 8);
 }
 
 // Contacts & companies ──────────────────────────────────────────────────

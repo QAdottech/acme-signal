@@ -558,14 +558,25 @@ export const STAGE_PROBABILITIES: Record<string, number> = {
   "Closed Lost": 0,
 };
 
+const CLOSING_STAGES: DealStage[] = ["Customer", "Closed Lost"];
+
 /**
  * Move a deal to a stage. Probability follows the stage's default, the same
- * rule the pipeline board applies when a card is dragged.
+ * rule the pipeline board applies when a card is dragged. Winning or losing
+ * an open deal sets its close date to today, so it lands in this month's
+ * reports.
  */
+function todayISO(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
 export function withStage(deal: Deal, stage: DealStage): Deal {
+  const closesNow = CLOSING_STAGES.includes(stage) && !CLOSING_STAGES.includes(deal.stage) && deal.stage !== "Churned";
   return {
     ...deal,
     stage,
+    ...(closesNow ? { expectedCloseDate: todayISO() } : {}),
     probability: isDemoBugEnabled("stale-probability") // DEMO BUG: stale-probability
       ? deal.probability
       : STAGE_PROBABILITIES[stage] ?? deal.probability,
