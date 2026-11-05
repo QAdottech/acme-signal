@@ -493,7 +493,10 @@ export function deleteOrganization(id: string): void {
  * Set which lists a company belongs to. Lists are stored on both sides
  * (company.collections and list.organizationIds), so both are updated.
  */
-export function setOrganizationLists(id: string, listIds: string[]): Organization | undefined {
+export function setOrganizationLists(id: string, requestedListIds: string[]): Organization | undefined {
+  // Ignore lists that no longer exist (deleted in another tab).
+  const existing = new Set(getCollections().map((list) => list.id));
+  const listIds = requestedListIds.filter((listId) => existing.has(listId));
   saveCollections(
     getCollections().map((collection) => {
       const others = collection.organizationIds.filter((orgId) => orgId !== id);
@@ -506,4 +509,87 @@ export function setOrganizationLists(id: string, listIds: string[]): Organizatio
   const updated = updateOrganization(id, { collections: listIds });
   if (typeof window !== "undefined") window.dispatchEvent(new Event("collections-updated"));
   return updated;
+}
+
+function notifyListsChanged() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("collections-updated"));
+}
+
+export function getList(id: string): Collection | undefined {
+  return getCollections().find((list) => list.id === id);
+}
+
+export function createList(details: Pick<Collection, "name" | "description" | "tags">): Collection {
+  const list: Collection = {
+    ...details,
+    id: Math.random().toString(36).slice(2, 11),
+    organizationIds: [],
+  };
+  saveCollections([...getCollections(), list]);
+  notifyListsChanged();
+  return list;
+}
+
+/** Rename or re-describe a list. Membership is changed with add/removeCompanies. */
+export function updateListDetails(
+  id: string,
+  details: Partial<Pick<Collection, "name" | "description" | "tags">>
+): Collection | undefined {
+  let updated: Collection | undefined;
+  saveCollections(
+    getCollections().map((list) => {
+      if (list.id !== id) return list;
+      updated = { ...list, ...details };
+      return updated;
+    })
+  );
+  notifyListsChanged();
+  return updated;
+}
+
+/** Delete a list and drop it from every company that referenced it. */
+export function deleteList(id: string): void {
+  saveCollections(getCollections().filter((list) => list.id !== id));
+  saveOrganizations(
+    getOrganizations().map((org) =>
+      org.collections?.includes(id)
+        ? { ...org, collections: org.collections.filter((listId) => listId !== id) }
+        : org
+    )
+  );
+  notifyListsChanged();
+}
+
+/**
+ * Add or remove companies from a list, keeping both sides of the membership
+ * in sync. Does nothing (returns false) if the list no longer exists, e.g.
+ * it was deleted in another tab.
+ */
+function changeMembership(listId: string, orgIds: string[], add: boolean): boolean {
+  if (!getCollections().some((list) => list.id === listId)) return false;
+  const ids = new Set(orgIds);
+  saveCollections(
+    getCollections().map((list) => {
+      if (list.id !== listId) return list;
+      const others = list.organizationIds.filter((orgId) => !ids.has(orgId));
+      return { ...list, organizationIds: add ? [...others, ...orgIds] : others };
+    })
+  );
+  saveOrganizations(
+    getOrganizations().map((org) => {
+      if (!ids.has(org.id)) return org;
+      const others = (org.collections ?? []).filter((id) => id !== listId);
+      return { ...org, collections: add ? [...others, listId] : others };
+    })
+  );
+  notifyListsChanged();
+  return true;
+}
+
+export function addCompaniesToList(listId: string, orgIds: string[]): boolean {
+  return changeMembership(listId, orgIds, true);
+}
+
+export function removeCompaniesFromList(listId: string, orgIds: string[]): boolean {
+  return changeMembership(listId, orgIds, false);
 }

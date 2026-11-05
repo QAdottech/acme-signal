@@ -4,15 +4,17 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { AppShell } from "@/components/app-shell";
 import { PublicHeader } from "@/components/public-header";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { Toaster } from "sonner";
 import { ensureCurrentSeedData } from "@/lib/demo-data";
-import { applyDemoBugsFromUrl } from "@/lib/demo-bugs";
+import { applyDemoUrlParams } from "@/lib/demo-url";
 import { ConfirmProvider } from "@/components/confirm-dialog";
 
 // Runs on the client before any page reads seeded data from localStorage.
 ensureCurrentSeedData();
-// A demo link can switch demo bugs on or off with ?demoBugs=… before any page reads data.
-applyDemoBugsFromUrl();
+// A demo link can reset data (?resetDemo=1) and switch demo bugs (?demoBugs=…)
+// before any page reads data.
+applyDemoUrlParams();
 
 // Routes that don't require auth loading to complete before rendering
 const publicRoutes = [
@@ -25,6 +27,13 @@ const publicRoutes = [
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isLoading } = useAuth();
   const pathname = usePathname();
+
+  // Demo params can also arrive by client-side navigation, e.g. the redirect
+  // back from /login?from=/?resetDemo=1. Apply them and reload once so every
+  // page starts from the new state.
+  useEffect(() => {
+    if (applyDemoUrlParams()) window.location.reload();
+  }, [pathname]);
 
   const isPublicRoute = !pathname || publicRoutes.includes(pathname);
 

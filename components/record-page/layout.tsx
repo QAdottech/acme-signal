@@ -153,7 +153,7 @@ export function RecordListItem({
   );
   const className = "flex items-center gap-3 px-3 py-2.5";
   return href ? (
-    <Link href={href} className={`${className} transition-colors hover:bg-muted/50`}>
+    <Link prefetch={false} href={href} className={`${className} transition-colors hover:bg-muted/50`}>
       {inner}
     </Link>
   ) : (

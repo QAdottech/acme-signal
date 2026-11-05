@@ -22,6 +22,7 @@ export function SelectionBar<V extends string>({
   setField,
   onExport,
   onDelete,
+  deleteLabel = "Delete",
   onClear,
 }: {
   count: number;
@@ -35,6 +36,8 @@ export function SelectionBar<V extends string>({
   };
   onExport: () => void;
   onDelete: () => void;
+  /** e.g. "Remove from list" when the action doesn't delete records. */
+  deleteLabel?: string;
   onClear: () => void;
 }) {
   if (count === 0) return null;
@@ -80,7 +83,7 @@ export function SelectionBar<V extends string>({
           className={cn(barButton, "text-red-400 hover:text-red-300 dark:text-red-600 dark:hover:text-red-700")}
         >
           <Trash2 />
-          Delete
+          {deleteLabel}
         </button>
         <span className="h-4 w-px bg-background/20" />
         <button type="button" onClick={onClear} aria-label="Clear selection" className={barButton}>

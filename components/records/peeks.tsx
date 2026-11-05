@@ -26,6 +26,21 @@ import { buildTimeline, type TimelineItem } from "@/lib/timeline";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
 import type { Person } from "@/types/person";
+import type { Task } from "@/types/task";
+import { CalendarDays, CircleDashed, Link2, Signal, Trash2, Type, UserRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AttributeRow, AttributeSection, InlineText } from "@/components/record-page/attributes";
+import { formatDate } from "@/lib/format";
+import {
+  AssigneeCell,
+  CompleteToggle,
+  PriorityCell,
+  RelatedChip,
+  StatusCell,
+  StatusPill,
+  statusLabel,
+  type RelatedRecord,
+} from "@/components/records/task-cells";
 
 function RecentActivity({ items }: { items: TimelineItem[] }) {
   return (
@@ -214,6 +229,96 @@ export function PersonPeek({
         }}
       />
       <RecentActivity items={timeline} />
+    </RecordPeek>
+  );
+}
+
+export function TaskPeek({
+  task,
+  related,
+  onClose,
+  onChange,
+  onToggleDone,
+  onDelete,
+}: {
+  task: Task | null;
+  related: RelatedRecord | null;
+  onClose: () => void;
+  onChange: (changes: Partial<Task>, message: string) => void;
+  /** Complete or reopen, with the same Undo toast as the table's circle. */
+  onToggleDone: () => void;
+  onDelete: () => void;
+}) {
+  if (!task) return null;
+  return (
+    <RecordPeek
+      open={!!task}
+      onOpenChange={(open) => !open && onClose()}
+      title={task.title}
+      avatar={
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+          <CompleteToggle task={task} onToggle={onToggleDone} />
+        </span>
+      }
+      subtitle={
+        <>
+          <StatusPill status={task.status} />
+          {task.dueDate && <span>Due {formatDate(task.dueDate)}</span>}
+        </>
+      }
+    >
+      <AttributeSection title="Task">
+        <AttributeRow icon={Type} label="Title">
+          <InlineText label="Title" value={task.title} onSave={(title) => title && onChange({ title }, "Title updated")} />
+        </AttributeRow>
+        <AttributeRow icon={CircleDashed} label="Status">
+          <StatusCell
+            value={task.status}
+            onChange={(status) =>
+              onChange(
+                { status, completedAt: status === "done" ? new Date().toISOString() : undefined },
+                `Marked ${statusLabel(status).toLowerCase()}`
+              )
+            }
+          />
+        </AttributeRow>
+        <AttributeRow icon={Signal} label="Priority">
+          <PriorityCell value={task.priority} onChange={(priority) => onChange({ priority }, "Priority updated")} />
+        </AttributeRow>
+        <AttributeRow icon={CalendarDays} label="Due date">
+          <InlineText
+            label="Due date"
+            type="date"
+            value={task.dueDate ?? ""}
+            format={formatDate}
+            onSave={(dueDate) => onChange({ dueDate: dueDate || undefined }, "Due date updated")}
+          />
+        </AttributeRow>
+        <AttributeRow icon={UserRound} label="Assignee">
+          <AssigneeCell value={task.assignee} onChange={(assignee) => onChange({ assignee }, `Assigned to ${assignee}`)} />
+        </AttributeRow>
+        <AttributeRow icon={Link2} label="Related to">
+          <span className="block py-1">
+            <RelatedChip related={related} />
+          </span>
+        </AttributeRow>
+      </AttributeSection>
+      <AttributeSection title="Description">
+        <InlineText
+          label="Description"
+          multiline
+          value={task.description ?? ""}
+          placeholder="Add details…"
+          onSave={(description) => onChange({ description: description || undefined }, "Description updated")}
+          className="text-[13px] leading-relaxed"
+        />
+      </AttributeSection>
+      <div className="px-5 py-4">
+        <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-500/10" onClick={onDelete}>
+          <Trash2 />
+          Delete task
+        </Button>
+      </div>
     </RecordPeek>
   );
 }

@@ -90,6 +90,15 @@
     letter-spacing: -0.011em;
   }
 
+  /*
+   * Radix modals set pointer-events: none on <body> while open. Toasts are
+   * rendered outside the modal, so without this their buttons (e.g. "Undo")
+   * can't be clicked while a dialog or side preview is open.
+   */
+  [data-sonner-toaster] {
+    pointer-events: auto;
+  }
+
   ::selection {
     background: hsl(var(--ring) / 0.2);
   }

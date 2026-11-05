@@ -12,6 +12,13 @@ describe("page authentication middleware", () => {
     expect(response.headers.get("location")).toBe(`${origin}/login?from=%2Fdeals%2Fdeal-a`);
   });
 
+  it("keeps the query string in the return path, so demo links survive login", () => {
+    const response = middleware(new NextRequest(`${origin}/deals?resetDemo=1&demoBugs=all`));
+    const location = new URL(response.headers.get("location")!);
+    expect(location.pathname).toBe("/login");
+    expect(location.searchParams.get("from")).toBe("/deals?resetDemo=1&demoBugs=all");
+  });
+
   it.each(["/login", "/customer/sign", "/network-test", "/turnstile-test", "/bot-test/docs", "/robots.txt"])(
     "allows anonymous access to %s", (path) => {
       const response = middleware(new NextRequest(`${origin}${path}`));
@@ -31,6 +38,20 @@ describe("page authentication middleware", () => {
     const response = middleware(new NextRequest(`${origin}${path}`));
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(`${origin}/login?from=${encodeURIComponent(path)}`);
+  });
+
+  it.each([
+    ["/deals?demoBugs=value-rounding", "/deals?demoBugs=value-rounding"],
+    ["/\\example.org", "/"],
+    ["//example.org", "/"],
+  ])("sends signed-in visitors on /login?from=%s to %s", (from, expected) => {
+    const response = middleware(new NextRequest(`${origin}/login?from=${encodeURIComponent(from)}`, {
+      headers: { cookie: "auth-token=test-user" },
+    }));
+    expect(response.status).toBe(307);
+    const location = new URL(response.headers.get("location")!);
+    expect(location.origin).toBe(origin);
+    expect(location.pathname + location.search).toBe(expected);
   });
 
   it("redirects signed-in visitors away from login", () => {

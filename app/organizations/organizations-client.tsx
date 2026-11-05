@@ -2,25 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  Building2,
-  CircleDashed,
-  Download,
-  Factory,
-  MapPin,
-  Plus,
-  UserRound,
-  Users,
-} from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddOrganizationModal } from "@/components/add-organization-modal";
 import { StageBadge } from "@/components/stage-badge";
 import {
   RecordTable,
   useRecordTableState,
-  type Column,
 } from "@/components/record-table/record-table";
-import { CompanyChip, Empty, OwnerCell, StageCell } from "@/components/record-table/cells";
 import {
   FilterMenu,
   SearchField,
@@ -31,6 +20,7 @@ import {
 } from "@/components/record-table/toolbar";
 import { RecordListLayout } from "@/components/record-table/layout";
 import { CompanyPeek } from "@/components/records/peeks";
+import { companyColumns } from "@/components/records/company-columns";
 import { SelectionBar } from "@/components/record-table/selection-bar";
 import { getOrganizations, saveOrganizations } from "@/lib/organizationData";
 import { exportOrganizationsToCSV } from "@/lib/exportUtils";
@@ -100,73 +90,7 @@ export function OrganizationsClient() {
   }, [organizations, filters, searchTerm]);
   const visibleOrganizations = useMemo(() => applySearchBug(matching, searchTerm), [matching, searchTerm]);
 
-  const columns: Column<Organization>[] = [
-    {
-      id: "name",
-      header: "Company",
-      icon: Building2,
-      width: 240,
-      sortValue: (o) => o.name.toLowerCase(),
-      cell: (o) => (
-        <span className="font-medium">
-          <CompanyChip name={o.name} logo={o.logo} href={`/organizations/${o.id}`} />
-        </span>
-      ),
-      footer: (rows) => `${rows.length} ${rows.length === 1 ? "company" : "companies"}`,
-    },
-    {
-      id: "stage",
-      header: "Stage",
-      icon: CircleDashed,
-      width: 150,
-      sortValue: (o) => STAGES.indexOf(o.dealStage),
-      cell: (o) => (
-        <StageCell
-          value={o.dealStage}
-          onChange={(stage) => updateOrganization(o.id, { dealStage: stage }, `Moved ${o.name} to ${stage}`)}
-        />
-      ),
-    },
-    {
-      id: "industry",
-      header: "Industry",
-      icon: Factory,
-      width: 200,
-      sortValue: (o) => o.industry.toLowerCase(),
-      cell: (o) => o.industry || <Empty />,
-    },
-    {
-      id: "location",
-      header: "Location",
-      icon: MapPin,
-      width: 200,
-      sortValue: (o) => o.location.toLowerCase(),
-      cell: (o) => o.location || <Empty />,
-    },
-    {
-      id: "employees",
-      header: "Employees",
-      icon: Users,
-      width: 120,
-      align: "right",
-      firstSortDirection: "desc",
-      sortValue: (o) => o.employees,
-      cell: (o) => o.employees.toLocaleString("en-US"),
-    },
-    {
-      id: "owner",
-      header: "Owner",
-      icon: UserRound,
-      width: 180,
-      sortValue: (o) => (o.owner ?? "").toLowerCase(),
-      cell: (o) => (
-        <OwnerCell
-          value={o.owner}
-          onChange={(owner) => updateOrganization(o.id, { owner }, `${owner} now owns ${o.name}`)}
-        />
-      ),
-    },
-  ];
+  const columns = companyColumns(updateOrganization);
 
   const handleBulkStage = (stage: DealStage) => {
     const count = selectedIds.size;

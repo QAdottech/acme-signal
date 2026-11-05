@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { safeReturnPath } from "@/lib/safe-path";
 
 const BASIC_AUTH_USERNAME = "username";
 const BASIC_AUTH_PASSWORD = "p4ssw0rd";
@@ -77,14 +78,17 @@ export function middleware(request: NextRequest) {
   // If not authenticated and trying to access protected route, redirect to login
   if (!isAuthenticated && !isPublicRoute) {
     const loginUrl = new URL("/login", request.url);
-    // Preserve the original URL to redirect back after login
-    loginUrl.searchParams.set("from", pathname);
+    // Preserve the original URL, query included (e.g. ?demoBugs=… demo links),
+    // to redirect back after login
+    loginUrl.searchParams.set("from", pathname + request.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 
-  // If authenticated and trying to access auth pages, redirect to home (pipeline)
+  // Signed-in visitors don't need the login page: send them where the login
+  // link was going (e.g. a demo link with ?resetDemo/?demoBugs), or home.
   if (isAuthenticated && isAuthRoute) {
-    return NextResponse.redirect(new URL("/", request.url));
+    const target = safeReturnPath(request.nextUrl.searchParams.get("from"), request.nextUrl.origin);
+    return NextResponse.redirect(new URL(target, request.url));
   }
 
   return NextResponse.next();

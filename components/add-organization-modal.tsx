@@ -227,6 +227,8 @@ export function AddOrganizationModal({
                 {logoPreview ? (
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
+                      {/* Uploaded logos are data URLs, which next/image doesn't optimize. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={logoPreview || "/placeholder.svg"}
                         alt="Logo preview"
