@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { safeReturnPath } from "@/lib/safe-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,11 +31,16 @@ export function LoginForm() {
 
     const success = login(email, password);
     if (success) {
-      // Redirect to the page they were trying to access, or home.
-      // Only same-site paths: "//evil.com" or "https://…" would be an open redirect.
-      const from = searchParams.get("from") ?? "";
-      const safeFrom = from.startsWith("/") && !from.startsWith("//") ? from : "/";
-      router.push(safeFrom);
+      // Redirect to the page they were trying to access, or home. Only
+      // same-site paths are followed (see safeReturnPath for the tricks).
+      const target = safeReturnPath(searchParams.get("from"), window.location.origin);
+      if (/[?&](resetDemo|demoBugs)=/.test(target)) {
+        // Demo links change stored data, so load the page fresh instead of
+        // navigating client-side and reloading mid-navigation.
+        window.location.assign(target);
+      } else {
+        router.push(target);
+      }
     } else {
       setError("Invalid email or password");
     }

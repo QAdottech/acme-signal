@@ -110,3 +110,9 @@ test("LISTS-01: list cards are single links with separate company links inside",
   await page.getByRole("link", { name: "Stockholm Startups", exact: true }).first().click();
   await expect(page).toHaveURL(/\/collections\/\w+$/);
 });
+
+test("DEMO-04: a signed-in user opening a demo link through /login still gets its settings", async ({ signedInPage: page }) => {
+  await page.goto(`/login?from=${encodeURIComponent("/deals?demoBugs=value-rounding")}`);
+  await expect(page).toHaveURL(/\/deals$/);
+  await expect(page.getByRole("row").filter({ hasText: "Biotech Research License" })).toContainText("$40K");
+});

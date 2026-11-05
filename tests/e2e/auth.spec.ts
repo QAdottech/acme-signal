@@ -30,7 +30,8 @@ test("AUTH-02: demo login, logout, return-path login, and session persistence", 
 });
 
 test("AUTH-03: the post-login return path only accepts same-site paths", async ({ page }) => {
-  for (const from of ["//example.com", "https://example.com/phish"]) {
+  // "/\\example.org" is the backslash bypass QA.tech found: browsers read "\" as "/".
+  for (const from of ["//example.com", "https://example.com/phish", "/\\example.org"]) {
     await page.goto(`/login?from=${encodeURIComponent(from)}`);
     await page.getByLabel("Email", { exact: true }).fill(account.email);
     await page.getByLabel("Password", { exact: true }).fill(account.password);

@@ -493,7 +493,10 @@ export function deleteOrganization(id: string): void {
  * Set which lists a company belongs to. Lists are stored on both sides
  * (company.collections and list.organizationIds), so both are updated.
  */
-export function setOrganizationLists(id: string, listIds: string[]): Organization | undefined {
+export function setOrganizationLists(id: string, requestedListIds: string[]): Organization | undefined {
+  // Ignore lists that no longer exist (deleted in another tab).
+  const existing = new Set(getCollections().map((list) => list.id));
+  const listIds = requestedListIds.filter((listId) => existing.has(listId));
   saveCollections(
     getCollections().map((collection) => {
       const others = collection.organizationIds.filter((orgId) => orgId !== id);
@@ -557,8 +560,13 @@ export function deleteList(id: string): void {
   notifyListsChanged();
 }
 
-/** Add or remove companies from a list, keeping both sides of the membership in sync. */
-function changeMembership(listId: string, orgIds: string[], add: boolean): void {
+/**
+ * Add or remove companies from a list, keeping both sides of the membership
+ * in sync. Does nothing (returns false) if the list no longer exists, e.g.
+ * it was deleted in another tab.
+ */
+function changeMembership(listId: string, orgIds: string[], add: boolean): boolean {
+  if (!getCollections().some((list) => list.id === listId)) return false;
   const ids = new Set(orgIds);
   saveCollections(
     getCollections().map((list) => {
@@ -575,12 +583,13 @@ function changeMembership(listId: string, orgIds: string[], add: boolean): void 
     })
   );
   notifyListsChanged();
+  return true;
 }
 
-export function addCompaniesToList(listId: string, orgIds: string[]): void {
-  changeMembership(listId, orgIds, true);
+export function addCompaniesToList(listId: string, orgIds: string[]): boolean {
+  return changeMembership(listId, orgIds, true);
 }
 
-export function removeCompaniesFromList(listId: string, orgIds: string[]): void {
-  changeMembership(listId, orgIds, false);
+export function removeCompaniesFromList(listId: string, orgIds: string[]): boolean {
+  return changeMembership(listId, orgIds, false);
 }

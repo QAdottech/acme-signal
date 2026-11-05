@@ -57,6 +57,8 @@ const EMPTY: Record<View, { searching: string; idle: string }> = {
   due_soon: { searching: "No due soon tasks found matching your search.", idle: "No tasks due in the next seven days." },
 };
 
+const UNDO_TOAST_MS = 15_000;
+
 const PRIORITY_RANK: Record<TaskPriority, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_LABELS: Record<TaskPriority, string> = { urgent: "Urgent", high: "High", medium: "Medium", low: "Low" };
 
@@ -96,6 +98,9 @@ export function TasksClient() {
     const done = task.status !== "done";
     change(task.id, { status: done ? "done" : "todo", completedAt: done ? new Date().toISOString() : undefined });
     toast.success(done ? `Completed “${task.title}”` : `Reopened “${task.title}”`, {
+      // Long enough to read and act on: the default 4s vanished before slower
+      // users (and QA agents) could reach Undo. Hovering pauses the timer.
+      duration: UNDO_TOAST_MS,
       action: {
         label: "Undo",
         onClick: () => change(task.id, { status: task.status, completedAt: task.completedAt }),
@@ -116,13 +121,25 @@ export function TasksClient() {
     [tasks]
   );
 
+  // One rule per view, used for both the rows and the tab's badge so the
+  // number on a tab always matches what the tab shows.
+  const inView = useCallback(
+    (task: Task, v: View): boolean => {
+      if (v === "overdue") return isOverdue(task);
+      if (v === "due_soon") return isDueSoon(task);
+      if (v === "my_tasks") return !!user && task.assignee === user.fullName;
+      return true;
+    },
+    [user]
+  );
+
   const counts = useMemo(
     () => ({
-      overdue: tasks.filter(isOverdue).length,
-      dueSoon: tasks.filter(isDueSoon).length,
-      mine: user ? tasks.filter((t) => t.assignee === user.fullName && t.status !== "done").length : 0,
+      overdue: tasks.filter((t) => inView(t, "overdue")).length,
+      dueSoon: tasks.filter((t) => inView(t, "due_soon")).length,
+      mine: tasks.filter((t) => inView(t, "my_tasks")).length,
     }),
-    [tasks, user]
+    [tasks, inView]
   );
 
   const visibleTasks = useMemo(() => {
@@ -131,16 +148,14 @@ export function TasksClient() {
       !filters[key]?.length || (!!value && filters[key].includes(value));
     return tasks.filter((task) => {
       if (term && !task.title.toLowerCase().includes(term)) return false;
-      if (view === "overdue" && !isOverdue(task)) return false;
-      if (view === "due_soon" && !isDueSoon(task)) return false;
-      if (view === "my_tasks" && (!user || task.assignee !== user.fullName)) return false;
+      if (!inView(task, view)) return false;
       return (
         matches("priority", PRIORITY_LABELS[task.priority]) &&
         matches("assignee", task.assignee) &&
         matches("status", statusLabel(task.status))
       );
     });
-  }, [tasks, searchTerm, view, filters, user]);
+  }, [tasks, searchTerm, view, filters, inView]);
 
   const columns: Column<Task>[] = [
     {

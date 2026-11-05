@@ -109,3 +109,14 @@ test("TASKS-04: completing from the task preview can be undone, and Undo works w
   await page.reload();
   await expect(row.getByRole("checkbox")).not.toBeChecked();
 });
+
+test("TASKS-05: Undo stays available long enough for a slow click", async ({ signedInPage: page }) => {
+  await page.getByRole("link", { name: "Tasks", exact: true }).click();
+  const row = page.getByRole("row").filter({ hasText: "Prepare Perplexity onboarding docs" });
+  await row.getByRole("checkbox").click();
+  await expect(row.getByRole("checkbox")).toBeChecked();
+  // The default 4s toast had already gone by the time QA.tech's agent clicked.
+  await page.waitForTimeout(6_000);
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(row.getByRole("checkbox")).not.toBeChecked();
+});

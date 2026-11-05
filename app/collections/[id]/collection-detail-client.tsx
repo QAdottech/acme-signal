@@ -125,7 +125,11 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
 
   const handleRemove = () => {
     const count = selectedIds.size;
-    removeCompaniesFromList(list.id, Array.from(selectedIds));
+    if (!removeCompaniesFromList(list.id, Array.from(selectedIds))) {
+      toast.error("This list no longer exists. It may have been deleted in another tab.");
+      refresh();
+      return;
+    }
     setSelectedIds(new Set());
     toast.success(`Removed ${count} ${count === 1 ? "company" : "companies"} from ${list.name}`);
   };
@@ -161,8 +165,12 @@ export function CollectionDetailClient({ params }: { params: { id: string } }) {
           <AddCompanies
             candidates={nonMembers}
             onAdd={(org) => {
-              addCompaniesToList(list.id, [org.id]);
-              toast.success(`Added ${org.name} to ${list.name}`);
+              if (addCompaniesToList(list.id, [org.id])) {
+                toast.success(`Added ${org.name} to ${list.name}`);
+              } else {
+                toast.error("This list no longer exists. It may have been deleted in another tab.");
+                refresh();
+              }
             }}
           />
         </>

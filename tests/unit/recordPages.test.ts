@@ -90,3 +90,18 @@ describe("list helpers", () => {
     expect(getOrganization("2")?.collections).not.toContain(list.id);
   });
 });
+
+describe("stale list actions", () => {
+  it("adding to or removing from a deleted list changes nothing", async () => {
+    const { createList, addCompaniesToList, removeCompaniesFromList, deleteList, setOrganizationLists } = await import(
+      "@/lib/organizationData"
+    );
+    const list = createList({ name: "Gone soon", description: "", tags: [] });
+    const before = getOrganization("1")?.collections ?? [];
+    deleteList(list.id);
+    expect(addCompaniesToList(list.id, ["1"])).toBe(false);
+    expect(removeCompaniesFromList(list.id, ["1"])).toBe(false);
+    expect(getOrganization("1")?.collections).toEqual(before);
+    expect(setOrganizationLists("1", [list.id])?.collections).toEqual([]);
+  });
+});

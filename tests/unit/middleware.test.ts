@@ -40,6 +40,20 @@ describe("page authentication middleware", () => {
     expect(response.headers.get("location")).toBe(`${origin}/login?from=${encodeURIComponent(path)}`);
   });
 
+  it.each([
+    ["/deals?demoBugs=value-rounding", "/deals?demoBugs=value-rounding"],
+    ["/\\example.org", "/"],
+    ["//example.org", "/"],
+  ])("sends signed-in visitors on /login?from=%s to %s", (from, expected) => {
+    const response = middleware(new NextRequest(`${origin}/login?from=${encodeURIComponent(from)}`, {
+      headers: { cookie: "auth-token=test-user" },
+    }));
+    expect(response.status).toBe(307);
+    const location = new URL(response.headers.get("location")!);
+    expect(location.origin).toBe(origin);
+    expect(location.pathname + location.search).toBe(expected);
+  });
+
   it("redirects signed-in visitors away from login", () => {
     const response = middleware(new NextRequest(`${origin}/login`, {
       headers: { cookie: "auth-token=test-user" },
