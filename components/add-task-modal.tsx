@@ -25,6 +25,7 @@ import type { Task, TaskPriority, TaskStatus } from "@/types/task";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
 import type { Person } from "@/types/person";
+import { ASSIGNEES } from "@/lib/team";
 
 interface AddTaskModalProps {
   isOpen: boolean;
@@ -35,12 +36,7 @@ interface AddTaskModalProps {
   people: Person[];
 }
 
-const owners = [
-  "Sarah Johnson",
-  "Michael Chen",
-  "Emma Wilson",
-  "David Martinez",
-];
+const owners = ASSIGNEES;
 
 const priorities: { value: TaskPriority; label: string }[] = [
   { value: "low", label: "Low" },

@@ -37,7 +37,7 @@ export function PipelineHeader({
       <PageHeader
         className="mb-0"
         title="Sales Pipeline"
-        description={`${dealCount} deals · ${formatDealValue(totalValue)} total value`}
+        description={`${dealCount} open ${dealCount === 1 ? "deal" : "deals"} · ${formatDealValue(totalValue)} open pipeline`}
         actions={
           <Button onClick={openModal}>
             <Plus />

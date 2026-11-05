@@ -29,6 +29,8 @@ import { getStageStyle } from "@/lib/stages";
 import { useCreateIntent } from "@/lib/create-intent";
 import { isDemoBugEnabled } from "@/lib/demo-bugs";
 
+const CLOSED_STAGES = new Set(["Customer", "Closed Lost", "Churned"]);
+
 const pipelineStages: { id: string; name: DealStage }[] = [
   { id: "new", name: "New" },
   { id: "lead", name: "Lead" },
@@ -258,7 +260,10 @@ export function PipelineClient() {
     ? deals.find((d) => d.id === activeId)
     : null;
 
-  const totalPipelineValue = filteredDeals
+  // The header summarises open pipeline: won and lost deals have their own
+  // columns but aren't "in the pipeline" any more.
+  const openDeals = filteredDeals.filter((d) => !CLOSED_STAGES.has(d.stage));
+  const totalPipelineValue = openDeals
     // DEMO BUG: pipeline-total-mismatch
     .filter((d) => !(isDemoBugEnabled("pipeline-total-mismatch") && d.stage === "New"))
     .reduce((sum, d) => sum + d.value, 0);
@@ -280,7 +285,7 @@ export function PipelineClient() {
           filters={filters}
           onFiltersChange={setFilters}
           totalValue={totalPipelineValue}
-          dealCount={filteredDeals.length}
+          dealCount={openDeals.length}
         />
         <div className="mt-5">
           <div className="overflow-x-auto pb-4">

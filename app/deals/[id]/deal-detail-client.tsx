@@ -37,6 +37,7 @@ import { getPeople } from "@/lib/personData";
 import { addNote, deleteNote, getNotesForOrganization, type Note } from "@/lib/notesData";
 import { getTasksForDeal, toggleTaskDone } from "@/lib/taskData";
 import { buildTimeline } from "@/lib/timeline";
+import { getDealContext } from "@/lib/deal-context";
 import { formatDate } from "@/lib/format";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
@@ -80,6 +81,7 @@ export function DealDetailClient({ params }: { params: { id: string } }) {
         ? buildTimeline({
             notes,
             tasks,
+            ...getDealContext(deal),
             created: { timestamp: deal.createdAt, title: `${deal.owner} created this deal` },
           })
         : [],

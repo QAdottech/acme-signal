@@ -23,6 +23,7 @@ import { getNotesForOrganization, getNotesForPerson } from "@/lib/notesData";
 import { getTasksForDeal, getTasksForOrganization, getTasksForPerson } from "@/lib/taskData";
 import { getEmailsForOrganization, getEmails } from "@/lib/emailData";
 import { buildTimeline, type TimelineItem } from "@/lib/timeline";
+import { getDealContext } from "@/lib/deal-context";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
 import type { Person } from "@/types/person";
@@ -74,6 +75,7 @@ export function DealPeek({
         ? buildTimeline({
             notes: organization ? getNotesForOrganization(organization.id) : [],
             tasks: getTasksForDeal(deal.id),
+            ...getDealContext(deal),
             created: { timestamp: deal.createdAt, title: `${deal.owner} created this deal` },
           })
         : [],

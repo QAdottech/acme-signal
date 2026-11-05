@@ -52,7 +52,7 @@ export const SEEDED_STORAGE_KEYS = [
  * Bump when the seed data changes shape or content, so browsers that cached
  * an older copy pick up the new one on their next visit.
  */
-export const SEED_VERSION = "2";
+export const SEED_VERSION = "3";
 const SEED_VERSION_KEY = "acme-seed-version";
 
 /** Clear cached CRM records so every getter re-seeds from defaults. */
@@ -71,4 +71,14 @@ export function ensureCurrentSeedData(): void {
   } catch {
     // Storage unavailable (private mode etc.) — defaults are used anyway.
   }
+}
+
+/** ISO timestamp `days` (and `hours`) before now — for seeded activity. */
+export function daysAgo(days: number, hours = 0): string {
+  return new Date(Date.now() - (days * 24 + hours) * 60 * 60 * 1000).toISOString();
+}
+
+/** Plain `YYYY-MM-DD` date `days` from today (negative = in the past). */
+export function inDays(days: number): string {
+  return toISODate(new Date(startOfToday().getTime() + days * DAY_MS));
 }

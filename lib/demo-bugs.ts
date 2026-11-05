@@ -63,7 +63,7 @@ export const DEMO_BUGS = [
     id: "pipeline-total-mismatch",
     title: "Pipeline total ignores New deals",
     area: "Sales Pipeline header",
-    symptom: "The board's total value leaves out deals in the New column, so it disagrees with the Deals table.",
+    symptom: "The board's open pipeline total leaves out the New column, so it no longer equals the sum of the open columns' totals.",
   },
 ] as const satisfies readonly DemoBug[];
 

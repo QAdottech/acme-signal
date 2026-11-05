@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Building2, CheckCircle2, Circle, CircleDollarSign, UserRound } from "lucide-react";
 import { InlineSelect, PersonChip } from "@/components/record-table/cells";
-import { OWNERS } from "@/lib/team";
+import { ASSIGNEES } from "@/lib/team";
 import type { Task, TaskPriority, TaskStatus } from "@/types/task";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
@@ -89,7 +89,7 @@ export function AssigneeCell({ value, onChange }: { value?: string; onChange: (n
     <InlineSelect
       label="Assignee"
       value={value}
-      options={OWNERS}
+      options={ASSIGNEES}
       onChange={onChange}
       renderValue={(name) => (name ? <PersonChip name={name} /> : <span className="text-muted-foreground/60">—</span>)}
       renderOption={(name) => <PersonChip name={name} />}
