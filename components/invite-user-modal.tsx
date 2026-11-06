@@ -1,67 +1,64 @@
-"use client"
+"use client";
 
-import { useState } from 'react'
-import { useAuth } from '@/lib/auth-context'
-import { toast } from 'sonner'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { useState } from "react";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Combobox, Field, FormDialog } from "@/components/form-dialog";
+import { useAuth } from "@/lib/auth-context";
 
 interface InviteUserModalProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function InviteUserModal({ isOpen, onClose }: InviteUserModalProps) {
-  const [email, setEmail] = useState('')
-  const { inviteUser } = useAuth()
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    await inviteUser(email)
-    toast.success(`Invitation sent to ${email}`)
-    setEmail('')
-    onClose()
-  }
+export function InviteUserModal({ isOpen, onClose }: InviteUserModalProps) {
+  const { inviteUser } = useAuth();
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"admin" | "member">("member");
+
+  const close = () => {
+    setEmail("");
+    setRole("member");
+    onClose();
+  };
+
+  const submit = async () => {
+    try {
+      await inviteUser(email, role);
+      toast.success(`Invitation sent to ${email.trim()}`);
+      close();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't send the invitation.");
+    }
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Invite User</DialogTitle>
-          <DialogDescription>
-            Enter the email address of the user you want to invite to your team.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="submit">Invite</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
+    <FormDialog
+      open={isOpen}
+      onOpenChange={(open) => !open && close()}
+      title="Invite Member"
+      description="They'll get an email with a link to join this workspace."
+      submitLabel="Send Invite"
+      submitDisabled={!EMAIL.test(email.trim())}
+      onSubmit={submit}
+      size="sm"
+    >
+      <Field label="Email" htmlFor="invite-email" required wide>
+        <Input id="invite-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@company.com" autoFocus />
+      </Field>
+      <Field label="Role" htmlFor="invite-role" wide>
+        <Combobox
+          id="invite-role"
+          value={role}
+          onChange={(r) => setRole(r as "admin" | "member")}
+          options={[
+            { value: "member", label: "Member" },
+            { value: "admin", label: "Admin" },
+          ]}
+        />
+      </Field>
+    </FormDialog>
+  );
 }

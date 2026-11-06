@@ -148,6 +148,19 @@ export function PersonChip({ name }: { name: string }) {
   );
 }
 
+/** A company's 20px logo, or its initials when it has none. */
+export function CompanyLogo({ name, logo }: { name: string; logo?: string }) {
+  return (
+    <span aria-hidden className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
+      {logo ? (
+        <OrganizationImage src={logo} alt="" width={20} height={20} className="rounded" />
+      ) : (
+        <span className="text-[9px] font-semibold text-muted-foreground">{getInitials(name)}</span>
+      )}
+    </span>
+  );
+}
+
 /*
  * Links inside tables and record lists use prefetch={false}: Next.js would
  * otherwise prefetch every visible row's page and abort those requests on
@@ -164,15 +177,7 @@ export function CompanyChip({
 }) {
   const content = (
     <>
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
-        {logo ? (
-          <OrganizationImage src={logo} alt="" width={20} height={20} className="rounded" />
-        ) : (
-          <span className="text-[9px] font-semibold text-muted-foreground">
-            {getInitials(name)}
-          </span>
-        )}
-      </span>
+      <CompanyLogo name={name} logo={logo} />
       <span className="truncate">{name}</span>
     </>
   );

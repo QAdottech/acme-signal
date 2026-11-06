@@ -32,6 +32,7 @@ const screens: [name: string, path: string, ready: string][] = [
   ["lists-table", "/collections", "Lists"],
   ["list-page", "/collections/2", "Stockholm Startups"],
   ["settings", "/settings", "Settings"],
+  ["team", "/team", "Team"],
   ["reports", "/reports", "Reports"],
   ["report-pipeline", "/reports/pipeline-overview", "Pipeline Overview"],
   ["report-revenue", "/reports/revenue-deals", "Revenue & Deals"],
@@ -51,4 +52,19 @@ test("command menu looks right", async ({ page }) => {
   await page.keyboard.press("ControlOrMeta+k");
   await page.getByRole("dialog", { name: "Command menu" }).getByRole("combobox").fill("an");
   await expect(page).toHaveScreenshot("command-menu.png");
+});
+
+test("login looks right", async ({ page }) => {
+  await page.clock.setFixedTime(FIXED_NOW);
+  await page.goto("/login");
+  await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page).toHaveScreenshot("login.png");
+});
+
+test("create deal dialog looks right", async ({ page }) => {
+  await open(page, "/deals");
+  await page.getByRole("button", { name: "Add Deal", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Create Deal" })).toBeVisible();
+  await expect(page).toHaveScreenshot("create-deal-dialog.png");
 });

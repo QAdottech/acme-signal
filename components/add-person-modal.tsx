@@ -1,32 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Combobox, Field, FormDialog } from "@/components/form-dialog";
+import { getOrganizations } from "@/lib/organizationData";
 import type { Person } from "@/types/person";
 
 interface AddPersonModalProps {
@@ -35,223 +13,157 @@ interface AddPersonModalProps {
   onAdd: (person: Omit<Person, "id">) => void;
 }
 
-export function AddPersonModal({
+const EMPTY = {
+  name: "",
+  email: "",
+  role: "",
+  organization: "",
+  phone: "",
+  linkedIn: "",
+  notes: "",
+  status: "Active" as Person["status"],
+  lastContact: "",
+};
+
+export function AddPersonModal({ isOpen, onClose, onAdd }: AddPersonModalProps) {
+  return <PersonFormDialog isOpen={isOpen} onClose={onClose} onSubmit={onAdd} />;
+}
+
+/** Edit an existing person in the same form. */
+export function EditPersonModal({
+  isOpen,
+  person,
+  onClose,
+  onSave,
+}: {
+  isOpen: boolean;
+  person: Person | null;
+  onClose: () => void;
+  onSave: (person: Person) => void;
+}) {
+  if (!person) return null;
+  return (
+    <PersonFormDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      initial={person}
+      onSubmit={(values) => onSave({ ...values, id: person.id, avatar: person.avatar })}
+    />
+  );
+}
+
+function toForm(person?: Person): typeof EMPTY {
+  if (!person) return EMPTY;
+  return {
+    name: person.name,
+    email: person.email,
+    role: person.role ?? "",
+    organization: person.organization ?? "",
+    phone: person.phone ?? "",
+    linkedIn: person.linkedIn ?? "",
+    notes: person.notes ?? "",
+    status: person.status,
+    lastContact: person.lastContact ?? "",
+  };
+}
+
+function PersonFormDialog({
   isOpen,
   onClose,
-  onAdd,
-}: AddPersonModalProps) {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    role: "",
-    organization: "",
-    phone: "",
-    linkedIn: "",
-    notes: "",
-    status: "Active" as "Active" | "Inactive",
-    lastContact: "",
-  });
-  const [statusOpen, setStatusOpen] = useState(false);
+  onSubmit,
+  initial,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (person: Omit<Person, "id">) => void;
+  initial?: Person;
+}) {
+  const editing = !!initial;
+  const [form, setForm] = useState(() => toForm(initial));
+  useEffect(() => {
+    if (isOpen) setForm(toForm(initial));
+  }, [isOpen, initial]);
+  const set = (field: keyof typeof EMPTY, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onAdd(formData);
-    setFormData({
-      name: "",
-      email: "",
-      role: "",
-      organization: "",
-      phone: "",
-      linkedIn: "",
-      notes: "",
-      status: "Active",
-      lastContact: "",
-    });
+  // Suggest existing companies; any other name is kept as typed.
+  const companyNames = useMemo(
+    () => (isOpen ? getOrganizations().map((o) => o.name).sort((a, b) => a.localeCompare(b)) : []),
+    [isOpen]
+  );
+
+  const close = () => {
+    setForm(EMPTY);
+    onClose();
   };
 
-  const handleChange = (field: keyof typeof formData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const submit = () => {
+    onSubmit({
+      ...form,
+      name: form.name.trim(),
+      email: form.email.trim(),
+      role: form.role.trim(),
+      organization: form.organization.trim(),
+    });
+    if (!editing) setForm(EMPTY);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[625px]">
-        <DialogHeader>
-          <DialogTitle>Add New Person</DialogTitle>
-          <DialogDescription>
-            Enter the details for the new person.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="role" className="text-right">
-                Role
-              </Label>
-              <Input
-                id="role"
-                value={formData.role}
-                onChange={(e) => handleChange("role", e.target.value)}
-                placeholder="e.g., CEO, VP of Product"
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="organization" className="text-right">
-                Organization
-              </Label>
-              <Input
-                id="organization"
-                value={formData.organization}
-                onChange={(e) => handleChange("organization", e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right">
-                Phone
-              </Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => handleChange("phone", e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="linkedIn" className="text-right">
-                LinkedIn
-              </Label>
-              <Input
-                id="linkedIn"
-                value={formData.linkedIn}
-                onChange={(e) => handleChange("linkedIn", e.target.value)}
-                placeholder="https://linkedin.com/in/..."
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Status
-              </Label>
-              <Popover open={statusOpen} onOpenChange={setStatusOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={statusOpen}
-                    className="w-[200px] col-span-3 justify-between"
-                  >
-                    {formData.status || "Select status"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0">
-                  <Command>
-                    <CommandInput placeholder="Search status..." />
-                    <CommandEmpty>No status found.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        onSelect={() => {
-                          handleChange("status", "Active");
-                          setStatusOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            formData.status === "Active"
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        Active
-                      </CommandItem>
-                      <CommandItem
-                        onSelect={() => {
-                          handleChange("status", "Inactive");
-                          setStatusOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            formData.status === "Inactive"
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        Inactive
-                      </CommandItem>
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="lastContact" className="text-right">
-                Last Contact
-              </Label>
-              <Input
-                id="lastContact"
-                type="date"
-                value={formData.lastContact}
-                onChange={(e) => handleChange("lastContact", e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="notes" className="text-right">
-                Notes
-              </Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => handleChange("notes", e.target.value)}
-                placeholder="Additional notes about this person..."
-                className="col-span-3"
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="submit"
-              
-            >
-              Add Person
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={isOpen}
+      onOpenChange={(open) => !open && close()}
+      title={editing ? "Edit Person" : "Create Person"}
+      description={editing ? "Update this person's details." : "Add a contact to your CRM."}
+      submitLabel={editing ? "Save Changes" : "Create Person"}
+      submitDisabled={!form.name.trim() || !form.email.trim()}
+      onSubmit={submit}
+    >
+      <Field label="Name" htmlFor="person-name" required>
+        <Input id="person-name" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Jane Doe" autoFocus={!editing} />
+      </Field>
+      <Field label="Email" htmlFor="person-email" required>
+        <Input id="person-email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="jane@company.com" />
+      </Field>
+      <Field label="Role" htmlFor="person-role">
+        <Input id="person-role" value={form.role} onChange={(e) => set("role", e.target.value)} placeholder="e.g., CEO, VP of Product" />
+      </Field>
+      <Field label="Organization" htmlFor="person-organization">
+        <Input
+          id="person-organization"
+          list="person-organization-options"
+          value={form.organization}
+          onChange={(e) => set("organization", e.target.value)}
+          placeholder="Company name"
+          autoComplete="off"
+        />
+        <datalist id="person-organization-options">
+          {companyNames.map((name) => (
+            <option key={name} value={name} />
+          ))}
+        </datalist>
+      </Field>
+      <Field label="Phone" htmlFor="person-phone">
+        <Input id="person-phone" type="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+46 70 123 4567" />
+      </Field>
+      <Field label="LinkedIn" htmlFor="person-linkedin">
+        <Input id="person-linkedin" value={form.linkedIn} onChange={(e) => set("linkedIn", e.target.value)} placeholder="https://linkedin.com/in/…" />
+      </Field>
+      <Field label="Status" htmlFor="person-status">
+        <Combobox
+          id="person-status"
+          value={form.status}
+          onChange={(status) => set("status", status)}
+          options={[
+            { value: "Active", label: "Active" },
+            { value: "Inactive", label: "Inactive" },
+          ]}
+        />
+      </Field>
+      <Field label="Last Contact" htmlFor="person-last-contact">
+        <Input id="person-last-contact" type="date" value={form.lastContact} onChange={(e) => set("lastContact", e.target.value)} />
+      </Field>
+      <Field label="Notes" htmlFor="person-notes" wide>
+        <Textarea id="person-notes" value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={3} placeholder="Anything worth remembering…" />
+      </Field>
+    </FormDialog>
   );
 }

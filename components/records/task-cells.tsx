@@ -40,7 +40,7 @@ export function StatusPill({ status }: { status: TaskStatus }) {
 }
 
 /** Priority as signal bars plus a label, so it reads at a glance without colour alone. */
-export function PriorityLabel({ priority }: { priority: TaskPriority }) {
+export function PriorityLabel({ priority, iconOnly }: { priority: TaskPriority; iconOnly?: boolean }) {
   const meta = PRIORITY_META[priority];
   return (
     <span className={cn("inline-flex items-center gap-1.5 text-[13px]", meta.className)}>
@@ -53,7 +53,7 @@ export function PriorityLabel({ priority }: { priority: TaskPriority }) {
           />
         ))}
       </span>
-      <span className={priority === "low" ? "" : "text-foreground"}>{meta.label}</span>
+      {!iconOnly && <span className={priority === "low" ? "" : "text-foreground"}>{meta.label}</span>}
     </span>
   );
 }

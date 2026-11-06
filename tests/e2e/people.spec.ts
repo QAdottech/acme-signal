@@ -4,12 +4,12 @@ import { test, expect } from "./fixtures";
 test("PEOPLE-01: create, edit, search, and delete a contact; changes survive reloads", async ({ signedInPage: page }) => {
   await page.getByRole("link", { name: "People", exact: true }).click();
   await page.getByRole("button", { name: "Add Person", exact: true }).click();
-  const add = page.getByRole("dialog", { name: "Add New Person" });
+  const add = page.getByRole("dialog", { name: "Create Person" });
   await add.getByLabel("Name", { exact: true }).fill("QA Contact");
   await add.getByLabel("Email", { exact: true }).fill("contact@example.test");
   await add.getByLabel("Role", { exact: true }).fill("Engineer");
   await add.getByLabel("Organization", { exact: true }).fill("Test Company");
-  await add.getByRole("button", { name: "Add Person", exact: true }).click();
+  await add.getByRole("button", { name: "Create Person", exact: true }).click();
   await expect(add).toBeHidden();
 
   await page.reload();

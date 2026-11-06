@@ -1,21 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { Loader2, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Send, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { addEmail } from "@/lib/emailData";
+import { Field, FormDialog } from "@/components/form-dialog";
+import { Avatar } from "@/components/record-table/cells";
 import { getPeople } from "@/lib/personData";
+import { addEmail } from "@/lib/emailData";
 import type { Person } from "@/types/person";
 
 interface ComposeEmailModalProps {
@@ -69,9 +62,7 @@ export function ComposeEmailModal({
     setShowSuggestions(value.length > 0);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     if (!to || !subject) {
       toast.error("Please fill in the recipient and subject.");
       return;
@@ -133,126 +124,82 @@ export function ComposeEmailModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[540px]">
-        <DialogHeader>
-          <DialogTitle>Compose Email</DialogTitle>
-          <DialogDescription>
-            Send an email to a contact. Start typing to search your contacts.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email-to">To</Label>
-            <div className="relative">
-              <Input
-                id="email-to"
-                type="text"
-                placeholder="Enter email or search contacts..."
-                value={to}
-                onChange={(e) => handleToChange(e.target.value)}
-                onFocus={() => {
-                  if (to.length > 0) setShowSuggestions(true);
-                }}
-                onBlur={() => {
-                  // Delay hiding so click on suggestion works
-                  setTimeout(() => setShowSuggestions(false), 200);
-                }}
-                
-              />
-              {showSuggestions && filteredPeople.length > 0 && (
-                <div
-                  ref={suggestionsRef}
-                  className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-900 border rounded-md shadow-lg max-h-48 overflow-y-auto"
+    <FormDialog
+      open={isOpen}
+      onOpenChange={handleOpenChange}
+      title="Compose Email"
+      description="Send an email to a contact. Start typing to search your contacts."
+      submitLabel={sending ? "Sending…" : "Send Email"}
+      submitIcon={sending ? <Loader2 className="animate-spin" /> : <Send />}
+      submitDisabled={sending || !to || !subject}
+      onSubmit={handleSubmit}
+    >
+      <Field
+        label="To"
+        htmlFor="email-to"
+        required
+        wide
+        hint={selectedPersonName ? `Sending to ${selectedPersonName}` : undefined}
+      >
+        <div className="relative">
+          <Input
+            id="email-to"
+            type="text"
+            autoComplete="off"
+            placeholder="Enter email or search contacts…"
+            value={to}
+            onChange={(e) => handleToChange(e.target.value)}
+            onFocus={() => to.length > 0 && setShowSuggestions(true)}
+            // Delay hiding so a click on a suggestion lands first.
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            autoFocus
+          />
+          {showSuggestions && filteredPeople.length > 0 && (
+            <div
+              ref={suggestionsRef}
+              role="listbox"
+              aria-label="Matching contacts"
+              className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border bg-popover p-1 shadow-md"
+            >
+              {filteredPeople.slice(0, 8).map((person) => (
+                <button
+                  key={person.id}
+                  type="button"
+                  role="option"
+                  aria-selected={false}
+                  className="flex w-full items-center gap-2.5 rounded px-2 py-1.5 text-left hover:bg-accent"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelectPerson(person);
+                  }}
                 >
-                  {filteredPeople.slice(0, 8).map((person) => (
-                    <button
-                      key={person.id}
-                      type="button"
-                      className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-3"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        handleSelectPerson(person);
-                      }}
-                    >
-                      <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-                          {person.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {person.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {person.email}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+                  <Avatar name={person.name} size={24} />
+                  <span className="min-w-0">
+                    <span className="block truncate text-[13px] font-medium">{person.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {person.email}
+                      {person.organization && ` · ${person.organization}`}
+                    </span>
+                  </span>
+                </button>
+              ))}
             </div>
-            {selectedPersonName && (
-              <p className="text-xs text-muted-foreground">
-                Sending to {selectedPersonName}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email-subject">Subject</Label>
-            <Input
-              id="email-subject"
-              type="text"
-              placeholder="Email subject..."
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email-body">Body</Label>
-            <Textarea
-              id="email-body"
-              placeholder="Write your email..."
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={6}
-              className="resize-none"
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={sending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={sending || !to || !subject}
-              
-            >
-              {sending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-              Send Email
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+          )}
+        </div>
+      </Field>
+      <Field label="Subject" htmlFor="email-subject" required wide>
+        <Input id="email-subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Email subject…" />
+      </Field>
+      <Field label="Body" htmlFor="email-body" wide>
+        <Textarea
+          id="email-body"
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={8}
+          placeholder="Write your email…"
+          className="resize-none"
+        />
+      </Field>
+    </FormDialog>
   );
 }
