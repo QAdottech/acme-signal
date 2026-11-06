@@ -1,6 +1,8 @@
 import { getOrganizations } from "@/lib/organizationData";
 import { getDeals } from "@/lib/dealData";
 import { getPeople } from "@/lib/personData";
+import { formatDate, parseDate } from "@/lib/format";
+import type { Deal } from "@/types/deal";
 import type { DealStage } from "@/types/organization";
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -38,148 +40,70 @@ export interface ReportDefinition {
 
 // ── Chart color palette ────────────────────────────────────────────────
 
-export const CHART_COLORS = [
-  "#6366f1",
-  "#f59e0b",
-  "#10b981",
-  "#ef4444",
-  "#8b5cf6",
-  "#ec4899",
-  "#06b6d4",
-  "#f97316",
-];
+/**
+ * Categorical palette, assigned in this fixed order and never cycled. Checked
+ * for colour-vision deficiency (protan, deutan and tritan separation between
+ * neighbours) and normal-vision distinctness. Three hues sit below 3:1
+ * contrast on white, so every chart that uses them also labels its marks.
+ * Past five categories, the rest fold into a grey "Other".
+ */
+export const CHART_PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"] as const;
+export const CHART_OTHER = "#a1a1aa";
+/** Single-series charts (bars, lines) use one hue. */
+export const CHART_PRIMARY = CHART_PALETTE[0];
 
 // ── Built-in report definitions ────────────────────────────────────────
+
+const kpi = (id: string, title: string, dataSource: string): WidgetConfig => ({ id, title, type: "kpi-card", dataSource });
 
 const builtInReports: ReportDefinition[] = [
   {
     id: "pipeline-overview",
     title: "Pipeline Overview",
-    description:
-      "Track deals across pipeline stages, total value, and win rates.",
+    description: "Open pipeline by stage, weighted forecast, and win rate.",
     type: "pipeline-overview",
     isBuiltIn: true,
     widgets: [
-      {
-        id: "pipeline-value-kpi",
-        title: "Pipeline Value",
-        type: "kpi-card",
-        dataSource: "pipelineValueKpi",
-        span: 1,
-      },
-      {
-        id: "win-rate-kpi",
-        title: "Win Rate",
-        type: "kpi-card",
-        dataSource: "winRateKpi",
-        span: 1,
-      },
-      {
-        id: "deals-by-stage",
-        title: "Deals by Stage",
-        type: "bar-chart",
-        dataSource: "dealsByStage",
-        span: 2,
-      },
-      {
-        id: "top-deals-table",
-        title: "Top Deals",
-        type: "data-table",
-        dataSource: "topDeals",
-        span: 2,
-      },
+      kpi("pipeline-value-kpi", "Open Pipeline", "pipelineValueKpi"),
+      kpi("weighted-pipeline-kpi", "Weighted Pipeline", "weightedPipelineKpi"),
+      kpi("win-rate-kpi", "Win Rate", "winRateKpi"),
+      kpi("avg-deal-size-kpi", "Average Won Deal", "avgDealSizeKpi"),
+      { id: "value-by-stage", title: "Open Pipeline by Stage", type: "bar-chart", dataSource: "dealValueByStage", span: 1 },
+      { id: "deals-by-stage", title: "Deals by Stage", type: "bar-chart", dataSource: "dealsByStage", span: 1 },
+      { id: "top-deals-table", title: "Largest Open Deals", type: "data-table", dataSource: "topDeals", span: 2 },
     ],
     createdAt: "2024-01-01T00:00:00.000Z",
   },
   {
     id: "revenue-deals",
     title: "Revenue & Deals",
-    description:
-      "Analyze deal values over time, average deal size, and ownership.",
+    description: "Closed-won revenue by month, new pipeline created, and deal ownership.",
     type: "revenue-deals",
     isBuiltIn: true,
     widgets: [
-      {
-        id: "avg-deal-size-kpi",
-        title: "Average Deal Size",
-        type: "kpi-card",
-        dataSource: "avgDealSizeKpi",
-        span: 1,
-      },
-      {
-        id: "total-deals-kpi",
-        title: "Total Deals",
-        type: "kpi-card",
-        dataSource: "totalDealsKpi",
-        span: 1,
-      },
-      {
-        id: "deal-values-trend",
-        title: "Deal Values Trend",
-        type: "line-chart",
-        dataSource: "dealValuesTrend",
-        span: 2,
-      },
-      {
-        id: "deals-by-owner",
-        title: "Deals by Owner",
-        type: "donut-chart",
-        dataSource: "dealsByOwner",
-        span: 1,
-      },
-      {
-        id: "deals-value-by-stage",
-        title: "Deal Value by Stage",
-        type: "bar-chart",
-        dataSource: "dealValueByStage",
-        span: 1,
-      },
+      kpi("won-revenue-kpi", "Won Revenue", "wonRevenueKpi"),
+      kpi("avg-deal-size-kpi", "Average Won Deal", "avgDealSizeKpi"),
+      kpi("total-deals-kpi", "Total Deals", "totalDealsKpi"),
+      kpi("win-rate-kpi", "Win Rate", "winRateKpi"),
+      { id: "won-revenue-by-month", title: "Won Revenue by Month", type: "bar-chart", dataSource: "wonRevenueByMonth", span: 2 },
+      { id: "deal-values-trend", title: "New Pipeline by Month", type: "line-chart", dataSource: "dealValuesTrend", span: 1 },
+      { id: "deals-by-owner", title: "Deals by Owner", type: "donut-chart", dataSource: "dealsByOwner", span: 1 },
     ],
     createdAt: "2024-01-01T00:00:00.000Z",
   },
   {
     id: "contacts-companies",
     title: "Contacts & Companies",
-    description:
-      "Explore industry distribution, geographic spread, and growth.",
+    description: "Who you know, where they are, and how recently you talked to them.",
     type: "contacts-companies",
     isBuiltIn: true,
     widgets: [
-      {
-        id: "total-contacts-kpi",
-        title: "Total Contacts",
-        type: "kpi-card",
-        dataSource: "totalContactsKpi",
-        span: 1,
-      },
-      {
-        id: "total-companies-kpi",
-        title: "Total Companies",
-        type: "kpi-card",
-        dataSource: "totalCompaniesKpi",
-        span: 1,
-      },
-      {
-        id: "industry-distribution",
-        title: "Industry Distribution",
-        type: "donut-chart",
-        dataSource: "industryDistribution",
-        span: 1,
-      },
-      {
-        id: "geographic-distribution",
-        title: "Geographic Distribution",
-        type: "bar-chart",
-        dataSource: "geographicDistribution",
-        span: 1,
-      },
-      {
-        id: "growth-over-time",
-        title: "Growth Over Time",
-        type: "line-chart",
-        dataSource: "growthOverTime",
-        span: 2,
-      },
+      kpi("total-contacts-kpi", "Total Contacts", "totalContactsKpi"),
+      kpi("total-companies-kpi", "Total Companies", "totalCompaniesKpi"),
+      kpi("contacted-recently-kpi", "Contacted in Last 30 Days", "contactedRecentlyKpi"),
+      { id: "industry-distribution", title: "Companies by Industry", type: "bar-chart", dataSource: "industryDistribution", span: 1 },
+      { id: "geographic-distribution", title: "Companies by City", type: "bar-chart", dataSource: "geographicDistribution", span: 1 },
+      { id: "contact-recency", title: "Contacts by Last Touch", type: "bar-chart", dataSource: "contactRecency", span: 2 },
     ],
     createdAt: "2024-01-01T00:00:00.000Z",
   },
@@ -235,233 +159,222 @@ export interface ChartDataPoint {
 export interface KpiData {
   value: string;
   label: string;
-  trend?: { value: number; isPositive: boolean };
 }
 
 export interface TableData {
   headers: string[];
   rows: (string | number)[][];
+  /** Optional link for each row's first cell. */
+  rowHrefs?: string[];
 }
 
-const PIPELINE_STAGES: DealStage[] = [
-  "New",
-  "Lead",
-  "Qualified",
-  "Proposal",
-  "Negotiation",
-];
+export type ValueFormat = "currency" | "count";
 
-// Pipeline Overview data sources ────────────────────────────────────────
+const OPEN_STAGES: DealStage[] = ["New", "Lead", "Qualified", "Proposal", "Negotiation"];
+const ALL_DEAL_STAGES: DealStage[] = [...OPEN_STAGES, "Customer", "Closed Lost", "Churned"];
+/** Deals that were won. A churned customer was still a won deal. */
+const WON_STAGES: DealStage[] = ["Customer", "Churned"];
+const MONTH_COUNT = 6;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
+const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
+const openDeals = (deals: Deal[]) => deals.filter((d) => OPEN_STAGES.includes(d.stage));
+const wonDeals = (deals: Deal[]) => deals.filter((d) => WON_STAGES.includes(d.stage));
+
+/** The last six calendar months, oldest first, keyed by year and month. */
+function recentMonths(): { key: string; name: string }[] {
+  const now = new Date();
+  return Array.from({ length: MONTH_COUNT }, (_, i) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (MONTH_COUNT - 1 - i), 1);
+    const sameYear = date.getFullYear() === now.getFullYear();
+    return {
+      key: `${date.getFullYear()}-${date.getMonth()}`,
+      name: date.toLocaleDateString("en-US", { month: "short", ...(sameYear ? {} : { year: "2-digit" }) }),
+    };
+  });
+}
+
+function sumByMonth<T>(items: T[], dateOf: (item: T) => string | undefined, valueOf: (item: T) => number): ChartDataPoint[] {
+  const totals = new Map<string, number>();
+  for (const item of items) {
+    const raw = dateOf(item);
+    if (!raw) continue;
+    const date = parseDate(raw);
+    if (Number.isNaN(date.getTime())) continue;
+    const key = `${date.getFullYear()}-${date.getMonth()}`;
+    totals.set(key, (totals.get(key) ?? 0) + valueOf(item));
+  }
+  return recentMonths().map(({ key, name }) => ({ name, value: totals.get(key) ?? 0 }));
+}
+
+/**
+ * Total a value per key, largest first, folding everything past `limit` into
+ * "Other" so the bars always add up to the whole.
+ */
+function totalBy<T>(items: T[], keyOf: (item: T) => string, valueOf: (item: T) => number, limit: number): ChartDataPoint[] {
+  const totals = new Map<string, number>();
+  items.forEach((item) => totals.set(keyOf(item), (totals.get(keyOf(item)) ?? 0) + valueOf(item)));
+  const sorted = Array.from(totals, ([name, value]) => ({ name, value })).sort(
+    (a, b) => b.value - a.value || a.name.localeCompare(b.name)
+  );
+  if (sorted.length <= limit) return sorted;
+  const rest = sum(sorted.slice(limit - 1).map((p) => p.value));
+  return [...sorted.slice(0, limit - 1), { name: "Other", value: rest }];
+}
+
+function countBy(keys: string[], limit: number): ChartDataPoint[] {
+  return totalBy(keys, (key) => key, () => 1, limit);
+}
+
+// Pipeline ──────────────────────────────────────────────────────────────
 
 function getPipelineValueKpi(): KpiData {
-  const deals = getDeals();
-  const pipelineDeals = deals.filter((d) => PIPELINE_STAGES.includes(d.stage));
-  const total = pipelineDeals.reduce((sum, d) => sum + d.value, 0);
-  return {
-    value: formatCurrency(total),
-    label: `${pipelineDeals.length} active deals`,
-    trend: { value: 8, isPositive: true },
-  };
+  const open = openDeals(getDeals());
+  return { value: formatCurrency(sum(open.map((d) => d.value))), label: plural(open.length, "active deal") };
+}
+
+function getWeightedPipelineKpi(): KpiData {
+  const open = openDeals(getDeals());
+  const weighted = sum(open.map((d) => (d.value * d.probability) / 100));
+  return { value: formatCurrency(Math.round(weighted)), label: "Value × each deal's win probability" };
 }
 
 function getWinRateKpi(): KpiData {
   const deals = getDeals();
-  const closedDeals = deals.filter(
-    (d) => d.stage === "Customer" || d.stage === "Closed Lost"
-  );
-  const wonDeals = deals.filter((d) => d.stage === "Customer");
-  const organizations = getOrganizations();
-  const customerOrgs = organizations.filter(
-    (o) => o.dealStage === "Customer"
-  ).length;
-  const lostOrgs = organizations.filter(
-    (o) => o.dealStage === "Closed Lost"
-  ).length;
-  const totalClosed = customerOrgs + lostOrgs;
-  const rate = totalClosed > 0 ? Math.round((customerOrgs / totalClosed) * 100) : 0;
-  return {
-    value: `${rate}%`,
-    label: `${customerOrgs} won of ${totalClosed} closed`,
-    trend: { value: 3, isPositive: true },
-  };
+  const won = wonDeals(deals).length;
+  const closed = won + deals.filter((d) => d.stage === "Closed Lost").length;
+  const rate = closed > 0 ? Math.round((won / closed) * 100) : 0;
+  return { value: `${rate}%`, label: `${won} won of ${plural(closed, "closed deal")}` };
 }
 
 function getDealsByStage(): ChartDataPoint[] {
   const deals = getDeals();
-  const stages: DealStage[] = [
-    "New",
-    "Lead",
-    "Qualified",
-    "Proposal",
-    "Negotiation",
-    "Customer",
-    "Closed Lost",
-  ];
-  return stages.map((stage) => ({
-    name: stage,
-    value: deals.filter((d) => d.stage === stage).length,
-  }));
-}
-
-function getTopDeals(): TableData {
-  const deals = getDeals();
-  const organizations = getOrganizations();
-  const sorted = [...deals].sort((a, b) => b.value - a.value).slice(0, 8);
-  return {
-    headers: ["Deal", "Company", "Value", "Stage", "Owner"],
-    rows: sorted.map((d) => {
-      const org = organizations.find((o) => o.id === d.organizationId);
-      return [
-        d.title,
-        org?.name ?? "Unknown",
-        formatCurrency(d.value),
-        d.stage,
-        d.owner,
-      ];
-    }),
-  };
-}
-
-// Revenue & Deals data sources ──────────────────────────────────────────
-
-function getAvgDealSizeKpi(): KpiData {
-  const deals = getDeals();
-  const avg = deals.length > 0
-    ? deals.reduce((sum, d) => sum + d.value, 0) / deals.length
-    : 0;
-  return {
-    value: formatCurrency(Math.round(avg)),
-    label: `Across ${deals.length} deals`,
-    trend: { value: 12, isPositive: true },
-  };
-}
-
-function getTotalDealsKpi(): KpiData {
-  const deals = getDeals();
-  const pipelineDeals = deals.filter((d) => PIPELINE_STAGES.includes(d.stage));
-  return {
-    value: String(deals.length),
-    label: `${pipelineDeals.length} in pipeline`,
-  };
-}
-
-function getDealValuesTrend(): ChartDataPoint[] {
-  const deals = getDeals();
-  // Group deals by creation month
-  const monthMap: Record<string, number> = {};
-  const months = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-  ];
-
-  deals.forEach((d) => {
-    const date = new Date(d.createdAt);
-    const key = months[date.getMonth()];
-    monthMap[key] = (monthMap[key] || 0) + d.value;
-  });
-
-  // Build a rolling 6-month view ending at current month
-  const now = new Date();
-  const result: ChartDataPoint[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const label = months[date.getMonth()];
-    result.push({ name: label, value: monthMap[label] || 0 });
-  }
-  return result;
-}
-
-function getDealsByOwner(): ChartDataPoint[] {
-  const deals = getDeals();
-  const ownerMap: Record<string, number> = {};
-  deals.forEach((d) => {
-    ownerMap[d.owner] = (ownerMap[d.owner] || 0) + 1;
-  });
-  return Object.entries(ownerMap).map(([name, value]) => ({ name, value }));
+  // Every stage in board order; Churned only once a deal is in it.
+  return ALL_DEAL_STAGES.map((stage) => ({ name: stage, value: deals.filter((d) => d.stage === stage).length })).filter(
+    (point) => point.name !== "Churned" || point.value > 0
+  );
 }
 
 function getDealValueByStage(): ChartDataPoint[] {
   const deals = getDeals();
-  const stages: DealStage[] = [
-    "New",
-    "Lead",
-    "Qualified",
-    "Proposal",
-    "Negotiation",
-  ];
-  return stages.map((stage) => ({
+  return OPEN_STAGES.map((stage) => ({
     name: stage,
-    value: deals
-      .filter((d) => d.stage === stage)
-      .reduce((sum, d) => sum + d.value, 0),
+    value: sum(deals.filter((d) => d.stage === stage).map((d) => d.value)),
   }));
 }
 
-// Contacts & Companies data sources ─────────────────────────────────────
+function getTopDeals(): TableData {
+  const organizations = getOrganizations();
+  const top = openDeals(getDeals())
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8);
+  return {
+    headers: ["Deal", "Company", "Stage", "Value", "Close date", "Owner"],
+    rows: top.map((d) => [
+      d.title,
+      organizations.find((o) => o.id === d.organizationId)?.name ?? "—",
+      d.stage,
+      formatCurrency(d.value),
+      formatDate(d.expectedCloseDate),
+      d.owner,
+    ]),
+    rowHrefs: top.map((d) => `/deals/${d.id}`),
+  };
+}
+
+// Revenue ───────────────────────────────────────────────────────────────
+
+function getWonRevenueKpi(): KpiData {
+  const won = wonDeals(getDeals());
+  return { value: formatCurrency(sum(won.map((d) => d.value))), label: `From ${plural(won.length, "won deal")}` };
+}
+
+function getAvgDealSizeKpi(): KpiData {
+  const won = wonDeals(getDeals());
+  const avg = won.length > 0 ? sum(won.map((d) => d.value)) / won.length : 0;
+  return { value: formatCurrency(Math.round(avg)), label: `Across ${plural(won.length, "won deal")}` };
+}
+
+function getTotalDealsKpi(): KpiData {
+  const deals = getDeals();
+  return { value: String(deals.length), label: `${openDeals(deals).length} in pipeline` };
+}
+
+/** Closed-won value by close month (a won deal's close date is when it closed). */
+function getWonRevenueByMonth(): ChartDataPoint[] {
+  return sumByMonth(wonDeals(getDeals()), (d) => d.expectedCloseDate, (d) => d.value);
+}
+
+/** Value of deals created each month, whatever stage they are in now. */
+function getDealValuesTrend(): ChartDataPoint[] {
+  return sumByMonth(getDeals(), (d) => d.createdAt, (d) => d.value);
+}
+
+function getDealsByOwner(): ChartDataPoint[] {
+  return countBy(getDeals().map((d) => d.owner), CHART_PALETTE.length + 1);
+}
+
+function getDealValueByIndustry(): ChartDataPoint[] {
+  const industryOf = new Map(getOrganizations().map((o) => [o.id, o.industry]));
+  return totalBy(getDeals(), (d) => industryOf.get(d.organizationId) ?? "Unknown", (d) => d.value, 8);
+}
+
+// Contacts & companies ──────────────────────────────────────────────────
 
 function getTotalContactsKpi(): KpiData {
   const people = getPeople();
-  const active = people.filter((p) => p.status === "Active").length;
-  return {
-    value: String(people.length),
-    label: `${active} active contacts`,
-    trend: { value: 15, isPositive: true },
-  };
+  return { value: String(people.length), label: plural(people.filter((p) => p.status === "Active").length, "active contact") };
 }
 
 function getTotalCompaniesKpi(): KpiData {
   const organizations = getOrganizations();
-  const customers = organizations.filter(
-    (o) => o.dealStage === "Customer"
-  ).length;
-  return {
-    value: String(organizations.length),
-    label: `${customers} are customers`,
-    trend: { value: 10, isPositive: true },
-  };
+  const customers = organizations.filter((o) => o.dealStage === "Customer").length;
+  return { value: String(organizations.length), label: `${customers} ${customers === 1 ? "is a customer" : "are customers"}` };
+}
+
+function daysSince(value: string | undefined): number | null {
+  if (!value) return null;
+  const date = parseDate(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return Math.max(0, Math.floor((Date.now() - date.getTime()) / DAY_MS));
+}
+
+function getContactedRecentlyKpi(): KpiData {
+  const people = getPeople();
+  const recent = people.filter((p) => {
+    const days = daysSince(p.lastContact);
+    return days !== null && days <= 30;
+  }).length;
+  const share = people.length > 0 ? Math.round((recent / people.length) * 100) : 0;
+  return { value: String(recent), label: `${share}% of contacts` };
 }
 
 function getIndustryDistribution(): ChartDataPoint[] {
-  const organizations = getOrganizations();
-  const industryMap: Record<string, number> = {};
-  organizations.forEach((org) => {
-    industryMap[org.industry] = (industryMap[org.industry] || 0) + 1;
-  });
-  return Object.entries(industryMap)
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value);
+  return countBy(getOrganizations().map((o) => o.industry), 8);
 }
 
 function getGeographicDistribution(): ChartDataPoint[] {
-  const organizations = getOrganizations();
-  const locationMap: Record<string, number> = {};
-  organizations.forEach((org) => {
-    // Normalize location (take city part)
-    const city = org.location.split(",")[0].trim();
-    locationMap[city] = (locationMap[city] || 0) + 1;
-  });
-  return Object.entries(locationMap)
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value);
+  return countBy(getOrganizations().map((o) => o.location.split(",")[0].trim()), 8);
 }
 
-function getGrowthOverTime(): ChartDataPoint[] {
-  const organizations = getOrganizations();
-  const people = getPeople();
-  // Simulated growth data showing progression to current totals
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-  const orgCount = organizations.length;
-  const peopleCount = people.length;
+const RECENCY_BUCKETS: { name: string; max: number }[] = [
+  { name: "This week", max: 7 },
+  { name: "8–30 days", max: 30 },
+  { name: "1–3 months", max: 90 },
+  { name: "3+ months", max: Infinity },
+];
 
-  return months.map((month, i) => {
-    const factor = (i + 1) / months.length;
-    return {
-      name: month,
-      value: Math.round(orgCount * factor),
-      companies: Math.round(orgCount * factor),
-      contacts: Math.round(peopleCount * factor),
-    };
-  });
+/** How long since each contact was last reached: shows who is going cold. */
+function getContactRecency(): ChartDataPoint[] {
+  const counts = RECENCY_BUCKETS.map((b) => ({ name: b.name, value: 0 }));
+  let never = 0;
+  for (const person of getPeople()) {
+    const days = daysSince(person.lastContact);
+    if (days === null) never++;
+    else counts[RECENCY_BUCKETS.findIndex((b) => days <= b.max)].value++;
+  }
+  return [...counts, { name: "Never", value: never }];
 }
 
 // ── Data source registry ───────────────────────────────────────────────
@@ -469,26 +382,37 @@ function getGrowthOverTime(): ChartDataPoint[] {
 type DataQueryResult = ChartDataPoint[] | KpiData | TableData;
 
 const dataSourceRegistry: Record<string, () => DataQueryResult> = {
-  // Pipeline Overview
   pipelineValueKpi: getPipelineValueKpi,
+  weightedPipelineKpi: getWeightedPipelineKpi,
   winRateKpi: getWinRateKpi,
   dealsByStage: getDealsByStage,
+  dealValueByStage: getDealValueByStage,
   topDeals: getTopDeals,
 
-  // Revenue & Deals
+  wonRevenueKpi: getWonRevenueKpi,
   avgDealSizeKpi: getAvgDealSizeKpi,
   totalDealsKpi: getTotalDealsKpi,
+  wonRevenueByMonth: getWonRevenueByMonth,
   dealValuesTrend: getDealValuesTrend,
   dealsByOwner: getDealsByOwner,
-  dealValueByStage: getDealValueByStage,
+  dealValueByIndustry: getDealValueByIndustry,
 
-  // Contacts & Companies
   totalContactsKpi: getTotalContactsKpi,
   totalCompaniesKpi: getTotalCompaniesKpi,
+  contactedRecentlyKpi: getContactedRecentlyKpi,
   industryDistribution: getIndustryDistribution,
   geographicDistribution: getGeographicDistribution,
-  growthOverTime: getGrowthOverTime,
+  contactRecency: getContactRecency,
+  // Saved custom reports may still use the old key for this chart.
+  growthOverTime: getContactRecency,
 };
+
+const CURRENCY_SOURCES = new Set(["dealValueByStage", "wonRevenueByMonth", "dealValuesTrend", "dealValueByIndustry"]);
+
+/** Whether a chart's values are money or counts, for axes and tooltips. */
+export function dataSourceFormat(key: string): ValueFormat {
+  return CURRENCY_SOURCES.has(key) ? "currency" : "count";
+}
 
 export function queryDataSource(key: string): DataQueryResult | null {
   const fn = dataSourceRegistry[key];

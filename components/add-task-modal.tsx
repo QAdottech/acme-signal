@@ -1,27 +1,14 @@
 "use client";
 
-import type React from "react";
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { useMemo, useState } from "react";
+import { Building2, CircleDollarSign, UserRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { Task, TaskPriority, TaskStatus } from "@/types/task";
+import { Combobox, Field, FormDialog, type ComboboxOption } from "@/components/form-dialog";
+import { Avatar } from "@/components/record-table/cells";
+import { PriorityLabel, TASK_PRIORITIES } from "@/components/records/task-cells";
+import { ASSIGNEES } from "@/lib/team";
+import type { Task, TaskPriority } from "@/types/task";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
 import type { Person } from "@/types/person";
@@ -35,220 +22,105 @@ interface AddTaskModalProps {
   people: Person[];
 }
 
-const owners = [
-  "Sarah Johnson",
-  "Michael Chen",
-  "Emma Wilson",
-  "David Martinez",
-];
+const ICON = "h-4 w-4 shrink-0 text-muted-foreground";
 
-const priorities: { value: TaskPriority; label: string }[] = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "urgent", label: "Urgent" },
-];
-
-export function AddTaskModal({
-  isOpen,
-  onClose,
-  onAdd,
-  deals,
-  organizations,
-  people,
-}: AddTaskModalProps) {
+export function AddTaskModal({ isOpen, onClose, onAdd, deals, organizations, people }: AddTaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [dueDate, setDueDate] = useState("");
   const [assignee, setAssignee] = useState("");
-  const [relatedDealId, setRelatedDealId] = useState("");
-  const [relatedOrganizationId, setRelatedOrganizationId] = useState("");
-  const [relatedPersonId, setRelatedPersonId] = useState("");
+  /** "deal:<id>", "company:<id>" or "person:<id>". */
+  const [related, setRelated] = useState("");
 
-  const resetForm = () => {
+  const relatedOptions = useMemo<ComboboxOption[]>(
+    () => [
+      ...deals.map((d) => ({ value: `deal:${d.id}`, label: d.title, keywords: ["deal"], icon: <CircleDollarSign className={ICON} /> })),
+      ...organizations.map((o) => ({ value: `company:${o.id}`, label: o.name, keywords: ["company"], icon: <Building2 className={ICON} /> })),
+      ...people.map((p) => ({ value: `person:${p.id}`, label: p.name, keywords: ["person", p.organization], icon: <UserRound className={ICON} /> })),
+    ],
+    [deals, organizations, people]
+  );
+
+  const reset = () => {
     setTitle("");
     setDescription("");
     setPriority("medium");
     setDueDate("");
     setAssignee("");
-    setRelatedDealId("");
-    setRelatedOrganizationId("");
-    setRelatedPersonId("");
+    setRelated("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const task: Omit<Task, "id" | "createdAt"> = {
-      title,
-      status: "todo" as TaskStatus,
-      priority,
-      ...(assignee && assignee !== "none" && { assignee }),
-      ...(description && { description }),
-      ...(dueDate && { dueDate }),
-      ...(relatedDealId && relatedDealId !== "none" && { relatedDealId }),
-      ...(relatedOrganizationId && relatedOrganizationId !== "none" && { relatedOrganizationId }),
-      ...(relatedPersonId && relatedPersonId !== "none" && { relatedPersonId }),
-    };
-    onAdd(task);
-    resetForm();
-  };
-
-  const handleClose = () => {
-    resetForm();
+  const close = () => {
+    reset();
     onClose();
   };
 
+  const submit = () => {
+    const [kind, id] = related.split(":");
+    onAdd({
+      title: title.trim(),
+      status: "todo",
+      priority,
+      ...(assignee && { assignee }),
+      ...(description.trim() && { description: description.trim() }),
+      ...(dueDate && { dueDate }),
+      ...(kind === "deal" && { relatedDealId: id }),
+      ...(kind === "company" && { relatedOrganizationId: id }),
+      ...(kind === "person" && { relatedPersonId: id }),
+    });
+    reset();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[525px]">
-        <DialogHeader>
-          <DialogTitle>Create Task</DialogTitle>
-          <DialogDescription>
-            Add a new task to track your work.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="task-title" className="text-right">
-                Title <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="task-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="col-span-3"
-                placeholder="Follow up with client..."
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="task-description" className="text-right pt-2">
-                Description
-              </Label>
-              <Textarea
-                id="task-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="col-span-3 min-h-[80px]"
-                placeholder="Optional details..."
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Priority</Label>
-              <Select
-                value={priority}
-                onValueChange={(val) => setPriority(val as TaskPriority)}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {priorities.map((p) => (
-                    <SelectItem key={p.value} value={p.value}>
-                      {p.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="task-due-date" className="text-right">
-                Due Date
-              </Label>
-              <Input
-                id="task-due-date"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Assignee</Label>
-              <Select value={assignee} onValueChange={setAssignee}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select assignee..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {owners.map((o) => (
-                    <SelectItem key={o} value={o}>
-                      {o}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Deal</Label>
-              <Select
-                value={relatedDealId}
-                onValueChange={setRelatedDealId}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {deals.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Company</Label>
-              <Select
-                value={relatedOrganizationId}
-                onValueChange={setRelatedOrganizationId}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {organizations.map((org) => (
-                    <SelectItem key={org.id} value={org.id}>
-                      {org.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Person</Label>
-              <Select
-                value={relatedPersonId}
-                onValueChange={setRelatedPersonId}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {people.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="submit"
-              
-              disabled={!title.trim()}
-            >
-              Create Task
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={isOpen}
+      onOpenChange={(open) => !open && close()}
+      title="Create Task"
+      description="Add a new task to track your work."
+      submitLabel="Create Task"
+      submitDisabled={!title.trim()}
+      onSubmit={submit}
+    >
+      <Field label="Title" htmlFor="task-title" required wide>
+        <Input id="task-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Follow up with client…" autoFocus />
+      </Field>
+      <Field label="Priority" htmlFor="task-priority">
+        <Combobox
+          id="task-priority"
+          value={priority}
+          onChange={(p) => setPriority(p as TaskPriority)}
+          options={TASK_PRIORITIES.map((p) => ({ value: p, label: p.charAt(0).toUpperCase() + p.slice(1), icon: <PriorityLabel priority={p} iconOnly /> }))}
+        />
+      </Field>
+      <Field label="Due Date" htmlFor="task-due-date">
+        <Input id="task-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+      </Field>
+      <Field label="Assignee" htmlFor="task-assignee">
+        <Combobox
+          id="task-assignee"
+          value={assignee}
+          onChange={setAssignee}
+          placeholder="Select assignee…"
+          allowClear
+          options={ASSIGNEES.map((name) => ({ value: name, label: name, icon: <Avatar name={name} /> }))}
+        />
+      </Field>
+      <Field label="Related to" htmlFor="task-related">
+        <Combobox
+          id="task-related"
+          value={related}
+          onChange={setRelated}
+          placeholder="Deal, company or person…"
+          searchPlaceholder="Search records…"
+          emptyText="No matching record."
+          allowClear
+          options={relatedOptions}
+        />
+      </Field>
+      <Field label="Description" htmlFor="task-description" wide>
+        <Textarea id="task-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Optional details…" />
+      </Field>
+    </FormDialog>
   );
 }

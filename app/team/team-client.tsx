@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { UserPlus } from "lucide-react";
 import { TeamMemberList } from "@/components/team-member-list";
 import { InviteUserModal } from "@/components/invite-user-modal";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 
 export function TeamClient() {
-  const { user, isAdmin, isLoading } = useAuth();
+  const { user, users, isAdmin, isLoading } = useAuth();
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const router = useRouter();
 
@@ -25,15 +25,9 @@ export function TeamClient() {
     }
   }, [user, isAdmin, isLoading, router]);
 
-  // Show loading state while authentication is being determined
+  // Render nothing until we know who is signed in.
   if (isLoading) {
-    return (
-      <main className="mx-auto w-full max-w-[1400px] px-8 py-6">
-        <div className="flex items-center justify-center">
-          <div>Loading...</div>
-        </div>
-      </main>
-    );
+    return null;
   }
 
   // Don't render anything if user is not loaded or not admin
@@ -41,29 +35,29 @@ export function TeamClient() {
     return null;
   }
 
+  const admins = users.filter((u) => u.role === "admin").length;
+  const invited = users.filter((u) => u.invited).length;
+
   return (
-    <div className="mx-auto w-full max-w-[1400px] px-8 py-6">
+    <main className="mx-auto w-full max-w-[1000px] px-8 py-6">
       <PageHeader
         title="Team"
-        description="Manage who has access to this workspace."
+        description={[
+          `${users.length} ${users.length === 1 ? "member" : "members"}`,
+          `${admins} ${admins === 1 ? "admin" : "admins"}`,
+          invited > 0 ? `${invited} invited` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
         actions={
           <Button onClick={() => setIsInviteModalOpen(true)}>
-            Invite User
+            <UserPlus />
+            Invite Member
           </Button>
         }
       />
-      <Card>
-        <CardHeader>
-          <CardTitle>Team Members</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <TeamMemberList />
-        </CardContent>
-      </Card>
-      <InviteUserModal
-        isOpen={isInviteModalOpen}
-        onClose={() => setIsInviteModalOpen(false)}
-      />
-    </div>
+      <TeamMemberList />
+      <InviteUserModal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)} />
+    </main>
   );
 }

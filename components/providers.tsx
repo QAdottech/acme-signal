@@ -38,6 +38,8 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const isPublicRoute = !pathname || publicRoutes.includes(pathname);
 
   if (isPublicRoute) {
+    // The login page carries its own logo; other public pages get a header.
+    if (pathname === "/login") return <>{children}</>;
     return (
       <>
         <PublicHeader />

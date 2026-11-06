@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Building2, CheckCircle2, Circle, CircleDollarSign, UserRound } from "lucide-react";
 import { InlineSelect, PersonChip } from "@/components/record-table/cells";
-import { OWNERS } from "@/lib/team";
+import { ASSIGNEES } from "@/lib/team";
 import type { Task, TaskPriority, TaskStatus } from "@/types/task";
 import type { Deal } from "@/types/deal";
 import type { Organization } from "@/types/organization";
@@ -40,7 +40,7 @@ export function StatusPill({ status }: { status: TaskStatus }) {
 }
 
 /** Priority as signal bars plus a label, so it reads at a glance without colour alone. */
-export function PriorityLabel({ priority }: { priority: TaskPriority }) {
+export function PriorityLabel({ priority, iconOnly }: { priority: TaskPriority; iconOnly?: boolean }) {
   const meta = PRIORITY_META[priority];
   return (
     <span className={cn("inline-flex items-center gap-1.5 text-[13px]", meta.className)}>
@@ -53,7 +53,7 @@ export function PriorityLabel({ priority }: { priority: TaskPriority }) {
           />
         ))}
       </span>
-      <span className={priority === "low" ? "" : "text-foreground"}>{meta.label}</span>
+      {!iconOnly && <span className={priority === "low" ? "" : "text-foreground"}>{meta.label}</span>}
     </span>
   );
 }
@@ -89,7 +89,7 @@ export function AssigneeCell({ value, onChange }: { value?: string; onChange: (n
     <InlineSelect
       label="Assignee"
       value={value}
-      options={OWNERS}
+      options={ASSIGNEES}
       onChange={onChange}
       renderValue={(name) => (name ? <PersonChip name={name} /> : <span className="text-muted-foreground/60">—</span>)}
       renderOption={(name) => <PersonChip name={name} />}

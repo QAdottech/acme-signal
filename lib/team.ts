@@ -6,6 +6,12 @@ export const OWNERS = [
   "David Martinez",
 ] as const;
 
+/**
+ * People who can be assigned tasks: the sales reps plus the demo workspace's
+ * own users, so "My Tasks" has something in it for whoever is logged in.
+ */
+export const ASSIGNEES = [...OWNERS, "James Morrison", "Elena Vasquez", "Sarah Chen"] as const;
+
 export function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";

@@ -1,41 +1,18 @@
 "use client";
 
-import type React from "react";
-
-import { useState, type ChangeEvent } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { Organization } from "@/types/organization";
-import { Upload, X } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Combobox, Field, FormDialog } from "@/components/form-dialog";
+import { getOrganizations } from "@/lib/organizationData";
+import { getStageStyle } from "@/lib/stages";
+import { OWNERS } from "@/lib/team";
+import { Avatar, CompanyLogo } from "@/components/record-table/cells";
+import { convertFileToDataUrl, generateUniqueFileName, saveFileToLocalStorage } from "@/lib/fileUtils";
 import { cn } from "@/lib/utils";
-import {
-  convertFileToDataUrl,
-  generateUniqueFileName,
-  saveFileToLocalStorage,
-} from "@/lib/fileUtils";
+import type { DealStage, Organization } from "@/types/organization";
 
 interface AddOrganizationModalProps {
   isOpen: boolean;
@@ -43,66 +20,122 @@ interface AddOrganizationModalProps {
   onAdd: (organization: Omit<Organization, "id">) => void;
 }
 
-export function AddOrganizationModal({
+const BASE_INDUSTRIES = [
+  "Artificial Intelligence",
+  "Analytics",
+  "Biotechnology",
+  "Developer Tools",
+  "E-commerce",
+  "EdTech",
+  "Fintech",
+  "Gaming",
+  "HR Technology",
+  "Legal Technology",
+  "Music",
+  "Software testing",
+  "Web Development",
+];
+
+const STAGES: DealStage[] = ["New", "Lead", "Qualified", "Proposal", "Negotiation", "Customer"];
+
+export function AddOrganizationModal({ isOpen, onClose, onAdd }: AddOrganizationModalProps) {
+  return <CompanyFormDialog isOpen={isOpen} onClose={onClose} onSubmit={onAdd} />;
+}
+
+/** Edit an existing company in the same form. Delete lives in the page's menu. */
+export function EditOrganizationModal({
   isOpen,
   onClose,
-  onAdd,
-}: AddOrganizationModalProps) {
+  onEdit,
+  organization,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onEdit: (organization: Organization) => void;
+  /** Kept for callers; deleting is done from the company page's menu. */
+  onDelete?: (organizationId: string) => void;
+  organization: Organization;
+}) {
+  return (
+    <CompanyFormDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      initial={organization}
+      onSubmit={(values) => onEdit({ ...organization, ...values, collections: organization.collections })}
+    />
+  );
+}
+
+function CompanyFormDialog({
+  isOpen,
+  onClose,
+  onSubmit,
+  initial,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (organization: Omit<Organization, "id">) => void;
+  initial?: Organization;
+}) {
+  const editing = !!initial;
   const [name, setName] = useState("");
   const [industry, setIndustry] = useState("");
   const [location, setLocation] = useState("");
   const [employees, setEmployees] = useState("");
+  const [owner, setOwner] = useState("");
   const [logo, setLogo] = useState("");
   const [logoPreview, setLogoPreview] = useState("");
-  const [website_url, setWebsiteUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [description, setDescription] = useState("");
-  const [dealStage, setDealStage] =
-    useState<Organization["dealStage"]>("New");
-  const [industryOpen, setIndustryOpen] = useState(false);
-  const [dealStageOpen, setDealStageOpen] = useState(false);
+  const [dealStage, setDealStage] = useState<DealStage>("New");
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isOpen || !initial) return;
+    setName(initial.name);
+    setIndustry(initial.industry);
+    setLocation(initial.location ?? "");
+    setEmployees(initial.employees ? String(initial.employees) : "");
+    setOwner(initial.owner ?? "");
+    setLogo(initial.logo ?? "");
+    setLogoPreview(initial.logo ?? "");
+    setWebsiteUrl(initial.website_url ?? "");
+    setDescription(initial.description ?? "");
+    setDealStage(initial.dealStage);
+  }, [isOpen, initial]);
+
+  // Industries already used in the workspace, plus a few common ones.
+  const industries = useMemo(
+    () =>
+      isOpen
+        ? Array.from(new Set([...BASE_INDUSTRIES, ...getOrganizations().map((o) => o.industry)]))
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b))
+        : [],
+    [isOpen]
+  );
 
   const handleLogoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      try {
-        const dataUrl = await convertFileToDataUrl(file);
-        const fileName = generateUniqueFileName(file.name);
-        const logoPath = `/logos/${fileName}`;
-
-        // Save file to localStorage (in a real app, this would be uploaded to a server)
-        saveFileToLocalStorage(logoPath, dataUrl);
-
-        setLogo(logoPath);
-        setLogoPreview(dataUrl);
-      } catch (error) {
-        console.error("Error uploading file:", error);
-      }
+    if (!file) return;
+    try {
+      const dataUrl = await convertFileToDataUrl(file);
+      const logoPath = `/logos/${generateUniqueFileName(file.name)}`;
+      // Stored in localStorage; a real app would upload it.
+      saveFileToLocalStorage(logoPath, dataUrl);
+      setLogo(logoPath);
+      setLogoPreview(dataUrl);
+    } catch (error) {
+      console.error("Error uploading file:", error);
     }
   };
 
-  const removeLogo = () => {
-    setLogo("");
-    setLogoPreview("");
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onAdd({
-      name,
-      industry,
-      location,
-      employees: Number.parseInt(employees, 10),
-      logo,
-      website_url,
-      description,
-      dealStage,
-      collections: [],
-    });
-    // Reset form
+  const reset = () => {
     setName("");
     setIndustry("");
     setLocation("");
     setEmployees("");
+    setOwner("");
     setLogo("");
     setLogoPreview("");
     setWebsiteUrl("");
@@ -110,259 +143,122 @@ export function AddOrganizationModal({
     setDealStage("New");
   };
 
+  const close = () => {
+    reset();
+    onClose();
+  };
+
+  const submit = () => {
+    onSubmit({
+      name: name.trim(),
+      industry,
+      location: location.trim(),
+      employees: Number.parseInt(employees, 10) || 0,
+      logo,
+      website_url: websiteUrl.trim(),
+      description: description.trim(),
+      dealStage,
+      collections: [],
+      ...(owner ? { owner } : {}),
+    });
+    if (!editing) reset();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[625px]">
-        <DialogHeader>
-          <DialogTitle>Add New Organization</DialogTitle>
-          <DialogDescription>
-            Enter the details for the new organization.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="industry" className="text-right">
-                Industry
-              </Label>
-              <Popover open={industryOpen} onOpenChange={setIndustryOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={industryOpen}
-                    className="w-[200px] col-span-3 justify-between"
-                  >
-                    {industry || "Select industry"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0">
-                  <Command>
-                    <CommandInput placeholder="Search industry..." />
-                    <CommandEmpty>No industry found.</CommandEmpty>
-                    <CommandGroup>
-                      {[
-                        "Music",
-                        "Food",
-                        "Software testing",
-                        "Web Development",
-                        "HR Technology",
-                        "Gaming",
-                        "Fintech",
-                        "Contract Management",
-                        "Developer Tools",
-                        "Analytics",
-                        "Artificial Intelligence",
-                        "E-commerce AI",
-                        "EdTech",
-                        "Design Tools",
-                        "Biotechnology",
-                        "Financial Technology",
-                        "Legal Technology",
-                      ].map((ind) => (
-                        <CommandItem
-                          key={ind}
-                          onSelect={() => {
-                            setIndustry(ind);
-                            setIndustryOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              industry === ind ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {ind}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="location" className="text-right">
-                Location
-              </Label>
-              <Input
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="employees" className="text-right">
-                Employees
-              </Label>
-              <Input
-                id="employees"
-                type="number"
-                value={employees}
-                onChange={(e) => setEmployees(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="logo" className="text-right">
-                Logo
-              </Label>
-              <div className="col-span-3 space-y-2">
-                {logoPreview ? (
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200">
-                      {/* Uploaded logos are data URLs, which next/image doesn't optimize. */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={logoPreview || "/placeholder.svg"}
-                        alt="Logo preview"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={removeLogo}
-                      className="gap-2 bg-transparent"
-                    >
-                      <X className="w-4 h-4" />
-                      Remove
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-4">
-                    <Input
-                      id="logo"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById("logo")?.click()}
-                      className="gap-2"
-                    >
-                      <Upload className="w-4 h-4" />
-                      Upload Logo
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      PNG, JPG up to 5MB
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="website_url" className="text-right">
-                Website URL
-              </Label>
-              <Input
-                id="website_url"
-                type="url"
-                value={website_url}
-                onChange={(e) => setWebsiteUrl(e.target.value)}
-                className="col-span-3"
-                placeholder="https://example.com"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="col-span-3"
-                rows={3}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="dealStage" className="text-right">
-                Deal Stage
-              </Label>
-              <Popover open={dealStageOpen} onOpenChange={setDealStageOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={dealStageOpen}
-                    className="w-[200px] col-span-3 justify-between"
-                  >
-                    {dealStage || "Select stage"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0">
-                  <Command>
-                    <CommandInput placeholder="Search stage..." />
-                    <CommandEmpty>No stage found.</CommandEmpty>
-                    <CommandGroup>
-                      {([
-                        "New",
-                        "Lead",
-                        "Qualified",
-                        "Proposal",
-                        "Negotiation",
-                        "Customer",
-                        "Churned",
-                        "Closed Lost",
-                      ] as const).map((stage) => (
-                        <CommandItem
-                          key={stage}
-                          onSelect={() => {
-                            setDealStage(stage);
-                            setDealStageOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              dealStage === stage
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          {stage}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-          <DialogFooter>
+    <FormDialog
+      open={isOpen}
+      onOpenChange={(open) => !open && close()}
+      title={editing ? "Edit Company" : "Create Company"}
+      description={editing ? "Update this company's details." : "Add a company to your CRM."}
+      submitLabel={editing ? "Save Changes" : "Create Company"}
+      submitDisabled={!name.trim() || !industry}
+      onSubmit={submit}
+    >
+      <Field label="Name" htmlFor="company-name" required wide>
+        <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Acme Inc." autoFocus={!editing} />
+      </Field>
+      <Field label="Industry" htmlFor="company-industry" required>
+        <Combobox
+          id="company-industry"
+          value={industry}
+          onChange={setIndustry}
+          placeholder="Select industry…"
+          searchPlaceholder="Search industries…"
+          emptyText="No industry found."
+          options={industries.map((i) => ({ value: i, label: i }))}
+        />
+      </Field>
+      <Field label="Location" htmlFor="company-location">
+        <Input id="company-location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Stockholm, Sweden" />
+      </Field>
+      <Field label="Employees" htmlFor="company-employees">
+        <Input id="company-employees" type="number" min="0" value={employees} onChange={(e) => setEmployees(e.target.value)} placeholder="50" />
+      </Field>
+      <Field label="Deal Stage" htmlFor="company-stage">
+        <Combobox
+          id="company-stage"
+          value={dealStage}
+          onChange={(s) => setDealStage(s as DealStage)}
+          options={(STAGES.includes(dealStage) ? STAGES : [...STAGES, dealStage]).map((s) => ({
+            value: s,
+            label: s,
+            icon: <span aria-hidden className={cn("h-2 w-2 shrink-0 rounded-full", getStageStyle(s).dot)} />,
+          }))}
+        />
+      </Field>
+      <Field label="Owner" htmlFor="company-owner">
+        <Combobox
+          id="company-owner"
+          value={owner}
+          onChange={setOwner}
+          placeholder="Select owner…"
+          options={OWNERS.map((o) => ({ value: o, label: o, icon: <Avatar name={o} /> }))}
+        />
+      </Field>
+      <Field label="Website URL" htmlFor="company-website">
+        <Input id="company-website" type="url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://example.com" />
+      </Field>
+      <Field label="Logo" htmlFor="company-logo" wide>
+        <div className="flex items-center gap-3">
+          {logoPreview.startsWith("data:") ? (
+            // A fresh upload is a data URL, which next/image doesn't optimize.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoPreview} alt="Logo preview" className="h-8 w-8 rounded-md border object-contain" />
+          ) : (
+            logo && <CompanyLogo name={name} logo={logo} />
+          )}
+          <input id="company-logo" ref={fileInput} type="file" accept="image/*" onChange={handleLogoUpload} className="sr-only" />
+          <Button type="button" variant="outline" size="sm" onClick={() => fileInput.current?.click()}>
+            <Upload />
+            {logoPreview ? "Replace" : "Upload logo"}
+          </Button>
+          {logoPreview ? (
             <Button
-              type="submit"
-              
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setLogo("");
+                setLogoPreview("");
+              }}
             >
-              Add Organization
+              <X />
+              Remove
             </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          ) : (
+            <span className="text-xs text-muted-foreground">PNG or JPG, up to 5 MB</span>
+          )}
+        </div>
+      </Field>
+      <Field label="Description" htmlFor="company-description" wide>
+        <Textarea
+          id="company-description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+          placeholder="What does this company do?"
+        />
+      </Field>
+    </FormDialog>
   );
 }

@@ -10,6 +10,8 @@ interface User {
   avatar: string;
   role: "admin" | "member";
   password?: string; // For demo purposes only - never do this in production!
+  /** Invited but hasn't signed in yet. */
+  invited?: boolean;
 }
 
 interface AuthContextType {
@@ -25,7 +27,8 @@ interface AuthContextType {
     newRole: "admin" | "member"
   ) => Promise<void>;
   removeUser: (userId: string) => Promise<void>;
-  inviteUser: (email: string) => Promise<void>;
+  /** Adds the address as an invited member. Fails if it's already on the team. */
+  inviteUser: (email: string, role?: "admin" | "member") => Promise<void>;
   isLoading: boolean;
 }
 
@@ -171,14 +174,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("users", JSON.stringify(updatedUsers));
   };
 
-  const inviteUser = async (email: string): Promise<void> => {
+  const inviteUser = async (email: string, role: "admin" | "member" = "member"): Promise<void> => {
     // In a real application, this would be an API call
-    const newUser = {
+    const normalized = email.trim().toLowerCase();
+    if (users.some((u) => u.email.toLowerCase() === normalized)) {
+      throw new Error(`${email.trim()} is already on the team.`);
+    }
+    const newUser: User = {
       id: Math.random().toString(36).substr(2, 9),
-      email,
+      email: email.trim(),
       fullName: "",
       avatar: "",
-      role: "member" as const,
+      role,
+      invited: true,
     };
     const updatedUsers = [...users, newUser];
     setUsers(updatedUsers);

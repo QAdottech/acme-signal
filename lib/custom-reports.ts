@@ -47,7 +47,7 @@ export function getReportTemplates(): ReportTemplate[] {
         },
         {
           id: "top-deals-table",
-          title: "Top Deals",
+          title: "Largest Open Deals",
           type: "data-table",
           dataSource: "topDeals",
         },
@@ -57,35 +57,35 @@ export function getReportTemplates(): ReportTemplate[] {
       id: "industry-breakdown",
       name: "Industry Breakdown",
       description:
-        "Donut chart of organizations by industry and bar chart of deal value by industry.",
+        "Companies and deal value by industry.",
       icon: "Building2",
       widgets: [
         {
           id: "industry-donut",
-          title: "Organizations by Industry",
-          type: "donut-chart",
+          title: "Companies by Industry",
+          type: "bar-chart",
           dataSource: "industryDistribution",
         },
         {
           id: "industry-value-bar",
           title: "Deal Value by Industry",
           type: "bar-chart",
-          dataSource: "dealValueByStage",
+          dataSource: "dealValueByIndustry",
         },
       ],
     },
     {
       id: "contact-growth",
-      name: "Contact Growth",
+      name: "Contact Engagement",
       description:
-        "Line chart of contacts added over time with KPIs for total contacts and companies.",
+        "How recently each contact was reached, with KPIs for total contacts and companies.",
       icon: "TrendingUp",
       widgets: [
         {
           id: "contact-growth-line",
-          title: "Growth Over Time",
-          type: "line-chart",
-          dataSource: "growthOverTime",
+          title: "Contacts by Last Touch",
+          type: "bar-chart",
+          dataSource: "contactRecency",
           span: 2,
         },
         {
@@ -104,9 +104,9 @@ export function getReportTemplates(): ReportTemplate[] {
     },
     {
       id: "activity-timeline",
-      name: "Activity Timeline",
+      name: "Stage Snapshot",
       description:
-        "Overview of deal stages and top deals in your pipeline.",
+        "Deal count per stage and the largest open deals.",
       icon: "Activity",
       widgets: [
         {
@@ -118,7 +118,7 @@ export function getReportTemplates(): ReportTemplate[] {
         },
         {
           id: "activity-top-deals",
-          title: "Top Deals",
+          title: "Largest Open Deals",
           type: "data-table",
           dataSource: "topDeals",
           span: 2,
