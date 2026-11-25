@@ -12,6 +12,6 @@ const VALUE_SUFFIXES: Record<string, number> = { k: 1_000, m: 1_000_000 }
  */
 export function parseDealValue(raw: string): number {
   const cleaned = raw.trim().toLowerCase().replace(/[$,\s]/g, '')
-  const multiplier = VALUE_SUFFIXES[cleaned.slice(-1)] ?? 1
-  return Number(cleaned.slice(0, -1)) * multiplier
+  const multiplier = VALUE_SUFFIXES[cleaned.slice(-1)]
+  return multiplier ? Number(cleaned.slice(0, -1)) * multiplier : Number(cleaned)
 }
