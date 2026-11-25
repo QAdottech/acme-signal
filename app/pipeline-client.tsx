@@ -252,7 +252,7 @@ export function PipelineClient() {
     const newDeal = addDeal(dealData);
     // Guard against a double submit adding the same deal twice.
     setDeals((prev) =>
-      prev.some((d) => d.organizationId === newDeal.organizationId)
+      prev.some((d) => d.id === newDeal.id)
         ? prev
         : [...prev, newDeal]
     );
