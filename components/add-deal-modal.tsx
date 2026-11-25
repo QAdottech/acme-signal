@@ -17,7 +17,7 @@ import type { Deal } from "@/types/deal";
 import type { Organization, DealStage } from "@/types/organization";
 import { getOrganizations } from "@/lib/organizationData";
 import { Check, ChevronsUpDown, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, parseDealValue } from "@/lib/utils";
 import {
   Popover,
   PopoverContent,
@@ -82,6 +82,9 @@ export function AddDealModal({
   }, [isOpen, defaultStage]);
 
   const selectedOrg = organizations.find((o) => o.id === organizationId);
+  const sortedOrganizations = [...organizations].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
 
   const handleAddTag = (tag: string) => {
     if (!selectedTags.includes(tag)) {
@@ -99,7 +102,7 @@ export function AddDealModal({
     onAdd({
       title,
       organizationId,
-      value: Number(value),
+      value: parseDealValue(value),
       currency: "USD",
       stage,
       expectedCloseDate,
@@ -165,11 +168,11 @@ export function AddDealModal({
                     <CommandInput placeholder="Search companies..." />
                     <CommandEmpty>No company found.</CommandEmpty>
                     <CommandGroup className="max-h-[200px] overflow-auto">
-                      {organizations.map((org) => (
+                      {sortedOrganizations.map((org, index) => (
                         <CommandItem
                           key={org.id}
                           onSelect={() => {
-                            setOrganizationId(org.id);
+                            setOrganizationId(organizations[index].id);
                             setOrgOpen(false);
                           }}
                         >
@@ -195,11 +198,12 @@ export function AddDealModal({
               </Label>
               <Input
                 id="deal-value"
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 className="col-span-3"
-                placeholder="50000"
+                placeholder="50,000 or 50k"
                 required
               />
             </div>

@@ -250,7 +250,12 @@ export function PipelineClient() {
 
   const handleAddDeal = (dealData: Omit<Deal, "id" | "createdAt">) => {
     const newDeal = addDeal(dealData);
-    setDeals((prev) => [...prev, newDeal]);
+    // Guard against a double submit adding the same deal twice.
+    setDeals((prev) =>
+      prev.some((d) => d.organizationId === newDeal.organizationId)
+        ? prev
+        : [...prev, newDeal]
+    );
     setIsModalOpen(false);
   };
 
