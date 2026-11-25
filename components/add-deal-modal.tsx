@@ -61,7 +61,6 @@ export function AddDealModal({
   const [title, setTitle] = useState("");
   const [organizationId, setOrganizationId] = useState("");
   const [value, setValue] = useState("");
-  const [valueError, setValueError] = useState("");
   const [stage, setStage] = useState<DealStage>(defaultStage);
   const [expectedCloseDate, setExpectedCloseDate] = useState("");
   const [owner, setOwner] = useState("");
@@ -83,9 +82,6 @@ export function AddDealModal({
   }, [isOpen, defaultStage]);
 
   const selectedOrg = organizations.find((o) => o.id === organizationId);
-  const sortedOrganizations = [...organizations].sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
 
   const handleAddTag = (tag: string) => {
     if (!selectedTags.includes(tag)) {
@@ -100,16 +96,10 @@ export function AddDealModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const parsedValue = parseDealValue(value);
-    if (Number.isNaN(parsedValue)) {
-      setValueError("Enter an amount like 40000, 40,000 or 40k.");
-      return;
-    }
-    setValueError("");
     onAdd({
       title,
       organizationId,
-      value: parsedValue,
+      value: parseDealValue(value),
       currency: "USD",
       stage,
       expectedCloseDate,
@@ -175,7 +165,7 @@ export function AddDealModal({
                     <CommandInput placeholder="Search companies..." />
                     <CommandEmpty>No company found.</CommandEmpty>
                     <CommandGroup className="max-h-[200px] overflow-auto">
-                      {sortedOrganizations.map((org) => (
+                      {organizations.map((org) => (
                         <CommandItem
                           key={org.id}
                           onSelect={() => {
@@ -212,18 +202,7 @@ export function AddDealModal({
                 className="col-span-3"
                 placeholder="50,000 or 50k"
                 required
-                aria-invalid={valueError ? true : undefined}
-                aria-describedby={valueError ? "deal-value-error" : undefined}
               />
-              {valueError && (
-                <p
-                  id="deal-value-error"
-                  role="alert"
-                  className="col-span-3 col-start-2 text-sm text-destructive"
-                >
-                  {valueError}
-                </p>
-              )}
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Stage</Label>
